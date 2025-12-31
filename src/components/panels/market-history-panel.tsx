@@ -10,8 +10,12 @@ const Candlestick = (props: any) => {
     const { x, width, low, high, average, previousAverage, yAxis } = props;
   
     // Check for essential props to prevent rendering errors
-    if ([x, width, low, high, average, yAxis, yAxis.scale].some(val => val === undefined || val === null)) {
+    if ([x, width, low, high, average].some(val => val === undefined || val === null)) {
       return null;
+    }
+     // Further check for yAxis and its scale function
+    if (!yAxis || typeof yAxis.scale !== 'function') {
+        return null;
     }
   
     const isBullish = previousAverage !== undefined ? average > previousAverage : true;
@@ -277,9 +281,9 @@ export function MarketHistoryPanel({
             
             <ResponsiveContainer width="100%" height="35%">
                 <ComposedChart
-                  data={chartData}
-                  syncId="marketData"
-                  margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                    data={chartData}
+                    syncId="marketData"
+                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                     <XAxis dataKey="date" hide={true} />
@@ -295,7 +299,7 @@ export function MarketHistoryPanel({
                     <Tooltip content={<CustomTooltip />} />
                     <Bar
                         yAxisId="candlestick"
-                        dataKey="average" // dataKey is needed but values are taken from the full payload object in shape
+                        dataKey="average"
                         shape={(props) => <Candlestick {...props} yAxis={(props as any).yAxis} />}
                         barSize={10}
                     />
@@ -320,3 +324,5 @@ export function MarketHistoryPanel({
     </Card>
   );
 }
+
+    
