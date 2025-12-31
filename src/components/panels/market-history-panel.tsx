@@ -8,37 +8,49 @@ import { useMemo } from 'react';
 
 // Custom shape for the candlestick
 const Candlestick = (props: any) => {
-  const { x, y, width, height, low, high, average, previousAverage, ...rest } = props;
+  const { x, y, width, height, low, high, average, previousAverage } = props;
 
-  // If props for drawing are missing, don't render anything
-  if (y === undefined || height === undefined || x === undefined || width === undefined || !rest.yAxis) {
-    return null;
+  // If core props are missing, don't render.
+  if ([x, y, width, height, low, high, average, previousAverage].some(p => p === undefined || p === null)) {
+      return null;
   }
-  
-  const yAxis = rest.yAxis;
 
   const isBullish = average >= previousAverage;
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
+  // Recharts passes `y` and `height` based on the dataKey for the Bar.
+  // In our case, it's `average`. The `y` coordinate corresponds to the average price.
+  // We need to calculate the actual y-positions for high and low based on the full y-axis range.
+  const yAxis = props.yAxis; // Recharts *does* pass this, but it can be unreliable. Let's check it.
+  
+  if (!yAxis || typeof yAxis.scale !== 'function') {
+      // Fallback or error logging if yAxis isn't what we expect
+      return null; 
+  }
+  
   const highWickY = yAxis.scale(high);
   const lowWickY = yAxis.scale(low);
 
-  // Body based on average and a small range
-  const bodyRange = Math.abs(high - low) * 0.2;
+  // The body represents a small range around the average. Let's make it 1/5th of the high-low spread.
+  const spread = high - low;
+  const bodyRange = spread * 0.2;
+  
   const bodyTopValue = average + bodyRange / 2;
   const bodyBottomValue = average - bodyRange / 2;
 
   const bodyTopY = yAxis.scale(bodyTopValue);
   const bodyBottomY = yAxis.scale(bodyBottomValue);
-  const bodyHeight = Math.abs(bodyTopY - bodyBottomY);
+  
+  // Ensure height is at least 1px to be visible
+  const bodyHeight = Math.max(1, Math.abs(bodyTopY - bodyBottomY));
   
   return (
     <g stroke={stroke} fill={fill} strokeWidth={1}>
-      {/* High-Low Wick */}
+      {/* High-Low Wick (the thin line) */}
       <line x1={x + width / 2} y1={highWickY} x2={x + width / 2} y2={lowWickY} />
-      {/* Body */}
-      <rect x={x} y={bodyTopY} width={width} height={bodyHeight > 0 ? bodyHeight : 1} />
+      {/* Body (the thicker part) */}
+      <rect x={x} y={Math.min(bodyTopY, bodyBottomY)} width={width} height={bodyHeight} />
     </g>
   );
 };
@@ -223,7 +235,7 @@ export function MarketHistoryPanel({
                     />
 
                     {/* Candlesticks */}
-                    <Bar yAxisId="left" dataKey="average" shape={<Candlestick />} />
+                    <Bar yAxisId="left" dataKey="average" shape={<Candlestick />} barSize={10} />
 
                     {/* Average price line */}
                     <Line 
