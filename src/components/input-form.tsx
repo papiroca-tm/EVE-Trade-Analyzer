@@ -130,7 +130,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
 
     performSearch();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedItemSearch, initialData.itemTypes, form.getValues('typeId')]);
+  }, [debouncedItemSearch]);
 
 
   const selectedItemName = useMemo(() => {
