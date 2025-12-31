@@ -14,9 +14,10 @@ interface OrderWithCumulative extends MarketOrderItem {
 }
 
 const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderItem[], type: 'buy' | 'sell', averageDailyVolume: number }) => {
-    const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
-
+    
     const processedOrders = useMemo(() => {
+        const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
+        
         const sorted = [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
         
         let cumulativeVolume = 0;
@@ -32,7 +33,7 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
         }
         
         return withCumulative;
-    }, [orders, type, wallThreshold]);
+    }, [orders, type, averageDailyVolume]);
 
 
     return (
@@ -50,8 +51,8 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
                 </TableHeader>
                 <TableBody>
                 {processedOrders.length > 0 ? (
-                    processedOrders.slice(0, 100).map((order, index) => (
-                    <TableRow key={order.order_id} className={cn(index === 0 && 'bg-primary/20', order.isWall && 'bg-muted/50 font-bold')}>
+                    processedOrders.slice(0, 100).map((order) => (
+                    <TableRow key={order.order_id} className={cn(order.isWall && 'bg-muted/50 font-bold')}>
                         <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
                     </TableRow>
@@ -80,7 +81,7 @@ export function OrderBookPanel({ buyOrders, sellOrders, averageDailyVolume }: { 
             <BookOpen className="h-6 w-6 text-primary" />
             <CardTitle>Активные ордера</CardTitle>
         </div>
-        <CardDescription>Снимок топ-100 текущих ордеров. Лучшие предложения и уровни поддержки/сопротивления подсвечены.</CardDescription>
+        <CardDescription>Снимок топ-100 текущих ордеров. Уровни поддержки/сопротивления подсвечены.</CardDescription>
       </CardHeader>
       <CardContent className="flex gap-4">
         <OrderTable orders={buyOrders} type="buy" averageDailyVolume={averageDailyVolume} />
