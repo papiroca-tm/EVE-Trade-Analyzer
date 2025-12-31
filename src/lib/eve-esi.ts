@@ -107,52 +107,29 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
 
     if (typeIds.length === 0) return [];
     
-    // ESI has a limit of 1000 IDs for the /universe/names/ endpoint, but let's be reasonable
+    // ESI has a limit of 1000 IDs for the /universe/names/ endpoint, but let's be reasonable for a search dropdown
     const maxIdsToFetch = 50; 
     const cappedTypeIds = typeIds.slice(0, maxIdsToFetch);
     
-    // Instead of N requests, let's try a single POST request to /universe/names/ which is more efficient
-    try {
-        const namesResponse = await fetch(`${ESI_BASE_URL}/universe/names/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(cappedTypeIds),
-            cache: 'no-store'
-        });
-        if (!namesResponse.ok) {
-             throw new Error(`Failed to post to /universe/names/: ${namesResponse.statusText}`);
-        }
-        const namesData: {id: number, name: string}[] = await namesResponse.json();
-        
-        const typeDetails = namesData.map(item => ({
-            type_id: item.id,
-            name: item.name
-        }));
-
-        // We can't check for market group here, but this is much faster.
-        // We will rely on the fact that subsequent analysis will fail if the item is not on the market.
-        return typeDetails.sort((a,b) => a.name.localeCompare(b.name));
-
-    } catch (e) {
-        console.error("Failed to fetch item names via POST", e);
-        // Fallback to individual requests if POST fails for some reason
-        const fallbackDetails = await Promise.all(
-          cappedTypeIds.map(async (id) => {
-            try {
-                const response = await fetchEsi(`/universe/types/${id}/`, true);
-                const data = await response.json();
-                if (data.published && data.market_group_id) {
-                    return { type_id: id, name: data.name };
-                }
-                return null;
-            } catch (err) {
-                return null;
+    // Fetch details for each type_id individually as per the provided specification
+    const itemDetailsPromises = cappedTypeIds.map(async (id) => {
+        try {
+            const response = await fetchEsi(`/universe/types/${id}/`, true);
+            const data = await response.json();
+            // Ensure the item is published and on the market before including it
+            if (data.published && data.market_group_id) {
+                return { type_id: id, name: data.name };
             }
-          })
-        );
-        return fallbackDetails.filter((t): t is ItemType => t !== null).sort((a,b) => a.name.localeCompare(b.name));
-    }
+            return null;
+        } catch (err) {
+            console.warn(`Failed to fetch item details for ID ${id}`, err);
+            return null;
+        }
+    });
+
+    const resolvedDetails = await Promise.all(itemDetailsPromises);
+
+    return resolvedDetails
+        .filter((t): t is ItemType => t !== null)
+        .sort((a, b) => a.name.localeCompare(b.name));
 }
