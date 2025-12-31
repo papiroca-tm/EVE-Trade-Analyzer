@@ -54,9 +54,9 @@ export function calculateAnalysis(
 
     let recommendations: Recommendation[] = [];
 
-    if (history.length > 0) {
-        // --- Start of New Algorithm Implementation ---
-
+    // --- New Algorithm Implementation ---
+    if (history.length > 0 && bestSellPrice !== Infinity) {
+        
         // Step 1: Определяем волатильность
         const min_price = history.reduce((min, h) => Math.min(min, h.lowest), Infinity);
         const max_price = history.reduce((max, h) => Math.max(max, h.highest), 0);
@@ -64,7 +64,7 @@ export function calculateAnalysis(
         const price_floor = min_price + inputs.volatilityFactor * volatility;
 
         // Step 2: Расчёт максимальной цены покупки
-        const AssumedSellPrice = averagePrice; // Используем среднюю историческую цену
+        const AssumedSellPrice = bestSellPrice; // Используем лучший селл-ордер
         const broker_buy_fee_rate = inputs.brokerBuyFeePercent / 100;
         const broker_sell_fee_rate = inputs.brokerSellFeePercent / 100;
         const tax_rate = inputs.salesTaxPercent / 100;
@@ -72,9 +72,10 @@ export function calculateAnalysis(
         
         const MaxBuyPrice = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) / ((1 + broker_buy_fee_rate) * (1 + target_profit_rate));
 
-        // Step 3: Применяем нижнюю границу с учётом волатильности
-        let recommended_buy = Math.max(MaxBuyPrice, price_floor);
-
+        // Step 3: Применяем нижнюю границу (больше не блокируем, а используем для информации)
+        // Шаг 3 теперь не изменяет цену, а только используется для анализа рисков
+        let recommended_buy = MaxBuyPrice;
+        
         // Step 4: Коррекция по текущему стакану
         const tick_size = 0.01;
         if (buyOrders.length > 0) {
@@ -84,7 +85,6 @@ export function calculateAnalysis(
 
         // --- End of New Algorithm Core Logic ---
 
-        // Let's create a recommendation if the calculated price is valid
         if (recommended_buy > 0 && recommended_buy < AssumedSellPrice) {
             
             const buyPriceRange = { min: price_floor, max: recommended_buy };
@@ -100,22 +100,27 @@ export function calculateAnalysis(
                 max: inputs.executionDays,
             };
 
-            // Feasibility logic (can be refined)
+            let feasibilityReason = `Оценка выполнимости основана на историческом объеме, глубине стакана и близости к текущим ценам.`;
+            if (recommended_buy < price_floor) {
+                feasibilityReason += ` Внимание: Рекомендованная цена для достижения маржи ниже исторического уровня поддержки (${price_floor.toFixed(2)} ISK). Покупка по этой цене может быть затруднена.`;
+            }
+
+            // Feasibility logic
             let score = 0;
             if (averageDailyVolume > 1000) score++;
             if (totalBuyOrderVolume > executableVolume.high) score++;
             if (totalSellOrderVolume > executableVolume.high) score++;
             if (Math.abs(recommended_buy - midPrice) / midPrice < 0.1) score++;
+            if (recommended_buy >= price_floor) score++; // bonus point for being above floor
             
-            const feasibilityLevels: Feasibility[] = ['low', 'medium', 'high', 'very high'];
-            const feasibility = feasibilityLevels[Math.min(score, 3)];
-            const feasibilityReason = `Оценка выполнимости основана на историческом объеме, глубине стакана и близости к текущим ценам.`;
+            const feasibilityLevels: Feasibility[] = ['low', 'low', 'medium', 'high', 'very high', 'very high'];
+            const feasibility = feasibilityLevels[score];
 
             const netProfitPerItem = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) - (recommended_buy * (1 + broker_buy_fee_rate));
             const netMarginPercent = (netProfitPerItem / (recommended_buy * (1 + broker_buy_fee_rate))) * 100;
             
             // Step 5: Ограничение по капиталу
-            const capital = inputs.positionCapital ?? 100000000; // Default capital if not provided
+            const capital = inputs.positionCapital ?? 100000000;
             const quantity = Math.floor(capital / recommended_buy);
             const potentialProfit = netProfitPerItem * quantity;
 
