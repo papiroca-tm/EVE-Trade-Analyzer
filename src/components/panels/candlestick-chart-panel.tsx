@@ -6,46 +6,26 @@ import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Bar } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
-// Function to generate random but realistic stock data
-const generateRandomCandlestickData = (count: number) => {
-  const data = [];
-  let lastClose = Math.random() * 2 + 3; // Start between 3 and 5
-
-  for (let i = 0; i < count; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - (count - i));
-    
-    const open = lastClose;
-    const close = open + (Math.random() - 0.5) * 0.5;
-    const high = Math.max(open, close) + Math.random() * 0.3;
-    const low = Math.min(open, close) - Math.random() * 0.3;
-    
-    data.push({
-      date: date.toISOString().split('T')[0],
-      open: Number(open.toFixed(4)),
-      close: Number(close.toFixed(4)),
-      high: Number(high.toFixed(4)),
-      low: Number(low.toFixed(4)),
-    });
-    
-    lastClose = close;
-  }
-  return data;
-};
-
 
 // Custom shape for the candlestick
 const Candle = (props: any) => {
   const { x, y, width, height, payload } = props;
   const { open, high, low, close } = payload;
+  
+  if (!payload || open === undefined) {
+    return null;
+  }
+
   const isBullish = close >= open;
 
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
   // This helper function maps a price value to a Y coordinate within the bar's space.
-  // It uses the payload's high/low and the chart's y/height props to do the mapping.
   const yValueToCoordinate = (value: number) => {
+    // The payload contains the full range of data for this point.
+    // The y and height props are for the entire bar space given by recharts.
+    // We can create a ratio and map it.
     const domainRange = payload.high - payload.low;
     // Handle case where high and low are the same to avoid division by zero
     if (domainRange === 0) {
@@ -77,17 +57,37 @@ const Candle = (props: any) => {
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
   const {data, yDomain} = useMemo(() => {
-    
-    const randomData = generateRandomCandlestickData(90);
+     if (!history || history.length === 0) {
+      return { data: [], yDomain: [0, 10] };
+    }
 
-    const chartData = randomData.map((item) => {
+    const volumes = history.map(h => h.volume);
+    const maxVolume = Math.max(...volumes);
+    const minVolume = Math.min(...volumes);
+    const volumeRange = maxVolume - minVolume;
+
+    const chartData = history.map((item, index) => {
+        const { lowest, highest, volume, average } = item;
+
+        // Calculate body size based on volume percentage
+        const volumePercentage = volumeRange > 0 ? (volume - minVolume) / volumeRange : 0;
+        const priceRange = highest - lowest;
+        const bodySize = priceRange * volumePercentage;
+
+        // Center the body around the average price
+        const open = average - bodySize / 2;
+        const close = average + bodySize / 2;
+        
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            ...item,
+            open: Number(open.toFixed(4)),
+            close: Number(close.toFixed(4)),
+            high: Number(highest.toFixed(4)),
+            low: Number(lowest.toFixed(4)),
             // For recharts <Bar>, the dataKey determines the 'y' prop for the shape.
             // We need to provide a range for the bar to occupy space.
             // Here, we'll use [low, high] so the bar's shape can access the full range.
-            range: [item.low, item.high]
+            range: [Number(lowest.toFixed(4)), Number(highest.toFixed(4))]
         }
     });
 
@@ -100,7 +100,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         data: chartData,
         yDomain: [minPrice - padding, maxPrice + padding]
     };
-  }, []);
+  }, [history]);
 
   return (
     <Card>
@@ -110,7 +110,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             <CardTitle>График цен (Свечи)</CardTitle>
         </div>
         <CardDescription>
-            Дневной диапазон цен (open, high, low, close).
+            Дневной диапазон цен. Тело свечи представляет объем торгов за день.
         </CardDescription>
       </CardHeader>
       <CardContent>
