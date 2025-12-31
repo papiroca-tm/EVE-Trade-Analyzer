@@ -60,8 +60,8 @@ export function MarketHistoryPanel({
       'Объем': item.volume,
       'SMA 7': sma7[index],
       'SMA 30': sma30[index],
-      'Рекомендация покупки': recommendationLines?.buy,
-      'Рекомендация продажи': recommendationLines?.sell,
+      'recBuy': recommendationLines?.buy,
+      'recSell': recommendationLines?.sell,
     }));
     
     return fullChartData;
@@ -199,22 +199,24 @@ export function MarketHistoryPanel({
                         <Line
                           yAxisId="0"
                           type="monotone"
-                          dataKey="Рекомендация покупки"
+                          dataKey="recBuy"
                           stroke="#888888"
                           strokeWidth={1.5}
                           strokeDasharray="3 3"
                           dot={false}
                           connectNulls
+                          name="Рекомендация покупки"
                         />
                         <Line
                           yAxisId="0"
                           type="monotone"
-                          dataKey="Рекомендация продажи"
+                          dataKey="recSell"
                           stroke="#888888"
                           strokeWidth={1.5}
                           strokeDasharray="3 3"
                           dot={false}
                           connectNulls
+                          name="Рекомендация продажи"
                         />
                       </>
                     )}
