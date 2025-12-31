@@ -58,6 +58,7 @@ export function MarketHistoryPanel({
       const max = Math.max(...prices);
       const range = max - min;
       
+      // Use 10% of the range as padding, or 10% of the max price if range is 0
       const padding = range === 0 ? max * 0.1 : range * 0.1;
       
       return [Math.max(0, min - padding), max + padding];
@@ -152,16 +153,17 @@ export function MarketHistoryPanel({
                 >
                     <Tooltip content={<CustomTooltip />} />
                     <XAxis dataKey="date" hide/>
-                    <YAxis hide domain={yDomainPrice} />
+                    <YAxis hide domain={yDomainPrice} yAxisId="0" />
                     
                     {recommendationLines && (
                       <>
-                        <ReferenceLine y={recommendationLines.buy} label={{ value: 'Покупка', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" xAxisId="0" />
-                        <ReferenceLine y={recommendationLines.sell} label={{ value: 'Продажа', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" xAxisId="0" />
+                        <ReferenceLine y={recommendationLines.buy} label={{ value: 'Покупка', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" />
+                        <ReferenceLine y={recommendationLines.sell} label={{ value: 'Продажа', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" />
                       </>
                     )}
 
                     <Line 
+                        yAxisId="0"
                         type="monotone" 
                         dataKey="Цена" 
                         stroke="hsl(var(--primary))" 
@@ -169,6 +171,7 @@ export function MarketHistoryPanel({
                         dot={false}
                     />
                     <Line 
+                        yAxisId="0"
                         type="monotone" 
                         dataKey="SMA 7" 
                         stroke="hsl(var(--chart-4))" 
@@ -178,6 +181,7 @@ export function MarketHistoryPanel({
                         connectNulls
                     />
                     <Line 
+                        yAxisId="0"
                         type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
