@@ -19,19 +19,56 @@ import { cn } from '@/lib/utils';
 import type { MarketOrderItem, PriceAnalysis } from '@/lib/types';
 import { useMemo, useRef, useEffect } from 'react';
 
+interface OrderWithWall extends MarketOrderItem {
+    isWall: boolean;
+}
 
-const SellOrdersRows = ({ orders }: { orders: MarketOrderItem[] }) => {
-    const sortedOrders = useMemo(() => {
-        return [...orders]
+const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem[], averageDailyVolume: number }) => {
+    const processedOrders = useMemo(() => {
+        if (!orders || orders.length === 0) return [];
+        
+        const sorted = [...orders]
             .sort((a, b) => a.price - b.price) // Ascending for sells
             .reverse(); // Show lowest price at the bottom
-    }, [orders]);
+
+        const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
+        let wallFound = false;
+        
+        let cumulativeVolume = 0;
+        const withCumulative: OrderWithWall[] = sorted.map(order => {
+            cumulativeVolume += order.volume_remain;
+            let isWall = false;
+            // Check against cumulative volume of orders AT OR BELOW this price
+            if (!wallFound && cumulativeVolume >= wallThreshold) {
+                isWall = true;
+                wallFound = true; 
+            }
+            return { ...order, isWall };
+        });
+
+        // The logic for sell walls is based on orders *at or cheaper* than the current one.
+        // We need to re-process to apply the flag correctly after sorting.
+        let cumulativeForWallCheck = 0;
+        const reversedForWallCheck = [...orders].sort((a, b) => a.price - b.price);
+        const wallPrice = reversedForWallCheck.find(o => {
+            cumulativeForWallCheck += o.volume_remain;
+            return cumulativeForWallCheck >= wallThreshold;
+        })?.price;
+
+        const finalOrders = sorted.map(order => ({
+            ...order,
+            isWall: wallPrice !== undefined && order.price === wallPrice,
+        }));
+        
+        return finalOrders;
+
+    }, [orders, averageDailyVolume]);
 
     return (
         <>
-            {sortedOrders.length > 0 ? (
-                sortedOrders.map((order) => (
-                    <TableRow key={order.order_id} className="border-b-0">
+            {processedOrders.length > 0 ? (
+                processedOrders.map((order) => (
+                    <TableRow key={order.order_id} className={cn("border-b-0", order.isWall && 'bg-accent/40 text-accent-foreground font-bold')}>
                         <TableCell className='py-0.5 px-2 text-right font-mono text-red-400'>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
@@ -49,16 +86,33 @@ const SellOrdersRows = ({ orders }: { orders: MarketOrderItem[] }) => {
     );
 };
 
-const BuyOrdersRows = ({ orders }: { orders: MarketOrderItem[] }) => {
-    const sortedOrders = useMemo(() => {
-        return [...orders].sort((a, b) => b.price - a.price); // Descending for buys
-    }, [orders]);
+const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem[], averageDailyVolume: number }) => {
+    const processedOrders = useMemo(() => {
+        if (!orders || orders.length === 0) return [];
+        
+        const sorted = [...orders].sort((a, b) => b.price - a.price); // Descending for buys
+        
+        const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
+        let cumulativeVolume = 0;
+        
+        const wallPrice = sorted.find(o => {
+            cumulativeVolume += o.volume_remain;
+            return cumulativeVolume >= wallThreshold;
+        })?.price;
+
+        const finalOrders = sorted.map(order => ({
+            ...order,
+            isWall: wallPrice !== undefined && order.price === wallPrice
+        }));
+
+        return finalOrders;
+    }, [orders, averageDailyVolume]);
 
     return (
         <>
-            {sortedOrders.length > 0 ? (
-                sortedOrders.map((order) => (
-                    <TableRow key={order.order_id} className="border-b-0">
+            {processedOrders.length > 0 ? (
+                processedOrders.map((order) => (
+                    <TableRow key={order.order_id} className={cn("border-b-0", order.isWall && 'bg-accent/40 text-accent-foreground font-bold')}>
                         <TableCell className='py-0.5 px-2 text-right font-mono text-green-400'>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
@@ -94,7 +148,7 @@ const SpreadRow = ({ priceAnalysis, spreadRef }: { priceAnalysis?: PriceAnalysis
     )
 }
 
-export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis }: { buyOrders: MarketOrderItem[], sellOrders: MarketOrderItem[], priceAnalysis?: PriceAnalysis }) {
+export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, averageDailyVolume }: { buyOrders: MarketOrderItem[], sellOrders: MarketOrderItem[], priceAnalysis?: PriceAnalysis, averageDailyVolume: number }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const spreadRef = useRef<HTMLTableRowElement>(null);
   
@@ -120,9 +174,8 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis }: { buy
         <CardTitle className="text-lg">Стакан</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-13rem)]" viewportRef={viewportRef}>
+        <ScrollArea className="h-[calc(100vh-42rem)]" viewportRef={viewportRef}>
           <Table>
-            {/* Invisible header for column width */}
             <TableHeader className='invisible h-0'>
                 <TableRow className='h-0'>
                     <TableHead className='py-0 px-2 w-1/2'></TableHead>
@@ -130,9 +183,9 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis }: { buy
                 </TableRow>
             </TableHeader>
             <TableBody>
-              <SellOrdersRows orders={sellOrders} />
+              <SellOrdersRows orders={sellOrders} averageDailyVolume={averageDailyVolume} />
               <SpreadRow priceAnalysis={priceAnalysis} spreadRef={spreadRef} />
-              <BuyOrdersRows orders={buyOrders} />
+              <BuyOrdersRows orders={buyOrders} averageDailyVolume={averageDailyVolume} />
             </TableBody>
           </Table>
         </ScrollArea>
