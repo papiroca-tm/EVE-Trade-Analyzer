@@ -34,7 +34,8 @@ const Candlestick = (props: any) => {
 
   // The body represents a small range around the average. Let's make it 1/5th of the high-low spread.
   const spread = high - low;
-  const bodyRange = spread * 0.2;
+  // If spread is 0, make body a thin line at the average price
+  const bodyRange = spread > 0 ? spread * 0.2 : 0.01 * average;
   
   const bodyTopValue = average + bodyRange / 2;
   const bodyBottomValue = average - bodyRange / 2;
@@ -119,8 +120,8 @@ export function MarketHistoryPanel({
       const padding = range * 0.1;
 
       domain = [
-        Math.max(0, Math.floor(minPrice - padding)),
-        Math.ceil(maxPrice + padding)
+        Math.max(0, Math.floor((minPrice - padding) * 0.98)),
+        Math.ceil((maxPrice + padding) * 1.02)
       ];
     }
     
@@ -235,7 +236,12 @@ export function MarketHistoryPanel({
                     />
 
                     {/* Candlesticks */}
-                    <Bar yAxisId="left" dataKey="average" shape={<Candlestick />} barSize={10} />
+                    <Bar 
+                        yAxisId="left" 
+                        dataKey="average" 
+                        shape={(props) => <Candlestick {...props} yAxis={({ scale: (v: number) => (this as any).yAxis.scale(v) })} />} 
+                        barSize={10} 
+                    />
 
                     {/* Average price line */}
                     <Line 
@@ -291,5 +297,3 @@ export function MarketHistoryPanel({
     </Card>
   );
 }
-
-  
