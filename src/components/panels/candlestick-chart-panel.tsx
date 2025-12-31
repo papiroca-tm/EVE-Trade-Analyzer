@@ -36,20 +36,37 @@ const generateRandomCandlestickData = (count: number) => {
 
 // Custom shape for the candlestick
 const Candle = (props: any) => {
-  const { x, y, width, height, low, high, open, close } = props;
+  const { x, y, width, height, payload } = props;
+  const { open, high, low, close } = payload;
   const isBullish = close >= open;
-  
-  const bodyHeight = Math.abs(y - props.yAxis.getScreenY(open));
 
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
+  const yValueToCoordinate = (value: number) => {
+    // This function maps a price value to a Y coordinate within the bar's space.
+    // We assume `y` corresponds to the top of the bar's bounding box and `height` is the total height.
+    // The Y-axis is inverted in SVG (0 is at the top).
+    const yDomain = props.yAxis.domain;
+    const domainRange = yDomain[1] - yDomain[0];
+    const valueRatio = (value - yDomain[0]) / domainRange;
+    return y + (1 - valueRatio) * height;
+  };
+  
+  const highY = yValueToCoordinate(high);
+  const lowY = yValueToCoordinate(low);
+  const openY = yValueToCoordinate(open);
+  const closeY = yValueToCoordinate(close);
+
+  const bodyY = Math.min(openY, closeY);
+  const bodyHeight = Math.abs(openY - closeY);
+
   return (
     <g>
       {/* Wick */}
-      <line x1={x + width / 2} y1={props.yAxis.getScreenY(low)} x2={x + width / 2} y2={props.yAxis.getScreenY(high)} stroke={stroke} strokeWidth={1} />
+      <line x1={x + width / 2} y1={highY} x2={x + width / 2} y2={lowY} stroke={stroke} strokeWidth={1} />
       {/* Body */}
-      <rect x={x} y={isBullish ? y : y - bodyHeight} width={width} height={bodyHeight} fill={fill} />
+      <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={fill} />
     </g>
   );
 };
@@ -60,13 +77,14 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
     
     const randomData = generateRandomCandlestickData(90);
 
-    const chartData = randomData.map((item, index) => {
+    const chartData = randomData.map((item) => {
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
             ...item,
-            // recharts <Bar> will use the higher value of the range for positioning (y prop).
-            // For bullish (green) candles, close is higher. For bearish (red), open is higher.
-            body: [item.open, item.close]
+            // For recharts <Bar>, the dataKey determines the 'y' prop for the shape.
+            // We need to provide a range for the bar to occupy space.
+            // Here, we'll use [low, high] so the bar's shape can access the full range.
+            range: [item.low, item.high]
         }
     });
 
@@ -109,7 +127,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                 axisLine={false}
               />
               <Tooltip />
-              <Bar dataKey="body" shape={<Candle />} />
+              <Bar dataKey="range" shape={<Candle />} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
