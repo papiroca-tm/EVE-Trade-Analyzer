@@ -59,7 +59,7 @@ export async function getMarketAnalysis(
     if (orders.length === 0) baseWarnings.push("Активные ордера для этого предмета в выбранном регионе не найдены.");
     if (history.length < inputs.timeHorizonDays) baseWarnings.push("Исторические данные охватывают меньший период, чем выбранный временной горизонт.");
 
-    const analysis = calculateAnalysis(history, orders, inputs);
+    const analysis = await calculateAnalysis(history, orders, inputs);
     
     if (analysis.recommendations.length === 0) {
       baseWarnings.push("Не удалось смоделировать прибыльную операцию с заданной маржой. Попробуйте снизить желаемую маржу или выбрать другой предмет/регион.");

@@ -1,4 +1,6 @@
 
+'use server';
+
 import type { MarketHistoryItem, MarketOrderItem, UserInputs, Recommendation, Feasibility } from './types';
 
 // Helper to build a cumulative depth ladder from orders
@@ -30,7 +32,7 @@ function getVolumeAhead(ladder: { price: number; cumulativeVolume: number }[], p
     return relevantOrders[relevantOrders.length - 1].cumulativeVolume;
 }
 
-export function calculateAnalysis(
+export async function calculateAnalysis(
   history: MarketHistoryItem[],
   orders: MarketOrderItem[],
   inputs: UserInputs
@@ -54,73 +56,81 @@ export function calculateAnalysis(
     const volatilityPercent = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
 
     const tickSize = 0.01;
-    
-    let recommendedBuyPrice = 0;
+    let realisticBuyPrice = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
     let feasibilityReason = "Анализ не дал результатов.";
+    const sortedBuyOrders = [...buyOrders].sort((a, b) => b.price - a.price);
 
-    if (averageDailyVolume > 0 && buyOrders.length > 0) {
-        const sortedBuyOrders = [...buyOrders].sort((a, b) => b.price - a.price);
-
+    if (averageDailyVolume > 0 && sortedBuyOrders.length > 0) {
         // Find the "wall"
         const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
         let cumulativeVolumeForWall = 0;
-        let wallOrderPrice = 0;
-        for (const order of sortedBuyOrders) {
+        let wallOrderPrice = sortedBuyOrders[0].price; // Default to best price
+        let wallIndex = -1;
+
+        for (const [index, order] of sortedBuyOrders.entries()) {
             cumulativeVolumeForWall += order.volume_remain;
             if (cumulativeVolumeForWall >= wallThreshold) {
                 wallOrderPrice = order.price;
-                break;
-            }
-        }
-        // If no wall found, start from the bottom of the book
-        if (wallOrderPrice === 0 && sortedBuyOrders.length > 0) {
-             wallOrderPrice = sortedBuyOrders[sortedBuyOrders.length - 1].price;
-        }
-
-        const ordersToConsider = sortedBuyOrders.filter(o => o.price >= wallOrderPrice);
-
-        const buyExecutionTimeDays = inputs.executionDays / 2;
-        const marketExecutionPower = (averageDailyVolume / 2) * buyExecutionTimeDays;
-
-        let foundPrice = false;
-        // Search from the wall upwards
-        for (let i = ordersToConsider.length - 1; i >= 0; i--) {
-            const order = ordersToConsider[i];
-            const volumeAhead = getVolumeAhead(buyLadder, order.price, 'buy');
-            
-            if (volumeAhead < marketExecutionPower) {
-                recommendedBuyPrice = order.price + tickSize;
-                feasibilityReason = `Рекомендованная цена ${recommendedBuyPrice.toFixed(2)} ISK найдена путем поиска наиболее выгодной цены (начиная от 'стены' на уровне ${wallOrderPrice.toFixed(2)} ISK), где объем ордеров впереди (${volumeAhead.toLocaleString('ru-RU')} ед.) меньше, чем ожидаемая 'сила' рынка (~${marketExecutionPower.toLocaleString('ru-RU')} ед.) за половину срока сделки.`;
-                foundPrice = true;
+                wallIndex = index;
                 break;
             }
         }
         
-        // Fallback: if no suitable price found (e.g., market is too thick), recommend the best price.
+        // If no wall is found (market is thin), start searching from the bottom
+        if (wallIndex === -1) {
+            wallIndex = sortedBuyOrders.length - 1;
+            if (wallIndex >= 0) {
+               wallOrderPrice = sortedBuyOrders[wallIndex].price;
+            }
+        }
+        
+        const buyExecutionTimeDays = inputs.executionDays / 2;
+        const marketBuyPower = (averageDailyVolume / 2) * buyExecutionTimeDays;
+        
+        let foundPrice = false;
+        if (wallIndex !== -1) {
+            // Search from the wall upwards
+            for (let i = wallIndex; i >= 0; i--) {
+                const order = sortedBuyOrders[i];
+                const volumeAhead = getVolumeAhead(buyLadder, order.price, 'buy');
+                
+                if (volumeAhead < marketBuyPower) {
+                    realisticBuyPrice = order.price + tickSize;
+                    feasibilityReason = `Рекомендованная цена ${realisticBuyPrice.toFixed(2)} ISK найдена путем поиска наиболее выгодной цены (начиная от 'стены' на уровне ${wallOrderPrice.toFixed(2)} ISK), где объем ордеров впереди (${volumeAhead.toLocaleString('ru-RU')} ед.) меньше, чем ожидаемая 'сила' рынка (~${marketBuyPower.toLocaleString('ru-RU')} ед.) за половину срока сделки.`;
+                    foundPrice = true;
+                    break;
+                }
+            }
+        }
+        
         if (!foundPrice) {
-            recommendedBuyPrice = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
-            feasibilityReason = "Рынок слишком 'плотный'. Не удалось найти стратегическую цену с исполнением в срок. Рекомендуется немедленное исполнение по лучшей цене.";
+            realisticBuyPrice = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
+            feasibilityReason = "Рынок слишком 'плотный' или ордер слишком большой. Не удалось найти стратегическую цену с исполнением в срок. Рекомендуется немедленное исполнение по лучшей цене.";
         }
     }
 
+    const historicalMinPrice = history.length > 0 
+        ? Math.min(...history.map(h => h.lowest)) 
+        : 0;
 
     const recommendations: Recommendation[] = [];
     
-    // We always create a recommendation now, even if it's not profitable, to show the calculated range.
-    const recommendation: Recommendation = {
-      buyPriceRange: { 
-          min: recommendedBuyPrice, 
-          max: recommendedBuyPrice,
-      },
-      sellPriceRange: { min: 0, max: 0 },
-      netMarginPercent: 0,
-      potentialProfit: 0,
-      executableVolume: { low: 0, high: 0 },
-      estimatedExecutionDays: { min: 0, max: 0 },
-      feasibility: 'medium', // Default feasibility
-      feasibilityReason: feasibilityReason,
-    };
-    recommendations.push(recommendation);
+    if (realisticBuyPrice > 0) {
+        const recommendation: Recommendation = {
+          buyPriceRange: { 
+              min: historicalMinPrice > 0 ? historicalMinPrice : realisticBuyPrice, 
+              max: realisticBuyPrice 
+          },
+          sellPriceRange: { min: 0, max: 0 },
+          netMarginPercent: 0,
+          potentialProfit: 0,
+          executableVolume: { low: 0, high: 0 },
+          estimatedExecutionDays: { min: 0, max: 0 },
+          feasibility: 'medium', // Default feasibility
+          feasibilityReason: feasibilityReason,
+        };
+        recommendations.push(recommendation);
+    }
 
 
     return {
