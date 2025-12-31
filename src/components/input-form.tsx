@@ -76,11 +76,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       try {
         const { regions: fetchedRegions, itemTypes: initialItems } = await getInitialData();
         setRegions(fetchedRegions);
-        // Ensure Tritanium is in the list
-        const tritanium = initialItems.find(i => i.type_id === 34);
-        if (tritanium) {
-          setItemOptions([tritanium]);
-        }
+        setItemOptions(initialItems);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       } finally {
@@ -92,7 +88,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   
   useEffect(() => {
     if (debouncedItemSearch.length < 3) {
-      // Do not clear the list, just stop searching
       setIsSearchingItems(false);
       return;
     }
@@ -241,10 +236,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                                 onSelect={() => {
                                   form.setValue("typeId", item.type_id)
                                   setOpenItemPopover(false);
-                                  // Ensure the selected item stays in the list
-                                  if (!itemOptions.some(i => i.type_id === item.type_id)) {
-                                    setItemOptions(prev => [...prev, item]);
-                                  }
                                 }}
                               >
                                 <Check

@@ -74,24 +74,29 @@ export async function getRegions(): Promise<Region[]> {
     const regionIdsRes = await fetchEsi('/universe/regions/', true);
     const regionIds: number[] = await regionIdsRes.json();
     
-    const regionDetails = await Promise.all(
-        regionIds.map(async id => {
-            try {
-                // We only care about the main regions with markets
-                if (id > 11000000) {
-                    return null;
-                }
-                const response = await fetchEsi(`/universe/regions/${id}/`, true);
-                const data = await response.json();
-                return { region_id: id, name: data.name };
-            } catch (e) {
-                console.warn(`Failed to fetch region details for ID ${id}`, e);
+    const regionDetailsPromises = regionIds.map(async id => {
+        try {
+            // We only care about the main regions with markets
+            if (id > 11000000) {
                 return null;
             }
-        })
-    );
+            const response = await fetchEsi(`/universe/regions/${id}/`, true);
+            const data = await response.json();
+            return { region_id: id, name: data.name };
+        } catch (e) {
+            console.warn(`Failed to fetch region details for ID ${id}`, e);
+            return null;
+        }
+    });
 
-    return regionDetails
+    const settledDetails = await Promise.allSettled(regionDetailsPromises);
+
+    const successfulRegions = settledDetails
+        .filter((result): result is PromiseFulfilledResult<Region | null> => result.status === 'fulfilled' && result.value !== null)
+        .map(result => result.value as Region);
+
+
+    return successfulRegions
         .filter((r): r is Region => r !== null)
         .sort((a,b) => a.name.localeCompare(b.name));
 }
@@ -111,13 +116,17 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
     const cappedTypeIds = typeIds.slice(0, maxIdsToFetch);
     
     const itemDetailsPromises = cappedTypeIds.map(async (id) => {
-        const response = await fetchEsi(`/universe/types/${id}/`, true);
-        const data = await response.json();
-        // Ensure the item is published and on the market before including it
-        if (data.published && data.market_group_id) {
-            return { type_id: id, name: data.name };
+        try {
+            const response = await fetchEsi(`/universe/types/${id}/`, true);
+            const data = await response.json();
+            if (data.published && data.market_group_id) {
+                return { type_id: id, name: data.name };
+            }
+            return null;
+        } catch (error) {
+            console.warn(`Could not fetch details for typeId ${id}, it might not be a market item.`);
+            return null;
         }
-        return null;
     });
 
     const settledDetails = await Promise.allSettled(itemDetailsPromises);
@@ -126,7 +135,34 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
         .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
         .map(result => result.value as ItemType);
 
-    return successfulItems
-        .filter((t): t is ItemType => t !== null)
-        .sort((a, b) => a.name.localeCompare(b.name));
+    return successfulItems.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function getInitialItemTypes(): Promise<ItemType[]> {
+    const response = await fetchEsi(`/universe/types/?page=1`, true);
+    const typeIds: number[] = await response.json();
+    
+    const initialIdsToFetch = 20;
+    const cappedTypeIds = typeIds.slice(0, initialIdsToFetch);
+
+    const itemDetailsPromises = cappedTypeIds.map(async (id) => {
+        try {
+            const response = await fetchEsi(`/universe/types/${id}/`, true);
+            const data = await response.json();
+            if (data.published && data.market_group_id) {
+                return { type_id: id, name: data.name };
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    });
+    
+    const settledDetails = await Promise.allSettled(itemDetailsPromises);
+    
+    const successfulItems = settledDetails
+        .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
+        .map(result => result.value as ItemType);
+
+    return successfulItems.sort((a, b) => a.name.localeCompare(b.name));
 }

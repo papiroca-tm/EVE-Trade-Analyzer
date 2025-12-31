@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { calculateAnalysis } from './analysis';
 import { analyzeDataIntegrity } from '@/ai/flows/data-integrity-analysis';
-import { fetchMarketHistory, fetchMarketOrders, getRegions, searchItemTypes } from './eve-esi';
+import { fetchMarketHistory, fetchMarketOrders, getRegions, getInitialItemTypes } from './eve-esi';
 import type { AnalysisState, AnalysisResult, Region, ItemType } from './types';
 
 const formSchema = z.object({
@@ -93,13 +93,18 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
     try {
         const [regions, initialItems] = await Promise.all([
           getRegions(),
-          // Pre-warm with Tritanium as a default
-          searchItemTypes('Tritanium')
+          getInitialItemTypes(),
         ]);
-        return { regions, itemTypes: initialItems };
+        
+        const finalItems = new Map<number, ItemType>();
+        // Ensure Tritanium is always in the list as a default
+        const tritanium = { type_id: 34, name: 'Tritanium' };
+        finalItems.set(tritanium.type_id, tritanium);
+        initialItems.forEach(item => finalItems.set(item.type_id, item));
+
+        return { regions, itemTypes: Array.from(finalItems.values()) };
     } catch (error) {
         console.error("Failed to get initial data", error);
-        // Return empty arrays on failure so the app doesn't crash but show error in console
-        return { regions: [], itemTypes: [] };
+        return { regions: [], itemTypes: [{ type_id: 34, name: 'Tritanium' }] };
     }
 }
