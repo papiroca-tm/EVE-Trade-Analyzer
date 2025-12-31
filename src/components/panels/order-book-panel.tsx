@@ -16,11 +16,15 @@ interface OrderWithCumulative extends MarketOrderItem {
 const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderItem[], type: 'buy' | 'sell', averageDailyVolume: number }) => {
     const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
 
+    const sortedOrders = useMemo(() => {
+        return [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
+    }, [orders, type]);
+
     const ordersWithCumulative = useMemo(() => {
         let cumulativeVolume = 0;
         let wallFound = false;
 
-        const processedOrders: OrderWithCumulative[] = orders.map(order => {
+        return sortedOrders.map(order => {
             cumulativeVolume += order.volume_remain;
             let isWall = false;
             if (!wallFound && cumulativeVolume >= wallThreshold) {
@@ -29,9 +33,7 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
             }
             return { ...order, cumulativeVolume, isWall };
         });
-        
-        return processedOrders;
-    }, [orders, wallThreshold]);
+    }, [sortedOrders, wallThreshold]);
 
 
     return (
@@ -71,13 +73,6 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
 
 
 export function OrderBookPanel({ buyOrders, sellOrders, averageDailyVolume }: { buyOrders: MarketOrderItem[], sellOrders: MarketOrderItem[], averageDailyVolume: number }) {
-    const sortedBuyOrders = useMemo(() => 
-        [...buyOrders].sort((a, b) => b.price - a.price),
-    [buyOrders]);
-
-    const sortedSellOrders = useMemo(() =>
-        [...sellOrders].sort((a, b) => a.price - b.price),
-    [sellOrders]);
 
   return (
     <Card className="lg:col-span-2">
@@ -89,8 +84,8 @@ export function OrderBookPanel({ buyOrders, sellOrders, averageDailyVolume }: { 
         <CardDescription>Снимок топ-100 текущих ордеров. Лучшие предложения и уровни поддержки/сопротивления подсвечены.</CardDescription>
       </CardHeader>
       <CardContent className="flex gap-4">
-        <OrderTable orders={sortedBuyOrders} type="buy" averageDailyVolume={averageDailyVolume} />
-        <OrderTable orders={sortedSellOrders} type="sell" averageDailyVolume={averageDailyVolume} />
+        <OrderTable orders={buyOrders} type="buy" averageDailyVolume={averageDailyVolume} />
+        <OrderTable orders={sellOrders} type="sell" averageDailyVolume={averageDailyVolume} />
       </CardContent>
     </Card>
   );
