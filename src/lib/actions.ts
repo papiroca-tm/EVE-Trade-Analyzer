@@ -2,9 +2,9 @@
 
 import { z } from 'zod';
 import { analyzeDataIntegrity } from '@/ai/flows/data-integrity-analysis';
-import { fetchMarketHistory, fetchMarketOrders } from './eve-esi';
+import { fetchMarketHistory, fetchMarketOrders, getRegions, getItemTypes } from './eve-esi';
 import { calculateAnalysis } from './analysis';
-import type { AnalysisState, MarketHistoryItem, MarketOrderItem, AnalysisResult } from './types';
+import type { AnalysisState, MarketHistoryItem, MarketOrderItem, AnalysisResult, Region, ItemType } from './types';
 
 const formSchema = z.object({
   regionId: z.coerce.number().int().positive("Region ID must be a positive number."),
@@ -86,4 +86,14 @@ export async function getMarketAnalysis(
       warnings: [],
     };
   }
+}
+
+export async function getRegionsAndItemTypes(): Promise<{ regions: Region[], itemTypes: ItemType[] }> {
+    try {
+        const [regions, itemTypes] = await Promise.all([getRegions(), getItemTypes()]);
+        return { regions, itemTypes };
+    } catch (error) {
+        console.error("Failed to get regions and item types", error);
+        return { regions: [], itemTypes: [] };
+    }
 }

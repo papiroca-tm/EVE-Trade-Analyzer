@@ -66,3 +66,13 @@ export interface AnalysisState {
   error: string | null;
   warnings: string[];
 }
+
+export interface Region {
+    region_id: number;
+    name: string;
+}
+
+export interface ItemType {
+    type_id: number;
+    name: string;
+}
