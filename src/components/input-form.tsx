@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -59,9 +59,9 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     async function fetchData() {
       setLoadingInitialData(true);
       try {
-        const { regions, itemTypes } = await getInitialData();
+        const { regions, itemTypes: initialItems } = await getInitialData();
         setRegions(regions);
-        setItemTypes(itemTypes);
+        setItemTypes(initialItems); // Set initial default items (e.g., Tritanium)
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       } finally {
@@ -70,18 +70,24 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     }
     fetchData();
   }, []);
-
+  
   useEffect(() => {
     if (debouncedItemSearch.length < 3) {
-      if(itemTypes.length > 1) setIsSearchingItems(false);
+      setIsSearchingItems(false);
       return;
-    };
+    }
 
     const search = async () => {
       setIsSearchingItems(true);
-      const results = await searchItemTypes(debouncedItemSearch);
-      setItemTypes(results);
-      setIsSearchingItems(false);
+      try {
+        const results = await searchItemTypes(debouncedItemSearch);
+        setItemTypes(results);
+      } catch (error) {
+        console.error("Failed to search for item types:", error);
+        setItemTypes([]);
+      } finally {
+        setIsSearchingItems(false);
+      }
     };
 
     search();
@@ -103,6 +109,9 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   });
 
   const filteredRegions = regions.filter(region => region.name.toLowerCase().includes(regionSearch.toLowerCase()));
+  
+  const currentSelectedItem = form.getValues('typeId');
+  const selectedItemInList = itemTypes.find(item => item.type_id === currentSelectedItem);
 
   return (
     <Card>
@@ -202,9 +211,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                           )}
                         >
                           {field.value
-                            ? itemTypes.find(
-                                (item) => item.type_id === field.value
-                              )?.name ?? 'Select item'
+                            ? selectedItemInList?.name ?? 'Select item'
                             : "Select item"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -218,8 +225,8 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                           onValueChange={setItemSearch}
                         />
                         <CommandList>
-                          {isSearchingItems && <CommandEmpty>Searching...</CommandEmpty>}
-                          {!isSearchingItems && itemTypes.length === 0 && <CommandEmpty>No item found.</CommandEmpty>}
+                          {isSearchingItems && <CommandItem>Searching...</CommandItem>}
+                          {!isSearchingItems && itemTypes.length === 0 && <CommandItem>No item found.</CommandItem>}
                           <CommandGroup>
                             {itemTypes.map((item) => (
                               <CommandItem
@@ -227,7 +234,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                                 key={item.type_id}
                                 onSelect={() => {
                                   form.setValue("typeId", item.type_id)
-                                  // Keep the selected item in the list for UX
                                   if (!itemTypes.find(i => i.type_id === item.type_id)) {
                                     setItemTypes(prev => [...prev, item]);
                                   }
@@ -300,7 +306,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               name="desiredNetMarginPercent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Desired Margin %</FormLabel>
+                  <FormLabel>Desired Net Margin %</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.1" {...field} />
                   </FormControl>
@@ -308,37 +314,41 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="timeHorizonDays"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Time Horizon</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 90" {...field} />
-                  </FormControl>
-                  <FormDescription className="text-xs">Days for historical analysis.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+             <FormField
+                control={form.control}
+                name="timeHorizonDays"
+                render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                    <FormLabel>Time Horizon (Days)</FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} />
+                    </FormControl>
+                    <FormDescription>How many days of historical data to analyze (max 365).</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
             />
-            <FormField
-              control={form.control}
-              name="optionalTargetVolume"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Volume</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Optional" {...field} />
-                  </FormControl>
-                   <FormDescription className="text-xs">For execution time estimate.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+             <FormField
+                control={form.control}
+                name="optionalTargetVolume"
+                render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                    <FormLabel>Optional: Target Volume</FormLabel>
+                    <FormControl>
+                        <Input type="number" placeholder="e.g., 1000000" {...field} />
+                    </FormControl>
+                    <FormDescription>If set, estimates time to buy/sell this volume.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
             />
+
+            <input type="hidden" {...form.register('regionId')} />
+            <input type="hidden" {...form.register('typeId')} />
+
           </CardContent>
           <CardFooter>
-            <SubmitButton />
+             <SubmitButton />
           </CardFooter>
         </form>
       </Form>
