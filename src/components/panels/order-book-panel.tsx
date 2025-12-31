@@ -16,24 +16,23 @@ interface OrderWithCumulative extends MarketOrderItem {
 const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderItem[], type: 'buy' | 'sell', averageDailyVolume: number }) => {
     const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
 
-    const sortedOrders = useMemo(() => {
-        return [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
-    }, [orders, type]);
-
-    const ordersWithCumulative = useMemo(() => {
+    const processedOrders = useMemo(() => {
+        const sorted = [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
+        
         let cumulativeVolume = 0;
-        let wallFound = false;
-
-        return sortedOrders.map(order => {
+        const withCumulative = sorted.map(order => {
             cumulativeVolume += order.volume_remain;
-            let isWall = false;
-            if (!wallFound && cumulativeVolume >= wallThreshold) {
-                isWall = true;
-                wallFound = true;
-            }
-            return { ...order, cumulativeVolume, isWall };
+            return { ...order, cumulativeVolume, isWall: false };
         });
-    }, [sortedOrders, wallThreshold]);
+
+        const wallIndex = withCumulative.findIndex(order => order.cumulativeVolume >= wallThreshold);
+
+        if (wallIndex !== -1) {
+            withCumulative[wallIndex].isWall = true;
+        }
+        
+        return withCumulative;
+    }, [orders, type, wallThreshold]);
 
 
     return (
@@ -50,8 +49,8 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {ordersWithCumulative.length > 0 ? (
-                    ordersWithCumulative.slice(0, 100).map((order, index) => (
+                {processedOrders.length > 0 ? (
+                    processedOrders.slice(0, 100).map((order, index) => (
                     <TableRow key={order.order_id} className={cn(index === 0 && 'bg-primary/20', order.isWall && 'bg-muted/50 font-bold')}>
                         <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
