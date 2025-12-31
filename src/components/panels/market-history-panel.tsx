@@ -95,13 +95,6 @@ export function MarketHistoryPanel({
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <YAxis
-                        dataKey="Цена"
-                        stroke="hsl(var(--primary))"
-                        tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
-                        domain={yDomainPrice()}
-                        width={80}
-                    />
                     <Tooltip content={<CustomTooltip />} />
                     <Line type="monotone" dataKey="Цена" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                 </LineChart>
@@ -113,20 +106,6 @@ export function MarketHistoryPanel({
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                        dataKey="date"
-                        tickLine={false}
-                        axisLine={true}
-                        tickMargin={8}
-                        tickFormatter={(value) => value}
-                    />
-                    <YAxis
-                        dataKey="Объем"
-                        orientation="left"
-                        stroke="hsl(var(--accent))"
-                        tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
-                        width={80}
-                    />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
