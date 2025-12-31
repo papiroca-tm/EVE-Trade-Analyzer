@@ -34,10 +34,10 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
         const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
         
         // The logic for sell walls is based on orders *at or cheaper* than the current one.
-        // We need to re-process to apply the flag correctly after sorting.
         let cumulativeForWallCheck = 0;
-        const reversedForWallCheck = [...orders].sort((a, b) => a.price - b.price);
-        const wallPrice = reversedForWallCheck.find(o => {
+        const sellOrdersSortedForWallCheck = [...orders].sort((a, b) => a.price - b.price); // sort ascending
+        
+        const wallPrice = sellOrdersSortedForWallCheck.find(o => {
             cumulativeForWallCheck += o.volume_remain;
             return cumulativeForWallCheck >= wallThreshold;
         })?.price;
@@ -149,10 +149,10 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
         
         viewportRef.current.scrollTo({
             top: scrollTo,
-            behavior: 'smooth',
+            behavior: 'auto',
         });
     }
-  }, [buyOrders, sellOrders, priceAnalysis]);
+  }, [buyOrders, sellOrders, priceAnalysis, averageDailyVolume]);
 
 
   return (
