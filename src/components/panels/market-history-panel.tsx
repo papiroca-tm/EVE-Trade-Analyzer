@@ -8,29 +8,37 @@ import { useMemo } from 'react';
 
 // Custom shape for the candlestick
 const Candlestick = (props: any) => {
-  const { x, y, width, height, low, high, average, previousAverage } = props;
+  const { x, y, width, height, low, high, average, previousAverage, ...rest } = props;
+
+  // If props for drawing are missing, don't render anything
+  if (y === undefined || height === undefined || x === undefined || width === undefined || !rest.yAxis) {
+    return null;
+  }
+  
+  const yAxis = rest.yAxis;
 
   const isBullish = average >= previousAverage;
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
-  // The "body" of our candle will be a small range around the average price
-  const bodyRange = (high - low) * 0.2; // Let's make the body 20% of the total range
-  const bodyTop = Math.min(high, average + bodyRange / 2);
-  const bodyBottom = Math.max(low, average - bodyRange / 2);
+  const highWickY = yAxis.scale(high);
+  const lowWickY = yAxis.scale(low);
 
-  const bodyY = props.yAxis.scale(bodyTop);
-  const bodyHeight = Math.abs(props.yAxis.scale(bodyTop) - props.yAxis.scale(bodyBottom));
+  // Body based on average and a small range
+  const bodyRange = Math.abs(high - low) * 0.2;
+  const bodyTopValue = average + bodyRange / 2;
+  const bodyBottomValue = average - bodyRange / 2;
+
+  const bodyTopY = yAxis.scale(bodyTopValue);
+  const bodyBottomY = yAxis.scale(bodyBottomValue);
+  const bodyHeight = Math.abs(bodyTopY - bodyBottomY);
   
-  const highWickY = props.yAxis.scale(high);
-  const lowWickY = props.yAxis.scale(low);
-
   return (
     <g stroke={stroke} fill={fill} strokeWidth={1}>
       {/* High-Low Wick */}
       <line x1={x + width / 2} y1={highWickY} x2={x + width / 2} y2={lowWickY} />
       {/* Body */}
-      <rect x={x} y={bodyY} width={width} height={bodyHeight > 0 ? bodyHeight : 1} />
+      <rect x={x} y={bodyTopY} width={width} height={bodyHeight > 0 ? bodyHeight : 1} />
     </g>
   );
 };
@@ -61,7 +69,6 @@ export function MarketHistoryPanel({
   const { chartData, yDomainPrice } = useMemo(() => {
     const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
-    // Рассчитываем SMA на основе полных данных
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
         return data.map((_item, index, arr) => {
             if (index < period - 1) return null;
