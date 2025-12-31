@@ -11,22 +11,17 @@ import type { MarketHistoryItem } from '@/lib/types';
 const Candle = (props: any) => {
   const { x, y, width, height, payload } = props;
   
-  if (!payload || payload.open === undefined || height <= 0) {
+  if (!payload || payload.open === undefined || height < 0) {
     return null;
   }
   
   // This helper function maps a price value to a Y coordinate within the chart's space.
   const yValueToCoordinate = (value: number) => {
-      // The payload contains the full range of prices for THIS candle.
       const priceRange = payload.high - payload.low;
       if (priceRange === 0) {
-          // If there's no range, everything is at the middle.
           return y + height / 2;
       }
       const valueAsPercentage = (value - payload.low) / priceRange;
-      // In SVG, y=0 is at the top, so we invert the percentage.
-      // `y` is the top of the candle's drawing area (for the highest point)
-      // `height` is the total pixel height available for this candle (from low to high)
       return y + (1 - valueAsPercentage) * height;
   };
   
