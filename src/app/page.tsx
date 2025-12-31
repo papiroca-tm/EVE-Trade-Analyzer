@@ -30,16 +30,18 @@ export default function Home() {
         </div>
       </header>
       <main className="grid flex-1 grid-cols-10 gap-2 p-2 md:gap-4 md:p-4">
-        <div className="col-span-3">
+        <div className="col-span-3 grid grid-cols-1 gap-2 md:gap-4">
             <div className="sticky top-16 flex flex-col gap-2">
                 <InputForm formAction={formAction} />
-                <OrderBookDisplay 
+            </div>
+            <div className="sticky top-16 flex flex-col gap-2">
+                 <OrderBookDisplay 
                   buyOrders={state.data?.buyOrders ?? []}
                   sellOrders={state.data?.sellOrders ?? []}
                   priceAnalysis={state.data?.priceAnalysis}
                   averageDailyVolume={state.data?.volumeAnalysis.averageDailyVolume ?? 0}
                 />
-              </div>
+            </div>
         </div>
         <div className="col-span-7">
           <ResultsDisplay state={state} />
