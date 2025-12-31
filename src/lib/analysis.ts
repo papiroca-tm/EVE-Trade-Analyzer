@@ -53,26 +53,45 @@ export function calculateAnalysis(
     const stdDev = Math.sqrt(variance);
     const volatilityPercent = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
 
-    // STEP 1: Set recommended buy price to best buy order + 1 tick.
     const tickSize = 0.01;
-    const recommendedBuyPrice = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
+
+    // Find the buy-side support wall price
+    const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
+    let cumulativeVolumeForWall = 0;
+    let supportWallBuyPrice = 0;
+    const sortedBuyOrders = [...buyOrders].sort((a, b) => b.price - a.price);
+    for (const order of sortedBuyOrders) {
+        cumulativeVolumeForWall += order.volume_remain;
+        if (cumulativeVolumeForWall >= wallThreshold) {
+            supportWallBuyPrice = order.price;
+            break;
+        }
+    }
+    // If no wall is found, use the best buy price as a fallback for the lower bound.
+    if (supportWallBuyPrice === 0 && sortedBuyOrders.length > 0) {
+        supportWallBuyPrice = bestBuyPrice;
+    }
+
 
     const recommendations: Recommendation[] = [];
+    
+    const recommendedBuyPrice = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
 
-    if (recommendedBuyPrice > 0) {
-      const recommendation: Recommendation = {
-        recommendedBuyPrice: recommendedBuyPrice,
-        buyPriceRange: { min: recommendedBuyPrice, max: recommendedBuyPrice },
-        sellPriceRange: { min: 0, max: 0 },
-        netMarginPercent: 0,
-        potentialProfit: 0,
-        executableVolume: { low: 0, high: 0 },
-        estimatedExecutionDays: { min: 0, max: 0 },
-        feasibility: 'medium',
-        feasibilityReason: "Начальная рекомендация: цена лучшего ордера на покупку + 1 тик."
-      };
-      recommendations.push(recommendation);
-    }
+    const recommendation: Recommendation = {
+      recommendedBuyPrice: recommendedBuyPrice, // This will be the upper bound
+      buyPriceRange: { 
+          min: supportWallBuyPrice > 0 ? supportWallBuyPrice + tickSize : 0, 
+          max: bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0
+      },
+      sellPriceRange: { min: 0, max: 0 },
+      netMarginPercent: 0,
+      potentialProfit: 0,
+      executableVolume: { low: 0, high: 0 },
+      estimatedExecutionDays: { min: 0, max: 0 },
+      feasibility: 'medium',
+      feasibilityReason: "Диапазон покупки основан на 'стене' поддержки и лучшем ордере в стакане."
+    };
+    recommendations.push(recommendation);
 
     return {
       inputs,
