@@ -30,18 +30,20 @@ export default function Home() {
         </div>
       </header>
       <main className="grid flex-1 grid-cols-10 gap-2 p-2 md:gap-4 md:p-4">
-        <div className="col-span-2">
-          <InputForm formAction={formAction} />
+        <div className="col-span-3 grid grid-cols-2 gap-2 md:gap-4">
+            <div className="col-span-1">
+                <InputForm formAction={formAction} />
+            </div>
+            <div className="col-span-1">
+                <OrderBookDisplay
+                    buyOrders={state.data?.buyOrders ?? []}
+                    sellOrders={state.data?.sellOrders ?? []}
+                    priceAnalysis={state.data?.priceAnalysis}
+                    averageDailyVolume={state.data?.volumeAnalysis.averageDailyVolume ?? 0}
+                />
+            </div>
         </div>
-        <div className="col-span-2">
-           <OrderBookDisplay
-            buyOrders={state.data?.buyOrders ?? []}
-            sellOrders={state.data?.sellOrders ?? []}
-            priceAnalysis={state.data?.priceAnalysis}
-            averageDailyVolume={state.data?.volumeAnalysis.averageDailyVolume ?? 0}
-          />
-        </div>
-        <div className="col-span-6">
+        <div className="col-span-7">
           <ResultsDisplay state={state} />
         </div>
       </main>
