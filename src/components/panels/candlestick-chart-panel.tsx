@@ -220,7 +220,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
       <CardHeader>
         <div className="flex items-center gap-2">
             <CandlestickChartIcon className="h-6 w-6 text-primary" />
-            <CardTitle>График цен (Объем в тенях)</CardTitle>
+            <CardTitle>График цен (нестандартные свечи)</CardTitle>
         </div>
         <CardDescription>
             Тело свечи - реальный диапазон цен дня. Тени (фитили) - относительный объем торгов. Цвет - направление ср. цены.
