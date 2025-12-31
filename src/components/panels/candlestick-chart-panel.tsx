@@ -10,16 +10,13 @@ import type { MarketHistoryItem } from '@/lib/types';
 // Custom shape for the candlestick
 const Candle = (props: any) => {
   const { x, y, width, height, payload } = props;
-  const { open, high, low, close } = payload;
   
-  if (!payload || open === undefined) {
+  if (!payload || payload.open === undefined) {
     return null;
   }
-
+  
+  const { open, high, low, close } = payload;
   const isBullish = close >= open;
-
-  const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-  const stroke = fill;
 
   // This helper function maps a price value to a Y coordinate within the bar's space.
   const yValueToCoordinate = (value: number) => {
@@ -43,6 +40,9 @@ const Candle = (props: any) => {
 
   const bodyY = Math.min(openY, closeY);
   const bodyHeight = Math.max(1, Math.abs(openY - closeY)); // Ensure body is at least 1px to be visible
+  
+  const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+  const stroke = fill;
 
   return (
     <g>
@@ -74,23 +74,26 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
         const volumePercentage = volumeRange > 0 ? (volume - minVolume) / volumeRange : 0;
         const priceRange = highest - lowest;
         const bodySize = priceRange * volumePercentage;
+        
+        const midPoint = (highest + lowest) / 2;
+        const open = midPoint - bodySize / 2;
+        const close = midPoint + bodySize / 2;
 
-        const open = average - bodySize / 2;
-        const close = average + bodySize / 2;
+        const isBullish = index > 0 ? average > dataForHorizon[index-1].average : true;
         
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            open: Number(open.toFixed(4)),
-            close: Number(close.toFixed(4)),
+            open: Number(isBullish ? open : close).toFixed(4),
+            close: Number(isBullish ? close : open).toFixed(4),
             high: Number(highest.toFixed(4)),
             low: Number(lowest.toFixed(4)),
-            range: [Number(lowest.toFixed(4)), Number(highest.toFixed(4))]
+            body: [open, close] // dataKey for the Bar
         }
     });
 
     const prices = chartData.flatMap(d => [d.low, d.high]);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
+    const minPrice = Math.min(...prices.map(p => Number(p)));
+    const maxPrice = Math.max(...prices.map(p => Number(p)));
     const padding = (maxPrice - minPrice) * 0.1;
     
     return {
@@ -127,7 +130,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                 axisLine={false}
               />
               <Tooltip />
-              <Bar dataKey="range" shape={<Candle />} />
+              <Bar dataKey="body" shape={<Candle />} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
