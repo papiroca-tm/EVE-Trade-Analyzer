@@ -52,102 +52,97 @@ export function calculateAnalysis(
     const totalSellOrderVolume = sellLadder.length > 0 ? sellLadder[sellLadder.length - 1].cumulativeVolume : 0;
     const averagePrice = historicalPrices.length > 0 ? historicalPrices.reduce((a,b) => a+b, 0) / historicalPrices.length : 0;
 
-
-    // --- Core Logic: Find Feasible Price Ranges ---
-    const desiredMarginFactor = 1 + (inputs.desiredNetMarginPercent / 100);
-    const costFactor = (1 + inputs.brokerBuyFeePercent / 100);
-    const revenueFactor = (1 - inputs.brokerSellFeePercent / 100 - inputs.salesTaxPercent / 100);
-    
-    // The core equation: sellPrice * revenueFactor >= buyPrice * costFactor * desiredMarginFactor
-    // To find the maximum buy price for a given sell price:
-    // maxBuyPrice = (sellPrice * revenueFactor) / (costFactor * desiredMarginFactor)
-
     let recommendations: Recommendation[] = [];
 
-    // We iterate through sell prices to find a corresponding buy price range.
-    // Start from a reasonably low sell price up to a high one.
-    const startSellPrice = bestSellPrice !== Infinity ? bestSellPrice : (midPrice > 0 ? midPrice : getPercentile(historicalPrices, 50));
-    const endSellPrice = getPercentile(historicalPrices, 95) * 1.2; // Go up to 95th percentile + 20%
-    if (startSellPrice > 0 && startSellPrice < endSellPrice) {
-        let bestRecommendation: Recommendation | null = null;
-        let maxProfit = -Infinity;
+    if (history.length > 0) {
+        // --- Start of New Algorithm Implementation ---
 
-        // Let's check a hundred price points in the plausible sell range
-        const step = (endSellPrice - startSellPrice) / 100;
-        for (let sellPrice = startSellPrice; sellPrice <= endSellPrice; sellPrice += step) {
-            const maxBuyPriceForMargin = (sellPrice * revenueFactor) / (costFactor * desiredMarginFactor);
-            const minBuyPriceForMarket = getPercentile(historicalPrices, 10); // Don't recommend ridiculously low buy prices
+        // Step 1: Определяем волатильность
+        const min_price = history.reduce((min, h) => Math.min(min, h.lowest), Infinity);
+        const max_price = history.reduce((max, h) => Math.max(max, h.highest), 0);
+        const volatility = max_price - min_price;
+        const price_floor = min_price + inputs.volatilityFactor * volatility;
 
-            if (maxBuyPriceForMargin > minBuyPriceForMarket && maxBuyPriceForMargin < sellPrice) {
-                // We found a feasible range
-                const buyPriceRange = { min: minBuyPriceForMarket, max: maxBuyPriceForMargin };
-                const sellPriceRange = { min: sellPrice, max: endSellPrice };
+        // Step 2: Расчёт максимальной цены покупки
+        const AssumedSellPrice = averagePrice; // Используем среднюю историческую цену
+        const broker_buy_fee_rate = inputs.brokerBuyFeePercent / 100;
+        const broker_sell_fee_rate = inputs.brokerSellFeePercent / 100;
+        const tax_rate = inputs.salesTaxPercent / 100;
+        const target_profit_rate = inputs.desiredNetMarginPercent / 100;
+        
+        const MaxBuyPrice = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) / ((1 + broker_buy_fee_rate) * (1 + target_profit_rate));
 
-                // --- Estimate Executable Volume & Time ---
-                const targetBuyPrice = buyPriceRange.max * 0.99; // Be competitive
-                const targetSellPrice = sellPriceRange.min * 1.01;
-                
-                const volumeAheadBuy = getVolumeAhead(buyLadder, targetBuyPrice, 'buy');
-                const volumeAheadSell = getVolumeAhead(sellLadder, targetSellPrice, 'sell');
-                
-                // Executable volume is a fraction of historical daily volume, capped by order book depth
-                const dailyVolumeFraction = Math.min(volumeAheadBuy, volumeAheadSell, averageDailyVolume * 0.25);
-                const executableVolume = {
-                    low: Math.floor(dailyVolumeFraction * 0.5),
-                    high: Math.floor(dailyVolumeFraction * 1.5),
-                };
+        // Step 3: Применяем нижнюю границу с учётом волатильности
+        let recommended_buy = Math.max(MaxBuyPrice, price_floor);
 
-                const estimatedExecutionDays = {
-                    min: averageDailyVolume > 0 ? Math.max(1, Math.round(executableVolume.low / (averageDailyVolume * 0.1))) : 1,
-                    max: averageDailyVolume > 0 ? Math.max(1, Math.round(executableVolume.high / (averageDailyVolume * 0.1))) : 3,
-                };
-                
-                // --- Feasibility ---
-                let score = 0;
-                if (averageDailyVolume > 1000) score++;
-                if (totalBuyOrderVolume > executableVolume.high) score++;
-                if (totalSellOrderVolume > executableVolume.high) score++;
-                if (Math.abs(targetBuyPrice - midPrice) / midPrice < 0.1) score++; // price distance
-                
-                const feasibilityLevels: Feasibility[] = ['low', 'medium', 'high', 'very high'];
-                const feasibility = feasibilityLevels[Math.min(score, 3)];
-                const feasibilityReasons = [
-                    `Исторический объем (сред. ${Math.round(averageDailyVolume)}/день)`,
-                    `Глубина стакана покупки (общий ${totalBuyOrderVolume.toLocaleString()})`,
-                    `Глубина стакана продажи (общий ${totalSellOrderVolume.toLocaleString()})`,
-                    `Близость к рынку (реком. цена ${targetBuyPrice.toFixed(2)} vs спред ${bestBuyPrice.toFixed(2)}-${bestSellPrice.toFixed(2)})`
-                ];
-                const feasibilityReason = `Оценка "${feasibility}" основана на: ${feasibilityReasons.join(', ')}.`;
-
-                const netProfit = (sellPrice * revenueFactor) - (targetBuyPrice * costFactor);
-                const netMarginPercent = (netProfit / targetBuyPrice) * 100;
-                const potentialProfit = netProfit * executableVolume.high;
-
-                if (potentialProfit > maxProfit) {
-                    maxProfit = potentialProfit;
-                    bestRecommendation = {
-                        buyPriceRange,
-                        sellPriceRange,
-                        netMarginPercent,
-                        potentialProfit,
-                        executableVolume,
-                        estimatedExecutionDays,
-                        feasibility,
-                        feasibilityReason,
-                    };
-                }
-            }
+        // Step 4: Коррекция по текущему стакану
+        const tick_size = 0.01;
+        if (buyOrders.length > 0) {
+            const best_current_buy = buyOrders.reduce((max, o) => Math.max(max, o.price), 0);
+            recommended_buy = Math.max(recommended_buy, best_current_buy + tick_size);
         }
-        if (bestRecommendation) {
-            recommendations.push(bestRecommendation);
+
+        // --- End of New Algorithm Core Logic ---
+
+        // Let's create a recommendation if the calculated price is valid
+        if (recommended_buy > 0 && recommended_buy < AssumedSellPrice) {
+            
+            const buyPriceRange = { min: price_floor, max: recommended_buy };
+            const sellPriceRange = { min: AssumedSellPrice, max: max_price };
+
+            const executableVolume = {
+                low: Math.floor(averageDailyVolume * 0.1 * inputs.executionDays),
+                high: Math.floor(averageDailyVolume * 0.5 * inputs.executionDays),
+            };
+
+            const estimatedExecutionDays = {
+                min: 1,
+                max: inputs.executionDays,
+            };
+
+            // Feasibility logic (can be refined)
+            let score = 0;
+            if (averageDailyVolume > 1000) score++;
+            if (totalBuyOrderVolume > executableVolume.high) score++;
+            if (totalSellOrderVolume > executableVolume.high) score++;
+            if (Math.abs(recommended_buy - midPrice) / midPrice < 0.1) score++;
+            
+            const feasibilityLevels: Feasibility[] = ['low', 'medium', 'high', 'very high'];
+            const feasibility = feasibilityLevels[Math.min(score, 3)];
+            const feasibilityReason = `Оценка выполнимости основана на историческом объеме, глубине стакана и близости к текущим ценам.`;
+
+            const netProfitPerItem = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) - (recommended_buy * (1 + broker_buy_fee_rate));
+            const netMarginPercent = (netProfitPerItem / (recommended_buy * (1 + broker_buy_fee_rate))) * 100;
+            
+            // Step 5: Ограничение по капиталу
+            const capital = inputs.positionCapital ?? 100000000; // Default capital if not provided
+            const quantity = Math.floor(capital / recommended_buy);
+            const potentialProfit = netProfitPerItem * quantity;
+
+            if (quantity >= 1) {
+                recommendations.push({
+                    buyPriceRange,
+                    sellPriceRange,
+                    netMarginPercent,
+                    potentialProfit,
+                    executableVolume: {
+                        low: Math.min(executableVolume.low, quantity),
+                        high: Math.min(executableVolume.high, quantity)
+                    },
+                    estimatedExecutionDays,
+                    feasibility,
+                    feasibilityReason,
+                });
+            }
         }
     }
 
-    // --- Volatility ---
+
+    // --- Volatility (calculated for display) ---
     const averagePriceHistory = history.length > 0 ? historicalPrices.reduce((sum, p) => sum + p, 0) / historicalPrices.length : 0;
     const variance = history.length > 0 ? history.reduce((sum, h) => sum + Math.pow(h.average - averagePriceHistory, 2), 0) / history.length : 0;
     const stdDev = Math.sqrt(variance);
-    const volatility = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
+    const volatilityPercent = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
 
     return {
       inputs,
@@ -165,21 +160,8 @@ export function calculateAnalysis(
         bestBuyPrice,
         bestSellPrice,
         midPrice,
-        volatility,
+        volatility: volatilityPercent,
         averagePrice,
       }
     };
-}
-
-// Helper to get percentile from a sorted array
-function getPercentile(data: number[], percentile: number): number {
-    if (data.length === 0) return 0;
-    const sorted = [...data].sort((a, b) => a - b);
-    const index = (percentile / 100) * (sorted.length - 1);
-    if (Math.floor(index) === index) {
-        return sorted[index];
-    }
-    const lower = sorted[Math.floor(index)];
-    const upper = sorted[Math.ceil(index)];
-    return lower + (upper - lower) * (index - Math.floor(index));
 }
