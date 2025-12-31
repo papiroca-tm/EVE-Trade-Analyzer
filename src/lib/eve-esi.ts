@@ -107,29 +107,26 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
 
     if (typeIds.length === 0) return [];
     
-    // ESI has a limit of 1000 IDs for the /universe/names/ endpoint, but let's be reasonable for a search dropdown
     const maxIdsToFetch = 50; 
     const cappedTypeIds = typeIds.slice(0, maxIdsToFetch);
     
-    // Fetch details for each type_id individually as per the provided specification
     const itemDetailsPromises = cappedTypeIds.map(async (id) => {
-        try {
-            const response = await fetchEsi(`/universe/types/${id}/`, true);
-            const data = await response.json();
-            // Ensure the item is published and on the market before including it
-            if (data.published && data.market_group_id) {
-                return { type_id: id, name: data.name };
-            }
-            return null;
-        } catch (err) {
-            console.warn(`Failed to fetch item details for ID ${id}`, err);
-            return null;
+        const response = await fetchEsi(`/universe/types/${id}/`, true);
+        const data = await response.json();
+        // Ensure the item is published and on the market before including it
+        if (data.published && data.market_group_id) {
+            return { type_id: id, name: data.name };
         }
+        return null;
     });
 
-    const resolvedDetails = await Promise.all(itemDetailsPromises);
+    const settledDetails = await Promise.allSettled(itemDetailsPromises);
 
-    return resolvedDetails
+    const successfulItems = settledDetails
+        .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
+        .map(result => result.value as ItemType);
+
+    return successfulItems
         .filter((t): t is ItemType => t !== null)
         .sort((a, b) => a.name.localeCompare(b.name));
 }
