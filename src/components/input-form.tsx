@@ -73,6 +73,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   
   useEffect(() => {
     if (debouncedItemSearch.length < 3) {
+      // Do not clear item types, so the initial/previous search result persists
       setIsSearchingItems(false);
       return;
     }
@@ -211,7 +212,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                           )}
                         >
                           {field.value
-                            ? selectedItemInList?.name ?? 'Select item'
+                            ? itemTypes.find(item => item.type_id === field.value)?.name ?? 'Select item'
                             : "Select item"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -226,7 +227,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                         />
                         <CommandList>
                           {isSearchingItems && <CommandItem>Searching...</CommandItem>}
-                          {!isSearchingItems && itemTypes.length === 0 && <CommandItem>No item found.</CommandItem>}
+                          {!isSearchingItems && debouncedItemSearch.length >= 3 && itemTypes.length === 0 && <CommandItem>No item found.</CommandItem>}
                           <CommandGroup>
                             {itemTypes.map((item) => (
                               <CommandItem
@@ -234,7 +235,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                                 key={item.type_id}
                                 onSelect={() => {
                                   form.setValue("typeId", item.type_id)
-                                  if (!itemTypes.find(i => i.type_id === item.type_id)) {
+                                  if (!itemTypes.some(i => i.type_id === item.type_id)) {
                                     setItemTypes(prev => [...prev, item]);
                                   }
                                 }}
