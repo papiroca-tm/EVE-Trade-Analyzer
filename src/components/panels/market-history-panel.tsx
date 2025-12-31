@@ -165,7 +165,7 @@ export function MarketHistoryPanel({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[40rem] w-full">
+        <div className="h-[30rem] w-full">
             <ResponsiveContainer width="100%" height="75%">
                 <ComposedChart
                     data={chartData} 

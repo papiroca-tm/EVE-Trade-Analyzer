@@ -10,6 +10,7 @@ import { RecommendationsPanel } from './panels/recommendations-panel';
 import { WarningsPanel } from './panels/warnings-panel';
 import { MarketHistoryPanel } from './panels/market-history-panel';
 import { OrderBookPanel } from './panels/order-book-panel';
+import { CandlestickChartPanel } from './panels/candlestick-chart-panel';
 
 export function ResultsDisplay({ state }: { state: AnalysisState }) {
   const { toast } = useToast();
@@ -66,6 +67,9 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
                 timeHorizonDays={state.data.inputs.timeHorizonDays}
                 recommendations={state.data.recommendations}
               />
+            </div>
+             <div className="lg:col-span-2">
+                <CandlestickChartPanel />
             </div>
             <div className="lg:col-span-2">
               <OrderBookPanel 
