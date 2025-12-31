@@ -56,7 +56,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
         setItemTypes(itemTypes);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
-        // Optionally set an error state here to show in the UI
+        // In case of error, we'll show empty dropdowns but not crash.
       } finally {
         setLoading(false);
       }

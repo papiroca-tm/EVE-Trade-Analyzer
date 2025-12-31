@@ -3,9 +3,9 @@ import type { MarketHistoryItem, MarketOrderItem, Region, ItemType } from './typ
 
 const ESI_BASE_URL = 'https://esi.evetech.net/latest';
 
-// Fetch with a 24-hour cache policy.
+// Fetch with a 1-hour cache policy for semi-static data like regions/item types.
 async function fetchWithCache(url: string) {
-    return fetch(url, { next: { revalidate: 86400 } }); 
+    return fetch(url, { next: { revalidate: 3600 } }); 
 }
 
 // Fetch without caching for live market data.
@@ -20,7 +20,7 @@ export async function fetchMarketHistory(regionId: number, typeId: number): Prom
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error(`ESI History Error for ${typeId} in ${regionId}: ${errorBody}`);
+    console.error(`ESI History Error for ${typeId} in ${regionId}: ${response.status} ${errorBody}`);
     throw new Error(`Failed to fetch market history: ${response.statusText}`);
   }
   const data: MarketHistoryItem[] = await response.json();
@@ -38,7 +38,7 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
 
     if (!response.ok) {
        const errorBody = await response.text();
-       console.error(`ESI Orders Error for ${typeId} in ${regionId}: ${errorBody}`);
+       console.error(`ESI Orders Error for ${typeId} in ${regionId}: ${response.status} ${errorBody}`);
        throw new Error(`Failed to fetch market orders (page ${page}): ${response.statusText}`);
     }
 
@@ -52,6 +52,7 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
     if (xPagesHeader) {
       totalPages = parseInt(xPagesHeader, 10);
     } else {
+        // If the header is missing, we assume we're on the last page.
         break;
     }
     
@@ -61,11 +62,43 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
   return allOrders;
 }
 
+
+async function fetchAllPages<T>(url: string): Promise<T[]> {
+  const response = await fetchWithCache(url);
+  if (!response.ok) {
+    console.error(`Failed to fetch initial page for ${url}: ${response.statusText}`);
+    throw new Error(`Failed to fetch paged data from ESI: ${response.statusText}`);
+  }
+  const xPagesHeader = response.headers.get('x-pages');
+  const totalPages = xPagesHeader ? parseInt(xPagesHeader, 10) : 1;
+  
+  let allData: T[] = await response.json();
+
+  if (totalPages > 1) {
+    const pagePromises: Promise<T[]>[] = [];
+    for (let page = 2; page <= totalPages; page++) {
+        const pageUrl = `${url.includes('?') ? url : url + '?'}&page=${page}`;
+        pagePromises.push(
+            fetchWithCache(pageUrl).then(res => {
+                if (!res.ok) {
+                    console.error(`Failed to fetch page ${page} for ${url}: ${res.statusText}`);
+                    return []; // Return empty array on error for a specific page
+                }
+                return res.json() as Promise<T[]>;
+            })
+        );
+    }
+    const pagedData = await Promise.all(pagePromises);
+    pagedData.forEach(pageData => allData.push(...pageData));
+  }
+  
+  return allData;
+}
+
+
 export async function getRegions(): Promise<Region[]> {
     const regionIdsUrl = `${ESI_BASE_URL}/universe/regions/`;
-    const regionIdsResponse = await fetchWithCache(regionIdsUrl);
-    if (!regionIdsResponse.ok) throw new Error("Failed to fetch region IDs");
-    const regionIds: number[] = await regionIdsResponse.json();
+    const regionIds = await fetchAllPages<number>(regionIdsUrl);
 
     const regionDetails = await Promise.all(
         regionIds.map(async id => {
@@ -83,67 +116,42 @@ export async function getRegions(): Promise<Region[]> {
     );
 
     return regionDetails
-        .filter((r): r is Region => r !== null)
+        .filter((r): r is Region => r !== null && !!r.name)
         .sort((a,b) => a.name.localeCompare(b.name));
 }
 
 
 export async function getItemTypes(): Promise<ItemType[]> {
-    const marketGroupsUrl = `${ESI_BASE_URL}/markets/groups/`;
-    const marketGroupsResponse = await fetchWithCache(marketGroupsUrl);
-    if (!marketGroupsResponse.ok) throw new Error("Failed to fetch market group IDs");
-    const marketGroupIds: number[] = await marketGroupsResponse.json();
-    
-    let allTypeIds: number[] = [];
+    const typeIdsUrl = `${ESI_BASE_URL}/universe/types/`;
+    const allTypeIds = await fetchAllPages<number>(typeIdsUrl);
 
-    for (const groupId of marketGroupIds) {
-        try {
-            const groupUrl = `${ESI_BASE_URL}/markets/groups/${groupId}/`;
-            const groupResponse = await fetchWithCache(groupUrl);
-            if (!groupResponse.ok) continue;
-            const groupData = await groupResponse.json();
-            if (groupData.types) {
-                allTypeIds.push(...groupData.types);
-            }
-        } catch(e) {
-             console.error(`Failed to fetch market group details for ID ${groupId}`, e);
-        }
-    }
-    
     const uniqueTypeIds = [...new Set(allTypeIds)];
-
-    const batchSize = 200;
-    let allTypeDetails: (ItemType | null)[] = [];
-
-    for (let i = 0; i < uniqueTypeIds.length; i += batchSize) {
-        const batchIds = uniqueTypeIds.slice(i, i + batchSize);
-        try {
-            const url = `${ESI_BASE_URL}/universe/types/`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(batchIds),
-                cache: 'force-cache',
-            });
-            if (!response.ok) continue;
-
-            const data = await response.json();
-            const batchDetails = data.map((item: any) => {
-                if (!item.published) return null;
-                return { type_id: item.type_id, name: item.name };
-            });
-            allTypeDetails.push(...batchDetails);
-
-        } catch (e) {
-            console.error(`Failed to fetch item details for batch`, e);
-        }
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to be polite to the API
-    }
     
-    return allTypeDetails
+    // We can't fetch all types at once. We'll rely on the default values and search.
+    // Let's pre-warm with some common types.
+    const defaultTypeIds = [34, 35, 36, 37, 38, 39, 40]; // Tritanium, Pyerite, etc.
+    const idsToFetch = [...new Set([...defaultTypeIds, ...uniqueTypeIds.slice(0, 100)])]; // Fetch a small subset to start with.
+
+    const typeDetails = await Promise.all(
+      idsToFetch.map(async id => {
+        try {
+            const url = `${ESI_BASE_URL}/universe/types/${id}/`;
+            const response = await fetchWithCache(url);
+            if (!response.ok) return null;
+            const data = await response.json();
+            // We only want items that can be on the market.
+            if (data.published && data.market_group_id) {
+                return { type_id: id, name: data.name };
+            }
+            return null;
+        } catch (e) {
+            console.error(`Failed to fetch type details for ID ${id}`, e);
+            return null;
+        }
+      })
+    );
+    
+    return typeDetails
         .filter((t): t is ItemType => t !== null && !!t.name)
         .sort((a,b) => a.name.localeCompare(b.name));
 }

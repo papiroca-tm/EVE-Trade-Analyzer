@@ -94,6 +94,8 @@ export async function getRegionsAndItemTypes(): Promise<{ regions: Region[], ite
         return { regions, itemTypes };
     } catch (error) {
         console.error("Failed to get regions and item types", error);
+        // Return empty arrays on failure to prevent crashing the form.
+        // The user will see empty dropdowns, but the app won't break.
         return { regions: [], itemTypes: [] };
     }
 }
