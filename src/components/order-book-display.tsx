@@ -29,8 +29,13 @@ const OrderTable = ({
   const isSell = type === 'sell';
   
   const sortedOrders = useMemo(() => {
-    return [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
-  }, [orders, type]);
+    const sorted = [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
+    // For sell orders, we want the cheapest at the bottom, so we need to reverse the sorted (ascending) array before slicing.
+    if (type === 'sell') {
+      return sorted.slice(0, rows).reverse();
+    }
+    return sorted.slice(0, rows);
+  }, [orders, type, rows]);
 
   return (
     <div className="flex-1">
@@ -38,7 +43,7 @@ const OrderTable = ({
         <Table>
           <TableBody>
             {sortedOrders.length > 0 ? (
-              sortedOrders.slice(0, rows).map((order) => (
+              sortedOrders.map((order) => (
                 <TableRow key={order.order_id} className="border-b-0">
                   <TableCell
                     className={cn(
