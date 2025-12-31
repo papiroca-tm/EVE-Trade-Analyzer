@@ -51,53 +51,36 @@ const Candle = (props: any) => {
 
 export function CandlestickChartPanel({ history, timeHorizonDays }: { history: MarketHistoryItem[], timeHorizonDays: number }) {
   const {data, yDomain} = useMemo(() => {
-     if (!history || history.length === 0) {
-      return { data: [], yDomain: [0, 10] };
+    // Generate random data for display purposes
+    const randomData = [];
+    let lastClose = 4;
+    for (let i = 0; i < 30; i++) {
+        const open = lastClose + (Math.random() - 0.5) * 0.2;
+        const close = open + (Math.random() - 0.5) * 0.5;
+        const high = Math.max(open, close) + Math.random() * 0.3;
+        const low = Math.min(open, close) - Math.random() * 0.3;
+        lastClose = close;
+        
+        randomData.push({
+            date: `День ${i + 1}`,
+            open: Number(open.toFixed(2)),
+            high: Number(high.toFixed(2)),
+            low: Number(low.toFixed(2)),
+            close: Number(close.toFixed(2)),
+            body: [Number(open.toFixed(2)), Number(close.toFixed(2))]
+        });
     }
-    
-    const dataForHorizon = history.slice(-timeHorizonDays);
 
-    const volumes = dataForHorizon.map(h => h.volume);
-    const maxVolume = Math.max(...volumes);
-    const minVolume = Math.min(...volumes);
-    const volumeRange = maxVolume - minVolume;
-
-    const chartData = dataForHorizon.map((item, index) => {
-        const { lowest, highest, volume, average } = item;
-
-        const volumePercentage = volumeRange > 0 ? (volume - minVolume) / volumeRange : 0;
-        
-        const priceRange = highest - lowest;
-        const bodySize = priceRange * volumePercentage;
-        
-        const open = average - bodySize / 2;
-        const close = average + bodySize / 2;
-
-        const isBullish = index > 0 ? average > dataForHorizon[index-1].average : true;
-        
-        return {
-            date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            open: Number(isBullish ? open : close),
-            close: Number(isBullish ? close : open),
-            high: Number(highest),
-            low: Number(lowest),
-            body: [isBullish ? open : close, isBullish ? close : open]
-        }
-    });
-
-    const prices = chartData.flatMap(d => [d.low, d.high]).filter(p => p !== undefined && p !== null);
-    if (prices.length === 0) {
-      return { data: chartData, yDomain: [0, 10]};
-    }
-    const minPrice = Math.min(...prices.map(p => Number(p)));
-    const maxPrice = Math.max(...prices.map(p => Number(p)));
+    const prices = randomData.flatMap(d => [d.low, d.high]);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
     const padding = (maxPrice - minPrice) * 0.1;
     
     return {
-        data: chartData,
+        data: randomData,
         yDomain: [minPrice - padding, maxPrice + padding]
     };
-  }, [history, timeHorizonDays]);
+  }, []);
 
   return (
     <Card>
@@ -107,7 +90,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
             <CardTitle>График цен (Свечи)</CardTitle>
         </div>
         <CardDescription>
-            Дневной диапазон цен. Тело свечи представляет объем торгов за день.
+            Дневной диапазон цен. Тело свечи представляет объем торгов за день. (В режиме отладки на случайных данных)
         </CardDescription>
       </CardHeader>
       <CardContent>
