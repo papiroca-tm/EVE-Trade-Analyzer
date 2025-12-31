@@ -78,7 +78,11 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     fetchData();
   }, []);
   
-  const displayedItems = itemSearch ? initialData.itemTypes : initialData.itemTypes.slice(0, 20);
+  const filteredItems = itemSearch
+    ? initialData.itemTypes.filter(item => item.name.toLowerCase().includes(itemSearch.toLowerCase()))
+    : initialData.itemTypes;
+
+  const displayedItems = filteredItems.slice(0, 20);
 
   return (
     <Card>
