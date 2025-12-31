@@ -9,41 +9,22 @@ import type { MarketHistoryItem } from '@/lib/types';
 
 // Custom shape for the candlestick
 const Candle = (props: any) => {
-  const { x, y, width, height, payload } = props;
-  
-  if (!payload || payload.open === undefined || height < 0) {
-    return null;
-  }
-  
-  // This helper function maps a price value to a Y coordinate within the chart's space.
-  const yValueToCoordinate = (value: number) => {
-      const priceRange = payload.high - payload.low;
-      if (priceRange === 0) {
-          return y + height / 2;
-      }
-      const valueAsPercentage = (value - payload.low) / priceRange;
-      return y + (1 - valueAsPercentage) * height;
-  };
-  
-  const highY = yValueToCoordinate(payload.high);
-  const lowY = yValueToCoordinate(payload.low);
-  const openY = yValueToCoordinate(payload.open);
-  const closeY = yValueToCoordinate(payload.close);
-
-  const isBullish = payload.close >= payload.open;
-
-  const bodyY = Math.min(openY, closeY);
-  const bodyHeight = Math.max(1, Math.abs(openY - closeY)); // Ensure body is at least 1px to be visible
-  
+  const { x, y, width, height, low, high, open, close } = props;
+  const isBullish = close >= open;
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
+  const wickY1 = y + height * (high - Math.max(open, close)) / (high - low);
+  const wickY2 = y + height * (high - Math.min(open, close)) / (high - low);
+  
+  const bodyHeight = Math.max(1, height * Math.abs(open-close) / (high-low));
+  
   return (
     <g>
       {/* Wick */}
-      <line x1={x + width / 2} y1={highY} x2={x + width / 2} y2={lowY} stroke={stroke} strokeWidth={1} />
+      <line x1={x + width / 2} y1={y} x2={x + width / 2} y2={y + height} stroke={stroke} strokeWidth={1} />
       {/* Body */}
-      <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={fill} />
+      <rect x={x} y={isBullish ? wickY2 : wickY1} width={width} height={bodyHeight} fill={fill} />
     </g>
   );
 };
@@ -54,21 +35,23 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
     // Generate random data for display purposes
     const randomData = [];
     let lastClose = 4;
-    for (let i = 0; i < 30; i++) {
-        const open = lastClose + (Math.random() - 0.5) * 0.2;
-        const close = open + (Math.random() - 0.5) * 0.5;
-        const high = Math.max(open, close) + Math.random() * 0.3;
-        const low = Math.min(open, close) - Math.random() * 0.3;
+    for (let i = 0; i < 90; i++) {
+        const open = Number((lastClose + (Math.random() - 0.5) * 0.2).toFixed(2));
+        const close = Number((open + (Math.random() - 0.5) * 0.5).toFixed(2));
+        const high = Number((Math.max(open, close) + Math.random() * 0.3).toFixed(2));
+        const low = Number((Math.min(open, close) - Math.random() * 0.3).toFixed(2));
         lastClose = close;
         
-        randomData.push({
-            date: `День ${i + 1}`,
-            open: Number(open.toFixed(2)),
-            high: Number(high.toFixed(2)),
-            low: Number(low.toFixed(2)),
-            close: Number(close.toFixed(2)),
-            body: [Number(open.toFixed(2)), Number(close.toFixed(2))]
-        });
+        if (low > 3 && high < 5) {
+             randomData.push({
+                date: `День ${i + 1}`,
+                open: open,
+                high: high,
+                low: low,
+                close: close,
+                body: [low, high]
+            });
+        }
     }
 
     const prices = randomData.flatMap(d => [d.low, d.high]);
@@ -78,7 +61,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
     
     return {
         data: randomData,
-        yDomain: [minPrice - padding, maxPrice + padding]
+        yDomain: [Math.max(0, minPrice - padding), maxPrice + padding]
     };
   }, []);
 
@@ -111,8 +94,8 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
               />
               <Tooltip 
                  formatter={(value, name, props) => {
+                    const { payload } = props;
                     if (name === 'body' && Array.isArray(value)) {
-                       const { payload } = props;
                        return [
                         `Open: ${Number(payload.open).toFixed(2)}`,
                         `High: ${Number(payload.high).toFixed(2)}`,
@@ -122,6 +105,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                     }
                     return value;
                  }}
+                 labelFormatter={(label) => `Дата: ${label}`}
               />
               <Bar dataKey="body" shape={<Candle />} />
             </ComposedChart>
