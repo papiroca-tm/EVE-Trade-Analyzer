@@ -90,7 +90,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                                     <Info className="h-3 w-3 text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                     <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки' ({isBuy ? 'покупка' : 'продажа'}). Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
+                                     <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -187,7 +187,8 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                 <StatCard 
                     icon={<Target size={16}/>} 
                     title="Целевой объем" 
-                    value={rec.targetVolume.toLocaleString('ru-RU')} 
+                    value={rec.targetVolume.toLocaleString('ru-RU')}
+                    tooltipText="Количество единиц, которое можно приобрести на указанный 'Инвестируемый капитал' по тактической (краткосрочной) цене покупки."
                 />
                 <StatCard icon={<Clock size={16}/>} title="Время исполн." value={`${rec.estimatedExecutionDays.min}-${rec.estimatedExecutionDays.max}`} unit="дней"/>
                 <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
@@ -248,6 +249,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     icon={<Target size={16}/>} 
                     title="Целевой объем" 
                     value={"0"} 
+                    tooltipText="Количество единиц, которое можно приобрести на указанный 'Инвестируемый капитал' по тактической (краткосрочной) цене покупки."
                 />
                 <StatCard icon={<Clock size={16}/>} title="Время исполн." value={"0-0"} unit="дней"/>
                 <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
@@ -282,8 +284,3 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
-
-    
-    
-
-    
