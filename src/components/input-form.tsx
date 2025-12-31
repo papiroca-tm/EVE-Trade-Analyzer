@@ -92,11 +92,11 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       </CardHeader>
       <Form {...form}>
         <form action={formAction}>
-          <CardContent className="grid grid-cols-1 gap-y-4 gap-x-2 sm:grid-cols-2">
+          <CardContent className="flex flex-col gap-y-4">
             {loadingInitialData ? (
                 <>
-                    <div className="space-y-2 sm:col-span-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
-                    <div className="space-y-2 sm:col-span-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
+                    <div className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
+                    <div className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
                 </>
             ) : (
              <>
@@ -104,7 +104,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               control={form.control}
               name="regionId"
               render={({ field }) => (
-                <FormItem className="flex flex-col sm:col-span-2">
+                <FormItem className="flex flex-col">
                   <FormLabel>Регион</FormLabel>
                    <Popover open={openRegionPopover} onOpenChange={setOpenRegionPopover}>
                     <PopoverTrigger asChild>
@@ -167,7 +167,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               control={form.control}
               name="typeId"
               render={({ field }) => (
-                <FormItem className="flex flex-col sm:col-span-2">
+                <FormItem className="flex flex-col">
                   <FormLabel>Тип предмета</FormLabel>
                    <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
                     <PopoverTrigger asChild>
@@ -283,7 +283,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 control={form.control}
                 name="timeHorizonDays"
                 render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem>
                     <FormLabel>Временной горизонт (дни)</FormLabel>
                     <FormControl>
                         <Input type="number" {...field} />
@@ -297,7 +297,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 control={form.control}
                 name="optionalTargetVolume"
                 render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem>
                     <FormLabel>Опционально: Целевой объем</FormLabel>
                     <FormControl>
                         <Input type="number" placeholder="например, 1000000" {...field} />
