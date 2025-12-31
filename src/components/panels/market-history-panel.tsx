@@ -34,10 +34,9 @@ export function MarketHistoryPanel({
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
         return data.map((_item, index, arr) => {
-            const historySliceIndex = chronologicalHistory.indexOf(arr[index]);
-            if (historySliceIndex < period - 1) return null;
+            if (index < period - 1) return null;
             
-            const slice = chronologicalHistory.slice(historySliceIndex - period + 1, historySliceIndex + 1);
+            const slice = arr.slice(index - period + 1, index + 1);
             if (slice.length < period) return null;
 
             const sum = slice.reduce((acc, val) => acc + val.average, 0);
@@ -45,12 +44,12 @@ export function MarketHistoryPanel({
         });
     };
     
-    const dataForHorizon = chronologicalHistory.slice(-timeHorizonDays);
-    const sma7 = calculateSMA(dataForHorizon, 7);
-    const sma30 = calculateSMA(dataForHorizon, 30);
+    // Отображаем все доступные данные, а не только за timeHorizonDays
+    const sma7 = calculateSMA(chronologicalHistory, 7);
+    const sma30 = calculateSMA(chronologicalHistory, 30);
 
 
-    const fullChartData = dataForHorizon.map((item, index) => ({
+    const fullChartData = chronologicalHistory.map((item, index) => ({
       date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
       fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
       'Цена': item.average,
@@ -76,7 +75,7 @@ export function MarketHistoryPanel({
     
     return { chartData: fullChartData, yDomainPrice: domain };
 
-  }, [history, timeHorizonDays]);
+  }, [history]);
   
   
   const CustomTooltip = ({ active, payload, label }: any) => {

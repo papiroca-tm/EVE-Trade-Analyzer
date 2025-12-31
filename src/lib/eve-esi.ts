@@ -7,7 +7,8 @@ const ESI_BASE_URL = 'https://esi.evetech.net/latest';
 
 async function fetchEsi(path: string, options: RequestInit = {}): Promise<Response> {
     const url = `${ESI_BASE_URL}${path}`;
-    const finalOptions: RequestInit = { ...options, next: { revalidate: 3600 } };
+    // Уменьшено время кэширования до 10 минут для получения более свежих данных
+    const finalOptions: RequestInit = { ...options, next: { revalidate: 600 } };
     
     console.log(`Fetching ESI: ${url}`);
 
@@ -84,6 +85,7 @@ export async function getRegions(): Promise<Region[]> {
     
     const regionDetailsPromises = regionIds.map(async id => {
         try {
+            // Исключаем регионы червоточин, т.к. у них нет рынков
             if (id > 11000000) {
                 return null;
             }
@@ -103,6 +105,7 @@ export async function getRegions(): Promise<Region[]> {
 
 async function resolveTypeNames(typeIds: number[]): Promise<Map<number, string>> {
     const nameMap = new Map<number, string>();
+    // ESI /universe/names/ endpoint can handle up to 1000 IDs per request
     const chunks = [];
     for (let i = 0; i < typeIds.length; i += 1000) {
         chunks.push(typeIds.slice(i, i + 1000));
@@ -151,7 +154,7 @@ export async function getAllMarketableTypes(regionId: number): Promise<ItemType[
         return items.sort((a, b) => a.name.localeCompare(b.name));
 
     } catch (error) {
-        console.error("Failed to get all marketable types, falling back to minerals.", error);
+        console.error("Failed to get all marketable types, falling back to a small default list.", error);
         return [
             { type_id: 34, name: 'Tritanium' },
             { type_id: 35, name: 'Pyerite' },
