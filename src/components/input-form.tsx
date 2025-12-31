@@ -116,9 +116,12 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     
     // Also ensure the currently selected item is in the list, even if it's not in the search results
     const selectedTypeId = form.watch('typeId');
-    const selectedItem = initialItemTypes.find(i => i.type_id === selectedTypeId) || searchedItemTypes.find(i => i.type_id === selectedTypeId);
-    if(selectedTypeId && !combined.has(selectedTypeId) && selectedItem) {
-        combined.set(selectedTypeId, selectedItem);
+    if(selectedTypeId && !combined.has(selectedTypeId)) {
+        const allItems = [...initialItemTypes, ...searchedItemTypes];
+        const selectedItem = allItems.find(i => i.type_id === selectedTypeId);
+        if (selectedItem) {
+            combined.set(selectedTypeId, selectedItem);
+        }
     }
     
     return Array.from(combined.values()).sort((a,b)=> a.name.localeCompare(b.name));

@@ -63,15 +63,15 @@ export async function getRegions(): Promise<Region[]> {
     const regionDetails = await Promise.all(
         regionIds.map(async id => {
             try {
+                // We only care about the main regions with markets
+                if (id > 11000000) {
+                    return null;
+                }
                 const response = await fetchEsi(`/universe/regions/${id}/`, true);
                 const data = await response.json();
-                // Filter out wormhole/special regions that don't have markets
-                if (id < 11000000 && data.name) {
-                    return { region_id: id, name: data.name };
-                }
-                return null;
+                return { region_id: id, name: data.name };
             } catch (e) {
-                console.error(`Failed to fetch region details for ID ${id}`, e);
+                console.warn(`Failed to fetch region details for ID ${id}`, e);
                 return null;
             }
         })
@@ -101,12 +101,13 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
         try {
             const response = await fetchEsi(`/universe/types/${id}/`, true);
             const data = await response.json();
+            // Ensure the item is published and has a market group (i.e., is tradeable)
             if (data.published && data.market_group_id) {
                 return { type_id: id, name: data.name };
             }
             return null;
         } catch (e) {
-            console.error(`Failed to fetch type details for ID ${id}`, e);
+            console.warn(`Failed to fetch type details for ID ${id}`, e);
             return null;
         }
       })
