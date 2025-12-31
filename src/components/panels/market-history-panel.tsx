@@ -239,7 +239,7 @@ export function MarketHistoryPanel({
                     <Bar 
                         yAxisId="left" 
                         dataKey="average" 
-                        shape={(props) => <Candlestick {...props} yAxis={({ scale: (v: number) => (this as any).yAxis.scale(v) })} />} 
+                        shape={<Candlestick />} 
                         barSize={10} 
                     />
 
@@ -264,7 +264,7 @@ export function MarketHistoryPanel({
                     />
                     <Line 
                         yAxisId="left"
-                        type="monotone" 
+                        type="monotone" _
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
                         strokeWidth={1.5} 
