@@ -9,7 +9,7 @@ import type { MarketHistoryItem } from '@/lib/types';
 
 // Custom shape for the candlestick
 const Candle = (props: any) => {
-  const { x, y, width, height, low, high, open, close, color, yAxis } = props;
+  const { x, width, low, high, open, close, color, yAxis } = props;
   
   if (!yAxis || typeof yAxis.scale !== 'function' || high === undefined || low === undefined) {
     return null;
