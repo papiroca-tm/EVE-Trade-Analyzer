@@ -45,7 +45,7 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
             </h3>
             <ScrollArea className="h-64 border rounded-md">
             <Table>
-                <TableHeader className='sticky top-0 bg-muted/50 z-10'>
+                <TableHeader className='sticky top-0 z-10 bg-muted/95 backdrop-blur-sm'>
                 <TableRow>
                     <TableHead className={cn('py-2', type === 'buy' ? 'text-green-400' : 'text-red-400')}>Цена</TableHead>
                     <TableHead className="text-right py-2">Объем</TableHead>
