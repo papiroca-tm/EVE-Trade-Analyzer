@@ -30,9 +30,9 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
         
         const logicSorted = [...orders].sort((a, b) => a.price - b.price); 
         
-        let cumulativeForWallCheck = 0;
         let wallOrderId: number | undefined;
 
+        let cumulativeForWallCheck = 0;
         for (const order of logicSorted) {
             cumulativeForWallCheck += order.volume_remain;
             if (cumulativeForWallCheck >= wallThreshold) {
@@ -152,9 +152,9 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
 
 
 const SpreadRow = ({ priceAnalysis, inputs, spreadRef }: { priceAnalysis?: PriceAnalysis, inputs?: UserInputs, spreadRef: React.RefObject<HTMLTableRowElement> }) => {
-    const { spread, marginPercent } = useMemo(() => {
+    const { spread, marginPercent, rowClass } = useMemo(() => {
         if (!priceAnalysis || !inputs || !priceAnalysis.bestBuyPrice || !priceAnalysis.bestSellPrice || priceAnalysis.bestSellPrice === Infinity) {
-            return { spread: null, marginPercent: null };
+            return { spread: null, marginPercent: null, rowClass: "hover:bg-muted/50" };
         }
         const spreadValue = priceAnalysis.bestSellPrice - priceAnalysis.bestBuyPrice;
 
@@ -162,18 +162,25 @@ const SpreadRow = ({ priceAnalysis, inputs, spreadRef }: { priceAnalysis?: Price
         const revenue = priceAnalysis.bestSellPrice * (1 - inputs.brokerSellFeePercent / 100 - inputs.salesTaxPercent / 100);
         const profit = revenue - cost;
         const margin = cost > 0 ? (profit / cost) * 100 : 0;
+        
+        let calculatedRowClass = "bg-destructive/30 hover:bg-destructive/40"; // Red
+        if (margin >= inputs.desiredNetMarginPercent + 1) {
+            calculatedRowClass = "bg-green-800/60 hover:bg-green-800/70"; // Green
+        } else if (margin >= inputs.desiredNetMarginPercent) {
+            calculatedRowClass = "bg-accent/30 hover:bg-accent/40"; // Yellow/Orange
+        }
 
-        return { spread: spreadValue, marginPercent: margin };
+        return { spread: spreadValue, marginPercent: margin, rowClass: calculatedRowClass };
     }, [priceAnalysis, inputs]);
 
     return (
-        <TableRow ref={spreadRef} className="border-y hover:bg-muted/50">
+        <TableRow ref={spreadRef} className={cn("border-y", rowClass)}>
             <TableCell colSpan={2} className="p-1 text-center font-mono text-xs">
                 <div className='flex justify-around items-center'>
                     <div className='text-muted-foreground'>
                         Маржа:
                         {marginPercent !== null 
-                            ? <span className={cn('ml-1', marginPercent > 0 ? "text-green-400" : "text-red-400")}>{marginPercent.toFixed(2)}%</span>
+                            ? <span className={cn('ml-1', 'text-foreground')}>{marginPercent.toFixed(2)}%</span>
                             : <span className='ml-1'>-</span>
                         }
                     </div>
