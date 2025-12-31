@@ -6,48 +6,6 @@ import { TrendingUp } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, ReferenceLine } from 'recharts';
 import { useMemo } from 'react';
 
-// Custom shape for the candlestick
-const Candlestick = (props: any) => {
-  const { x, width, low, high, average, previousAverage } = props;
-  const yAxis = props.yAxis;
-
-  // If core props are missing, or we can't get the y-axis scale function, don't render.
-  if ([x, width, low, high, average, previousAverage].some(p => p === undefined || p === null) || !yAxis?.scale) {
-      return null;
-  }
-
-  const isBullish = average >= previousAverage;
-  const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-  const stroke = fill;
-
-  const highWickY = yAxis.scale(high);
-  const lowWickY = yAxis.scale(low);
-
-  // The body represents a small range around the average. Let's make it 1/5th of the high-low spread.
-  const spread = high - low;
-  // If spread is 0, make body a thin line at the average price
-  const bodyRange = spread > 0 ? spread * 0.2 : 0.01 * average;
-  
-  const bodyTopValue = average + bodyRange / 2;
-  const bodyBottomValue = average - bodyRange / 2;
-
-  const bodyTopY = yAxis.scale(bodyTopValue);
-  const bodyBottomY = yAxis.scale(bodyBottomValue);
-  
-  // Ensure height is at least 1px to be visible
-  const bodyHeight = Math.max(1, Math.abs(bodyTopY - bodyBottomY));
-  
-  return (
-    <g stroke={stroke} fill={fill} strokeWidth={1}>
-      {/* High-Low Wick (the thin line) */}
-      <line x1={x + width / 2} y1={highWickY} x2={x + width / 2} y2={lowWickY} />
-      {/* Body (the thicker part) */}
-      <rect x={x} y={Math.min(bodyTopY, bodyBottomY)} width={width} height={bodyHeight} />
-    </g>
-  );
-};
-
-
 export function MarketHistoryPanel({ 
     history,
     timeHorizonDays,
@@ -92,11 +50,8 @@ export function MarketHistoryPanel({
       'Объем': item.volume,
       'SMA 7': sma7[index],
       'SMA 30': sma30[index],
-      // For candlestick
       low: item.lowest,
       high: item.highest,
-      average: item.average,
-      previousAverage: index > 0 ? chronologicalHistory[index - 1].average : item.average,
     }));
 
     const chartData = fullChartData.slice(-timeHorizonDays);
@@ -203,7 +158,7 @@ export function MarketHistoryPanel({
             <CardTitle>Динамика рынка</CardTitle>
         </div>
         <CardDescription>
-            Диапазон цен (макс/мин), средняя цена и объем торгов за последние {chartData.length} дней.
+            Средняя цена и объем торгов за последние {chartData.length} дней.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -224,13 +179,6 @@ export function MarketHistoryPanel({
                         tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
                         tickLine={false}
                         axisLine={false}
-                    />
-
-                    {/* Candlesticks */}
-                    <Bar 
-                        yAxisId="left" 
-                        shape={<Candlestick />} 
-                        barSize={10} 
                     />
 
                     {/* Average price line */}
