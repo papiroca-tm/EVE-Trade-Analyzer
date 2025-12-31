@@ -2,7 +2,31 @@
 import type { MarketHistoryItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, ReferenceLine } from 'recharts';
+import { useMemo } from 'react';
+
+// Helper function for linear regression
+function calculateTrendLine(data: { index: number; price: number }[]) {
+    const n = data.length;
+    if (n < 2) return [];
+
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (const point of data) {
+        sumX += point.index;
+        sumY += point.price;
+        sumXY += point.index * point.price;
+        sumX2 += point.index * point.index;
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    return data.map(point => ({
+        ...point,
+        trend: slope * point.index + intercept,
+    }));
+}
+
 
 export function MarketHistoryPanel({ 
     history,
@@ -10,21 +34,33 @@ export function MarketHistoryPanel({
     history: MarketHistoryItem[],
 }) {
     
-  const chartData = history.map(item => ({
-    date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-    fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
-    Цена: item.average,
-    Объем: item.volume,
-  })).reverse();
+  const chartData = useMemo(() => {
+    const baseData = history.map((item, index) => ({
+      date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+      fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
+      Цена: item.average,
+      Объем: item.volume,
+      index: index, // for trend calculation
+    })).reverse();
+    
+    const priceData = baseData.map(d => ({ index: d.index, price: d.Цена }));
+    const trendData = calculateTrendLine(priceData);
+
+    return baseData.map((d, i) => ({
+        ...d,
+        trend: trendData[i]?.trend
+    }));
+
+  }, [history]);
   
-  const yDomainPrice = () => {
+  const yDomainPrice = useMemo(() => {
       if (chartData.length === 0) return [0, 0];
       const prices = chartData.map(p => p.Цена);
       const min = Math.min(...prices);
       const max = Math.max(...prices);
       const padding = (max - min) * 0.1;
       return [min - padding, max + padding];
-  }
+  }, [chartData])
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -95,8 +131,8 @@ export function MarketHistoryPanel({
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                     <Tooltip content={<CustomTooltip />} />
-                    <YAxis domain={yDomainPrice()} hide={true} />
                     <Line type="monotone" dataKey="Цена" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="trend" stroke="hsl(var(--accent))" strokeWidth={2} strokeDasharray="5 5" dot={false} />
                 </LineChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
@@ -106,7 +142,6 @@ export function MarketHistoryPanel({
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <Tooltip content={<CustomTooltip />} />
-                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
             </ResponsiveContainer>
