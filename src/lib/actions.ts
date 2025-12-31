@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -50,12 +51,21 @@ export async function getMarketAnalysis(
       fetchMarketOrders(inputs.regionId, inputs.typeId),
     ]);
 
-    const warnings: string[] = [];
-    if (history.length === 0) warnings.push("История рынка для этого предмета в выбранном регионе не найдена.");
-    if (orders.length === 0) warnings.push("Активные ордера для этого предмета в выбранном регионе не найдены.");
-    if (history.length < inputs.timeHorizonDays) warnings.push("Исторические данные охватывают меньший период, чем выбранный временной горизонт.");
+    const baseWarnings: string[] = [];
+    if (history.length === 0) baseWarnings.push("История рынка для этого предмета в выбранном регионе не найдена.");
+    if (orders.length === 0) baseWarnings.push("Активные ордера для этого предмета в выбранном регионе не найдены.");
+    if (history.length < inputs.timeHorizonDays) baseWarnings.push("Исторические данные охватывают меньший период, чем выбранный временной горизонт.");
 
     const analysis = calculateAnalysis(history, orders, inputs);
+    
+    if (analysis.recommendations.length === 0) {
+      baseWarnings.push("Не удалось смоделировать прибыльную операцию с заданной маржой. Попробуйте снизить желаемую маржу или выбрать другой предмет/регион.");
+    } else {
+      const feasibility = analysis.recommendations[0].feasibility;
+      if(feasibility === 'low' || feasibility === 'medium') {
+        baseWarnings.push(`Низкая выполнимость рекомендации. ${analysis.recommendations[0].feasibilityReason}`);
+      }
+    }
     
     const dataIntegrityInput = {
         marketHistoryData: JSON.stringify(history),
@@ -74,7 +84,7 @@ export async function getMarketAnalysis(
       status: 'success',
       data: result,
       error: null,
-      warnings: [...warnings, ...dataIntegrity.warnings],
+      warnings: [...baseWarnings, ...dataIntegrity.warnings],
     };
 
   } catch (error) {

@@ -1,3 +1,4 @@
+
 'use client';
 import type { MarketOrderItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,7 +15,7 @@ const OrderTable = ({ orders, type }: { orders: MarketOrderItem[], type: 'buy' |
           <Table>
             <TableHeader className='sticky top-0 bg-muted/50'>
               <TableRow>
-                <TableHead>Цена</TableHead>
+                <TableHead className={type === 'buy' ? 'text-green-400' : 'text-red-400'}>Цена</TableHead>
                 <TableHead className="text-right">Объем</TableHead>
               </TableRow>
             </TableHeader>

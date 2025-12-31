@@ -30,31 +30,34 @@ export interface UserInputs {
   optionalTargetVolume?: number;
 }
 
+export type Feasibility = 'low' | 'medium' | 'high' | 'very high';
+
 export interface Recommendation {
-  buyPrice: number;
-  sellPrice: number;
+  buyPriceRange: { min: number; max: number };
+  sellPriceRange: { min: number; max: number };
   netMarginPercent: number;
-  profitPerItem: number;
   potentialProfit: number;
-  executableVolume: number;
-  estimatedExecutionDays: number;
+  executableVolume: { low: number; high: number };
+  estimatedExecutionDays: { min: number; max: number };
+  feasibility: Feasibility;
+  feasibilityReason: string;
 }
 
 export interface AnalysisResult {
   inputs: UserInputs;
   history: MarketHistoryItem[];
-  orders: MarketOrderItem[];
   buyOrders: MarketOrderItem[];
   sellOrders: MarketOrderItem[];
-  recommendations: Recommendation[];
+  recommendations: Recommendation[]; // Though we will likely only generate one
   volumeAnalysis: {
     averageDailyVolume: number;
-    estimatedExecutionTimeDays?: number;
-    feasibility: 'low' | 'medium' | 'high';
+    totalBuyOrderVolume: number;
+    totalSellOrderVolume: number;
   };
   priceAnalysis: {
-    avgBuyPrice: number;
-    avgSellPrice: number;
+    bestBuyPrice: number;
+    bestSellPrice: number;
+    midPrice: number;
     volatility: number;
   };
   dataIntegrity: DataIntegrityOutput;
