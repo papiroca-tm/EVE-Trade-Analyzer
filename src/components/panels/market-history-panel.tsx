@@ -3,7 +3,6 @@ import type { MarketHistoryItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
 import { Bar, BarChart, Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 export function MarketHistoryPanel({ 
     history,
@@ -17,17 +16,6 @@ export function MarketHistoryPanel({
     Цена: item.average,
     Объем: item.volume,
   })).reverse();
-  
-  const chartConfig = {
-    Цена: {
-      label: 'Цена',
-      color: 'hsl(var(--primary))',
-    },
-    Объем: {
-      label: 'Объем',
-      color: 'hsl(var(--accent))',
-    },
-  };
   
   const yDomainPrice = () => {
       if (chartData.length === 0) return [0, 0];
@@ -112,7 +100,7 @@ export function MarketHistoryPanel({
                         width={80}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="Цена" stroke="var(--color-Цена)" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="Цена" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                 </LineChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
@@ -137,7 +125,7 @@ export function MarketHistoryPanel({
                         width={80}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="Объем" fill="var(--color-Объем)" fillOpacity={0.4} />
+                    <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
             </ResponsiveContainer>
         </div>
