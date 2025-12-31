@@ -36,7 +36,7 @@ const StatCard = ({ icon, title, value, unit, tooltipText }: { icon: React.React
 );
 
 
-const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, priceRange: PriceRange, icon: React.ReactNode, colorClass: string }) => {
+const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: string, priceRange: PriceRange, icon: React.ReactNode, colorClass: string, isBuy: boolean }) => {
     const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
     return (
@@ -47,9 +47,19 @@ const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, pri
             </div>
             
             <div className='text-center my-2'>
-                <p className={`text-3xl font-bold font-mono ${colorClass}`}>
-                    {formatPrice(priceRange.average)}
-                </p>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <p className={`inline-flex items-center gap-1 text-3xl font-bold font-mono ${colorClass}`}>
+                                {formatPrice(priceRange.average)}
+                                <Info className="h-4 w-4 text-muted-foreground/70" />
+                            </p>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Обобщенная цена, рассчитанная как среднее из трех ориентиров (долго-, средне- и краткосрочного).</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
                 <p className="text-xs text-muted-foreground">ISK (обобщенная)</p>
             </div>
 
@@ -57,13 +67,13 @@ const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, pri
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                            <div className="flex cursor-help items-center justify-between rounded-sm bg-background/50 px-2 py-1">
                                 <span className="text-xs font-sans text-muted-foreground">Долгосрок.</span>
                                 <span className="text-sm font-bold text-red-500">{formatPrice(priceRange.longTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Исторический ориентир за выбранный период.</p>
+                           <p>Исторический {isBuy ? 'минимум' : 'максимум'} цены за выбранный период. Самая оптимистичная, но труднодостижимая цена.</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -71,13 +81,13 @@ const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, pri
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                             <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                             <div className="flex cursor-help items-center justify-between rounded-sm bg-background/50 px-2 py-1">
                                 <span className="text-xs font-sans text-muted-foreground">Среднесрок.</span>
                                 <span className="text-sm font-bold text-yellow-500">{formatPrice(priceRange.midTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Стратегическая цена для исполнения в заданный срок.</p>
+                            <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию.</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -85,13 +95,13 @@ const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, pri
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                            <div className="flex cursor-help items-center justify-between rounded-sm bg-background/50 px-2 py-1">
                                 <span className="text-xs font-sans text-muted-foreground">Краткосрок.</span>
                                 <span className="text-sm font-bold text-green-500">{formatPrice(priceRange.shortTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Тактическая цена для быстрого исполнения (~1 день).</p>
+                            <p>Тактическая цена для быстрого исполнения (в течение ~1 дня), основанная на текущей структуре стакана ордеров.</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -146,12 +156,14 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     priceRange={rec.buyPriceRange}
                     icon={<ArrowDown className="h-4 w-4 text-green-400" />}
                     colorClass="text-primary"
+                    isBuy={true}
                 />
                  <PriceCard 
                     title="Ориентир цены продажи" 
                     priceRange={rec.sellPriceRange}
                     icon={<ArrowUp className="h-4 w-4 text-red-400" />}
                     colorClass="text-destructive"
+                    isBuy={false}
                 />
              </div>
 
@@ -200,12 +212,14 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     priceRange={emptyPriceRange} 
                     icon={<ArrowDown className="h-4 w-4 text-green-400" />}
                     colorClass="text-primary"
+                    isBuy={true}
                 />
                  <PriceCard 
                     title="Ориентир цены продажи" 
                     priceRange={emptyPriceRange}
                     icon={<ArrowUp className="h-4 w-4 text-red-400" />}
                     colorClass="text-destructive"
+                    isBuy={false}
                 />
              </div>
 
@@ -251,3 +265,5 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
+
+    
