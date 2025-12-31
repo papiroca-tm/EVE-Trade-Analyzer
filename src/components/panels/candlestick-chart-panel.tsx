@@ -192,6 +192,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
               />
               <Tooltip 
                  formatter={(value, name, props) => {
+                    // Correctly access the full data point from the payload array
                     const dataPoint = props.payload;
                     if (name === 'body' && dataPoint) {
                        return [
