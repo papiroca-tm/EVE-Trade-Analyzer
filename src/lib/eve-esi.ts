@@ -71,7 +71,8 @@ async function fetchAllPages(path: string): Promise<any[]> {
 export async function fetchMarketHistory(regionId: number, typeId: number): Promise<MarketHistoryItem[]> {
   const response = await fetchEsi(`/markets/${regionId}/history/?type_id=${typeId}`);
   const data: MarketHistoryItem[] = await response.json();
-  return data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Сортировка в хронологическом порядке (от старых к новым)
+  return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function fetchMarketOrders(regionId: number, typeId: number): Promise<MarketOrderItem[]> {
