@@ -41,20 +41,26 @@ async function fetchAllPages(path: string): Promise<any[]> {
     while (page <= totalPages) {
         const url = `${path}${separator}page=${page}`;
         const response = await fetchEsi(url);
-        const data = await response.json();
+        
+        try {
+            const data = await response.json();
 
-        if (data.length === 0) {
-            break;
-        }
-        allItems = allItems.concat(data);
+            if (!Array.isArray(data) || data.length === 0) {
+                break;
+            }
+            allItems = allItems.concat(data);
 
-        const xPagesHeader = response.headers.get('x-pages');
-        if (xPagesHeader) {
-            totalPages = parseInt(xPagesHeader, 10);
-        } else {
-            break; // No more pages header, assume single page
+            const xPagesHeader = response.headers.get('x-pages');
+            if (xPagesHeader) {
+                totalPages = parseInt(xPagesHeader, 10);
+            } else {
+                break; // No more pages header, assume single page
+            }
+            page++;
+        } catch (e) {
+            console.error(`Failed to parse JSON for page ${page} of ${path}`, e);
+            break; 
         }
-        page++;
     }
     return allItems;
 }
