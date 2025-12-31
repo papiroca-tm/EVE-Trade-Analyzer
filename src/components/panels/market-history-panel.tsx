@@ -3,7 +3,7 @@
 import type { MarketHistoryItem, Recommendation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, ReferenceLine, YAxis } from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, ReferenceLine } from 'recharts';
 import { useMemo } from 'react';
 
 
@@ -20,12 +20,11 @@ export function MarketHistoryPanel({
   const chartData = useMemo(() => {
     if (!history || history.length === 0) return [];
     
-    // Reverse once to get chronological order for calculations
     const chronologicalHistory = [...history].reverse();
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
         return data.map((_item, index, arr) => {
-            if (index < period - 1) return null; // Not enough data for SMA
+            if (index < period - 1) return null;
             const slice = arr.slice(index - period + 1, index + 1);
             const sum = slice.reduce((acc, val) => acc + val.average, 0);
             return sum / period;
@@ -38,21 +37,20 @@ export function MarketHistoryPanel({
     const fullChartData = chronologicalHistory.map((item, index) => ({
       date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
       fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
-      Цена: item.average,
-      Объем: item.volume,
+      'Цена': item.average,
+      'Объем': item.volume,
       'SMA 7': sma7[index],
       'SMA 30': sma30[index],
     }));
     
-    // Slice the data for display *after* calculations are done
     return fullChartData.slice(-timeHorizonDays);
 
   }, [history, timeHorizonDays]);
-
+  
   const yDomainPrice = useMemo(() => {
-      if (!chartData || chartData.length === 0) return [0, 0];
-      const prices = chartData.map(p => p.Цена).filter(p => p !== null) as number[];
-      if (prices.length === 0) return [0, 0];
+      if (!chartData || chartData.length === 0) return [0, 'auto'];
+      const prices = chartData.map(p => p.Цена).filter(p => p !== null && p !== undefined) as number[];
+      if (prices.length === 0) return [0, 'auto'];
       
       const min = Math.min(...prices);
       const max = Math.max(...prices);
@@ -60,7 +58,7 @@ export function MarketHistoryPanel({
       
       const padding = range === 0 ? max * 0.1 : range * 0.1;
       
-      return [min - padding, max + padding];
+      return [Math.max(0, min - padding), max + padding];
   }, [chartData]);
   
   const recommendationLines = useMemo(() => {
@@ -151,12 +149,13 @@ export function MarketHistoryPanel({
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                     <Tooltip content={<CustomTooltip />} />
-                    <YAxis domain={yDomainPrice} hide />
+                    <XAxis dataKey="date" hide/>
+                    <YAxis domain={yDomainPrice} hide/>
                     
                     {recommendationLines && (
                       <>
-                        <ReferenceLine y={recommendationLines.buy} label={{ value: 'Покупка', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" />
-                        <ReferenceLine y={recommendationLines.sell} label={{ value: 'Продажа', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" />
+                        <ReferenceLine y={recommendationLines.buy} label={{ value: 'Покупка', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" xAxisId="0" />
+                        <ReferenceLine y={recommendationLines.sell} label={{ value: 'Продажа', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" xAxisId="0" />
                       </>
                     )}
 
@@ -194,6 +193,7 @@ export function MarketHistoryPanel({
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <Tooltip content={<CustomTooltip />} />
+                    <XAxis dataKey="date" hide/>
                     <YAxis hide domain={['dataMin', 'dataMax']} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
