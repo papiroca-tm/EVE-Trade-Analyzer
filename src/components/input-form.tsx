@@ -95,11 +95,15 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       setIsSearchingItems(true);
       try {
         const results = await searchItemTypes(debouncedItemSearch);
-        const currentItem = itemOptions.find(i => i.type_id === form.getValues('typeId'));
-        const newOptions = new Map<number, ItemType>();
-        if(currentItem) newOptions.set(currentItem.type_id, currentItem);
-        results.forEach(item => newOptions.set(item.type_id, item));
-        setItemOptions(Array.from(newOptions.values()));
+        setItemOptions(prevOptions => {
+          const newOptions = new Map(prevOptions.map(item => [item.type_id, item]));
+          results.forEach(item => {
+            if (!newOptions.has(item.type_id)) {
+              newOptions.set(item.type_id, item);
+            }
+          });
+          return Array.from(newOptions.values());
+        });
       } catch (error) {
         console.error("Failed to search for item types:", error);
       } finally {
@@ -108,7 +112,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     };
 
     search();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedItemSearch]);
 
   const selectedItem = useMemo(() => itemOptions.find(item => item.type_id === form.watch('typeId')), [itemOptions, form.watch('typeId')]);
@@ -354,3 +357,5 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
+
+    
