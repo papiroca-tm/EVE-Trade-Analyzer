@@ -192,13 +192,13 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
               />
               <Tooltip 
                  formatter={(value, name, props) => {
-                    const { payload } = props;
-                    if (name === 'body' && payload) {
+                    const dataPoint = props.payload;
+                    if (name === 'body' && dataPoint) {
                        return [
-                        `МАКС.: ${Number(payload.original_high).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `МИН.: ${Number(payload.original_low).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `СРЕДНЯЯ: ${Number(payload.average).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `ОБЪЕМ: ${Number(payload.volume).toLocaleString('ru-RU')}`,
+                        `МАКС.: ${Number(dataPoint.original_high).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `МИН.: ${Number(dataPoint.original_low).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `СРЕДНЯЯ: ${Number(dataPoint.average).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `ОБЪЕМ: ${Number(dataPoint.volume).toLocaleString('ru-RU')}`,
                        ]
                     }
                     return null;
