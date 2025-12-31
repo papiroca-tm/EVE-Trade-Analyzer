@@ -10,29 +10,28 @@ import { cn } from '@/lib/utils';
 
 interface OrderWithCumulative extends MarketOrderItem {
     cumulativeVolume: number;
+    isWall: boolean;
 }
 
 const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderItem[], type: 'buy' | 'sell', averageDailyVolume: number }) => {
-    const significantVolumeThreshold = averageDailyVolume * 0.20; // 20% of daily volume is a significant wall
+    const wallThreshold = averageDailyVolume / 2;
 
     const ordersWithCumulative = useMemo(() => {
         let cumulativeVolume = 0;
+        let wallFound = false;
+
         const processedOrders: OrderWithCumulative[] = orders.map(order => {
             cumulativeVolume += order.volume_remain;
-            return { ...order, cumulativeVolume };
+            let isWall = false;
+            if (!wallFound && cumulativeVolume >= wallThreshold) {
+                isWall = true;
+                wallFound = true;
+            }
+            return { ...order, cumulativeVolume, isWall };
         });
         
-        let lastWallIndex = -1;
-        return processedOrders.map((order, index) => {
-            let isWall = false;
-            // Check if this level pushes the cumulative volume over a new threshold
-            if (order.cumulativeVolume > significantVolumeThreshold && (lastWallIndex === -1 || processedOrders[lastWallIndex].cumulativeVolume < order.cumulativeVolume - significantVolumeThreshold)) {
-               isWall = true;
-               lastWallIndex = index;
-            }
-            return { ...order, isWall };
-        });
-    }, [orders, significantVolumeThreshold]);
+        return processedOrders;
+    }, [orders, wallThreshold]);
 
 
     return (
@@ -87,7 +86,7 @@ export function OrderBookPanel({ buyOrders, sellOrders, averageDailyVolume }: { 
             <BookOpen className="h-6 w-6 text-primary" />
             <CardTitle>Активные ордера</CardTitle>
         </div>
-        <CardDescription>Снимок топ-100 текущих ордеров. Значительные уровни объема подсвечены.</CardDescription>
+        <CardDescription>Снимок топ-100 текущих ордеров. Уровни поддержки/сопротивления подсвечены.</CardDescription>
       </CardHeader>
       <CardContent className="flex gap-4">
         <OrderTable orders={sortedBuyOrders} type="buy" averageDailyVolume={averageDailyVolume} />
