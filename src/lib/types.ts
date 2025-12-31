@@ -28,6 +28,7 @@ export interface UserInputs {
   desiredNetMarginPercent: number;
   timeHorizonDays: number;
   optionalTargetVolume?: number;
+  runAiAnalysis: boolean;
 }
 
 export type Feasibility = 'low' | 'medium' | 'high' | 'very high';
@@ -81,3 +82,5 @@ export interface ItemType {
     type_id: number;
     name: string;
 }
+
+    
