@@ -28,7 +28,10 @@ export function MarketHistoryPanel({
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const pricePayload = payload.find(p => p.dataKey === 'Цена');
+      const volumePayload = payload.find(p => p.dataKey === 'Объем');
       const data = payload[0].payload;
+
       return (
         <div className="rounded-lg border bg-background p-2 shadow-sm">
           <div className="grid grid-cols-2 gap-2">
@@ -48,22 +51,22 @@ export function MarketHistoryPanel({
                 &nbsp;
               </span>
             </div>
-            <div className="flex flex-col space-y-1">
+            {pricePayload && <div className="flex flex-col space-y-1">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 Цена
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--primary))' }}>
-                {data.Цена.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
+                {pricePayload.value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
               </span>
-            </div>
-            <div className="flex flex-col space-y-1">
+            </div>}
+            {volumePayload && <div className="flex flex-col space-y-1">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 Объем
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--accent))' }}>
-                {data.Объем.toLocaleString('ru-RU')}
+                {volumePayload.value.toLocaleString('ru-RU')}
               </span>
-            </div>
+            </div>}
           </div>
         </div>
       );
