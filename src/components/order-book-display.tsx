@@ -11,65 +11,73 @@ import {
   TableBody,
   TableCell,
   TableRow,
+  TableHeader,
+  TableHead,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { MarketOrderItem, PriceAnalysis } from '@/lib/types';
 import { useMemo, useRef, useEffect } from 'react';
 
-const OrderTable = ({
-  orders,
-  type,
-}: {
-  orders: MarketOrderItem[];
-  type: 'buy' | 'sell';
-}) => {
-  const isSell = type === 'sell';
-  
-  const sortedOrders = useMemo(() => {
-    const sorted = [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
-    // For sell orders, we need to show the lowest price at the bottom (closer to the spread)
-    // so we reverse the ascending sort.
-    if (type === 'sell') {
-      return sorted.reverse();
-    }
-    return sorted;
-  }, [orders, type]);
 
-  return (
-    <div className="flex-1">
-      <Table>
-        <TableBody>
-          {sortedOrders.length > 0 ? (
-            sortedOrders.map((order) => (
-              <TableRow key={order.order_id} className="border-b-0">
-                <TableCell
-                  className={cn(
-                    'py-0.5 px-2 text-right font-mono',
-                    isSell ? 'text-red-400' : 'text-green-400'
-                  )}
-                >
-                  {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell className="py-0.5 px-2 text-right font-mono">
-                  {order.volume_remain.toLocaleString('ru-RU')}
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-              <TableRow className="border-b-0">
-                <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">
-                  -
-                </TableCell>
-              </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
+const SellOrdersRows = ({ orders }: { orders: MarketOrderItem[] }) => {
+    const sortedOrders = useMemo(() => {
+        return [...orders]
+            .sort((a, b) => a.price - b.price) // Ascending for sells
+            .reverse(); // Show lowest price at the bottom
+    }, [orders]);
+
+    return (
+        <>
+            {sortedOrders.length > 0 ? (
+                sortedOrders.map((order) => (
+                    <TableRow key={order.order_id} className="border-b-0">
+                        <TableCell className='py-0.5 px-2 text-right font-mono text-red-400'>
+                            {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="py-0.5 px-2 text-right font-mono">
+                            {order.volume_remain.toLocaleString('ru-RU')}
+                        </TableCell>
+                    </TableRow>
+                ))
+            ) : (
+                <TableRow className="border-b-0">
+                    <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">-</TableCell>
+                </TableRow>
+            )}
+        </>
+    );
 };
 
-const SpreadTable = ({ priceAnalysis, spreadRef }: { priceAnalysis?: PriceAnalysis, spreadRef: React.RefObject<HTMLDivElement> }) => {
+const BuyOrdersRows = ({ orders }: { orders: MarketOrderItem[] }) => {
+    const sortedOrders = useMemo(() => {
+        return [...orders].sort((a, b) => b.price - a.price); // Descending for buys
+    }, [orders]);
+
+    return (
+        <>
+            {sortedOrders.length > 0 ? (
+                sortedOrders.map((order) => (
+                    <TableRow key={order.order_id} className="border-b-0">
+                        <TableCell className='py-0.5 px-2 text-right font-mono text-green-400'>
+                            {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="py-0.5 px-2 text-right font-mono">
+                            {order.volume_remain.toLocaleString('ru-RU')}
+                        </TableCell>
+                    </TableRow>
+                ))
+            ) : (
+                <TableRow className="border-b-0">
+                    <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">-</TableCell>
+                </TableRow>
+            )}
+        </>
+    );
+};
+
+
+const SpreadRow = ({ priceAnalysis, spreadRef }: { priceAnalysis?: PriceAnalysis, spreadRef: React.RefObject<HTMLTableRowElement> }) => {
     const spread = useMemo(() => {
         if (!priceAnalysis || !priceAnalysis.bestBuyPrice || !priceAnalysis.bestSellPrice || priceAnalysis.bestSellPrice === Infinity) {
             return null;
@@ -78,23 +86,17 @@ const SpreadTable = ({ priceAnalysis, spreadRef }: { priceAnalysis?: PriceAnalys
     }, [priceAnalysis]);
 
     return (
-        <div ref={spreadRef}>
-            <Table>
-                <TableBody>
-                    <TableRow className="border-y hover:bg-muted/50">
-                        <TableCell colSpan={2} className="p-1 text-center font-mono text-xs text-muted-foreground">
-                            {spread !== null ? spread.toLocaleString('ru-RU', { minimumFractionDigits: 2 }) + ' ISK' : '-'}
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </div>
+        <TableRow ref={spreadRef} className="border-y hover:bg-muted/50">
+            <TableCell colSpan={2} className="p-1 text-center font-mono text-xs text-muted-foreground">
+                {spread !== null ? spread.toLocaleString('ru-RU', { minimumFractionDigits: 2 }) + ' ISK' : '-'}
+            </TableCell>
+        </TableRow>
     )
 }
 
 export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis }: { buyOrders: MarketOrderItem[], sellOrders: MarketOrderItem[], priceAnalysis?: PriceAnalysis }) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const spreadRef = useRef<HTMLDivElement>(null);
+  const spreadRef = useRef<HTMLTableRowElement>(null);
   
   useEffect(() => {
     if (viewportRef.current && spreadRef.current && (buyOrders.length > 0 || sellOrders.length > 0)) {
@@ -119,11 +121,20 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis }: { buy
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[calc(100vh-13rem)]" viewportRef={viewportRef}>
-          <div className="flex flex-col">
-            <OrderTable orders={sellOrders} type="sell" />
-            <SpreadTable priceAnalysis={priceAnalysis} spreadRef={spreadRef} />
-            <OrderTable orders={buyOrders} type="buy" />
-          </div>
+          <Table>
+            {/* Invisible header for column width */}
+            <TableHeader className='invisible h-0'>
+                <TableRow className='h-0'>
+                    <TableHead className='py-0 px-2 w-1/2'></TableHead>
+                    <TableHead className='py-0 px-2 w-1/2'></TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+              <SellOrdersRows orders={sellOrders} />
+              <SpreadRow priceAnalysis={priceAnalysis} spreadRef={spreadRef} />
+              <BuyOrdersRows orders={buyOrders} />
+            </TableBody>
+          </Table>
         </ScrollArea>
       </CardContent>
     </Card>
