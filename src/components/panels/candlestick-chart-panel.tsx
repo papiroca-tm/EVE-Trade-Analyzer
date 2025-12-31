@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Bar } from 'recharts';
+import type { MarketHistoryItem } from '@/lib/types';
 
 // Function to generate random but realistic stock data
 const generateCandlestickData = (count: number) => {
@@ -33,21 +34,35 @@ const Candle = (props: any) => {
   const { x, y, width, height, low, high, open, close } = props;
   const isGrowing = open < close;
   const color = isGrowing ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-  const bodyHeight = Math.abs(y - height);
   
+  // This logic is tricky. Recharts gives us the `y` and `height` for the main bar value.
+  // We need to draw the wick based on high/low and the body based on open/close.
+  // For this random data, `open` is the primary value for the bar.
+  // The y prop corresponds to the top of the bar for the `open` value.
+  
+  // The body of the candle
+  const bodyHeight = Math.abs(y - (y - open + close));
+  const bodyY = isGrowing ? (y - open + close) : y;
+  
+  // The wick of the candle
+  const wickHighY = y - open + high;
+  const wickLowY = y - open + low;
+
   return (
     <g>
       {/* Wick */}
-      <line x1={x + width / 2} y1={y + bodyHeight + Math.abs(close-low)} x2={x + width / 2} y2={y - Math.abs(high-open)} stroke={color} strokeWidth="1" />
+      <line x1={x + width / 2} y1={wickLowY} x2={x + width / 2} y2={wickHighY} stroke={color} strokeWidth="1" />
       {/* Body */}
-      <rect x={x} y={isGrowing ? y - Math.abs(open-close) : y} width={width} height={bodyHeight} fill={color} />
+      <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={color} />
     </g>
   );
 };
 
 
-export function CandlestickChartPanel() {
+export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
   const {data, yDomain} = useMemo(() => {
+    // For now, we are still using the random data as requested.
+    // The real `history` data is available but not yet used.
     const chartData = generateCandlestickData(90);
     const prices = chartData.flatMap(d => [d.low, d.high]);
     const minPrice = Math.min(...prices);
