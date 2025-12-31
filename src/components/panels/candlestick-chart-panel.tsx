@@ -11,22 +11,26 @@ import type { MarketHistoryItem } from '@/lib/types';
 const Candle = (props: any) => {
   const { x, y, width, height, low, high, open, close, payload } = props;
 
-  if (low === undefined || high === undefined || open === undefined || close === undefined) {
+  if (low === undefined || high === undefined || open === undefined || close === undefined || !payload) {
     return null;
   }
 
-  const isBullish = close >= open;
-  const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-  const stroke = fill;
-
-  // Function to map a price value to a Y coordinate
+  // This function maps a price value to a Y coordinate within the component's bounding box.
   const yValueToCoordinate = (value: number) => {
-    const yRange = payload.high - payload.low;
-    if (yRange === 0) {
+    // The range of the wick
+    const yDomain = [payload.low, payload.high];
+    const domainRange = yDomain[1] - yDomain[0];
+    
+    // Avoid division by zero if high and low are the same
+    if (domainRange === 0) {
         return y + height / 2;
     }
-    const valueRatio = (value - payload.low) / yRange;
-    // Invert because SVG Y-axis is top-to-bottom
+
+    // Calculate the ratio of the value within the domain
+    const valueRatio = (value - yDomain[0]) / domainRange;
+    
+    // Convert the ratio to the SVG coordinate space (inverted Y-axis)
+    // The `y` and `height` props are given by recharts for the Bar component.
     return y + (1 - valueRatio) * height;
   };
 
@@ -34,6 +38,10 @@ const Candle = (props: any) => {
   const lowY = yValueToCoordinate(low);
   const openY = yValueToCoordinate(open);
   const closeY = yValueToCoordinate(close);
+  
+  const isBullish = close >= open;
+  const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+  const stroke = fill;
 
   const bodyHeight = Math.max(1, Math.abs(openY - closeY));
   const bodyY = Math.min(openY, closeY);
@@ -50,12 +58,13 @@ const Candle = (props: any) => {
 
 
 /**
- * Transforms historical EVE Online market data into a synthetic OHLC format for candlestick charts.
+ * Transforms historical EVE Online market data into a synthetic OHLC format for candlestick charts
+ * according to the specified algorithm.
  * @param history - An array of market history items, sorted chronologically.
  * @returns An array of data points formatted for a candlestick chart.
  */
 function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
-  if (history.length === 0) return [];
+  if (!history || history.length === 0) return [];
 
   // Step 1: Preparation - Find V_max over the entire period.
   const V_max = history.reduce((max, item) => Math.max(max, item.volume), 0);
@@ -68,13 +77,16 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
     const avg_t = item.average;
     const volume_t = item.volume;
 
-    let range_t = high_t - low_t;
-    if (range_t <= 0) {
-        range_t = avg_t * 0.01 || 0.01; // Avoid zero range, use 1% of avg or a small number
-    }
+    // --- ALGORITHM CORRECTION ---
+    // 1. Determine the maximum possible body height centered on avg_t
+    const max_body_height_t = 2 * Math.min(avg_t - low_t, high_t - avg_t);
+    
+    // Ensure max_body_height is non-negative
+    const safe_max_body_height = Math.max(0, max_body_height_t);
 
-    const volume_ratio_t = volume_t / V_max;
-    const body_height_t = Math.min(volume_ratio_t * range_t, range_t);
+    // 2. Use this corrected max height to scale the volume ratio
+    const volume_ratio_t = V_max > 0 ? volume_t / V_max : 0;
+    const body_height_t = volume_ratio_t * safe_max_body_height;
 
     let direction: 'bullish' | 'bearish' | 'neutral' = 'neutral';
     if (index > 0) {
@@ -95,14 +107,9 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
     if (direction === 'bullish') {
         open_t = center - half_body;
         close_t = center + half_body;
-    } else if (direction === 'bearish') {
+    } else { // Bearish or Neutral
         open_t = center + half_body;
         close_t = center - half_body;
-    } else { // Neutral case
-        open_t = center - half_body;
-        close_t = center + half_body;
-        // Ensure there's a tiny difference if they are equal, to avoid invisible line
-        if (open_t === close_t) close_t += 0.0001; 
     }
     
     // Final assembly for the day
