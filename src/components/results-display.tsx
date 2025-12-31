@@ -64,6 +64,7 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
               <MarketHistoryPanel 
                 history={state.data.history}
                 timeHorizonDays={state.data.inputs.timeHorizonDays}
+                recommendations={state.data.recommendations}
               />
             </div>
             <div className="lg:col-span-2">

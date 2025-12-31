@@ -1,18 +1,20 @@
 
 'use client';
-import type { MarketHistoryItem } from '@/lib/types';
+import type { MarketHistoryItem, Recommendation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, YAxis } from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, ReferenceLine, YAxis } from 'recharts';
 import { useMemo } from 'react';
 
 
 export function MarketHistoryPanel({ 
     history,
     timeHorizonDays,
+    recommendations,
 }: { 
     history: MarketHistoryItem[],
     timeHorizonDays: number,
+    recommendations: Recommendation[]
 }) {
     
   const chartData = useMemo(() => {
@@ -49,7 +51,9 @@ export function MarketHistoryPanel({
 
   const yDomainPrice = useMemo(() => {
       if (!chartData || chartData.length === 0) return [0, 0];
-      const prices = chartData.map(p => p.Цена);
+      const prices = chartData.map(p => p.Цена).filter(p => p !== null) as number[];
+      if (prices.length === 0) return [0, 0];
+      
       const min = Math.min(...prices);
       const max = Math.max(...prices);
       const range = max - min;
@@ -59,12 +63,20 @@ export function MarketHistoryPanel({
       return [min - padding, max + padding];
   }, [chartData]);
   
+  const recommendationLines = useMemo(() => {
+    if (!recommendations || recommendations.length === 0) return null;
+    const rec = recommendations[0];
+    const avgBuyPrice = (rec.buyPriceRange.min + rec.buyPriceRange.max) / 2;
+    const avgSellPrice = (rec.sellPriceRange.min + rec.sellPriceRange.max) / 2;
+
+    return {
+      buy: avgBuyPrice,
+      sell: avgSellPrice,
+    };
+  }, [recommendations]);
+  
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const pricePayload = payload.find(p => p.dataKey === 'Цена');
-      const volumePayload = payload.find(p => p.dataKey === 'Объем');
-      const sma7Payload = payload.find(p => p.dataKey === 'SMA 7');
-      const sma30Payload = payload.find(p => p.dataKey === 'SMA 30');
       const data = payload[0].payload;
 
       return (
@@ -79,36 +91,36 @@ export function MarketHistoryPanel({
               </span>
             </div>
             
-            {pricePayload && <div className="flex flex-col">
+            {data.Цена && <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 Цена
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--primary))' }}>
-                {pricePayload.value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
+                {data.Цена.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
               </span>
             </div>}
-            {volumePayload && <div className="flex flex-col">
+            {data.Объем && <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 Объем
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--accent))' }}>
-                {volumePayload.value.toLocaleString('ru-RU')}
+                {data.Объем.toLocaleString('ru-RU')}
               </span>
             </div>}
-            {sma7Payload && sma7Payload.value && <div className="flex flex-col">
+            {data['SMA 7'] && <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 SMA 7
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--chart-4))' }}>
-                {sma7Payload.value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                {data['SMA 7'].toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
               </span>
             </div>}
-            {sma30Payload && sma30Payload.value && <div className="flex flex-col">
+            {data['SMA 30'] && <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 SMA 30
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--chart-5))' }}>
-                {sma30Payload.value.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                {data['SMA 30'].toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
               </span>
             </div>}
           </div>
@@ -140,6 +152,14 @@ export function MarketHistoryPanel({
                 >
                     <Tooltip content={<CustomTooltip />} />
                     <YAxis domain={yDomainPrice} hide />
+                    
+                    {recommendationLines && (
+                      <>
+                        <ReferenceLine y={recommendationLines.buy} label={{ value: 'Покупка', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" />
+                        <ReferenceLine y={recommendationLines.sell} label={{ value: 'Продажа', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" />
+                      </>
+                    )}
+
                     <Line 
                         type="monotone" 
                         dataKey="Цена" 
