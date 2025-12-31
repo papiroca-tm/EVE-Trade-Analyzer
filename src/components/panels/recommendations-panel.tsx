@@ -43,8 +43,8 @@ const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, pri
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-red-500">Долгосрок.</span>
-                                <span className="text-sm font-bold text-foreground">{formatPrice(priceRange.longTerm)}</span>
+                                <span className="text-xs font-sans text-muted-foreground">Долгосрок.</span>
+                                <span className="text-sm font-bold text-red-500">{formatPrice(priceRange.longTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -57,8 +57,8 @@ const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, pri
                     <Tooltip>
                         <TooltipTrigger asChild>
                              <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-yellow-500">Среднесрок.</span>
-                                <span className="text-sm font-bold text-foreground">{formatPrice(priceRange.midTerm)}</span>
+                                <span className="text-xs font-sans text-muted-foreground">Среднесрок.</span>
+                                <span className="text-sm font-bold text-yellow-500">{formatPrice(priceRange.midTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -71,8 +71,8 @@ const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, pri
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-green-500">Краткосрок.</span>
-                                <span className="text-sm font-bold text-foreground">{formatPrice(priceRange.shortTerm)}</span>
+                                <span className="text-xs font-sans text-muted-foreground">Краткосрок.</span>
+                                <span className="text-sm font-bold text-green-500">{formatPrice(priceRange.shortTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -224,5 +224,3 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
-
-    
