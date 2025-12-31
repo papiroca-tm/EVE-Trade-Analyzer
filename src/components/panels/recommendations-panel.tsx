@@ -84,8 +84,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                        Прибыльных возможностей с заданной маржой не найдено. 
-                        <p className="text-xs text-muted-foreground mt-1">Попробуйте снизить желаемую маржу или выбрать другой предмет.</p>
+                        Прибыльных возможностей с заданной маржой не найдено.
                       </TableCell>
                     </TableRow>
                   )}

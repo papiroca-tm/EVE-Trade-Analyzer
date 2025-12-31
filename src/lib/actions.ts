@@ -57,10 +57,6 @@ export async function getMarketAnalysis(
 
     const analysis = calculateAnalysis(history, orders, inputs);
     
-    if (analysis.recommendations.length === 0) {
-        warnings.push("Не найдено прибыльных возможностей с заданной маржой. Попробуйте снизить маржу или выбрать другой предмет.");
-    }
-    
     const dataIntegrityInput = {
         marketHistoryData: JSON.stringify(history),
         marketOrderData: JSON.stringify(orders),
