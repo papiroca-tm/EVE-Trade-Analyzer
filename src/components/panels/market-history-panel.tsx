@@ -6,6 +6,34 @@ import { TrendingUp } from 'lucide-react';
 import { Line, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, ReferenceLine } from 'recharts';
 import { useMemo } from 'react';
 
+
+const RangeBar = (props: any) => {
+    const { background, x, y, width, height, low, high, yAxis } = props;
+
+    if (!yAxis || typeof yAxis.scale !== 'function' || high === undefined || low === undefined) {
+        return null;
+    }
+    
+    const lowPoint = yAxis.scale(low);
+    const highPoint = yAxis.scale(high);
+
+    // Ensure the bar has at least 1px height to be visible
+    const barHeight = Math.max(1, Math.abs(lowPoint - highPoint));
+    const barY = Math.min(lowPoint, highPoint);
+
+    return (
+        <rect 
+            x={x + width / 4}
+            y={barY}
+            width={width / 2}
+            height={barHeight}
+            fill="hsl(var(--foreground))"
+            fillOpacity={0.4}
+        />
+    );
+};
+
+
 export function MarketHistoryPanel({ 
     history,
     timeHorizonDays,
@@ -79,7 +107,7 @@ export function MarketHistoryPanel({
         const minPrice = Math.min(...candlePriceValues);
         const maxPrice = Math.max(...candlePriceValues);
         const range = maxPrice - minPrice;
-        const padding = range * 0.1; // Add 10% padding
+        const padding = range * 0.2; 
         candlestickDomain = [
             Math.max(0, minPrice - padding),
             maxPrice + padding
@@ -178,7 +206,7 @@ export function MarketHistoryPanel({
       </CardHeader>
       <CardContent>
         <div className="h-[48rem] w-full">
-            <ResponsiveContainer width="100%" height="40%">
+            <ResponsiveContainer width="100%" height="75%">
                 <ComposedChart
                     data={chartData} 
                     syncId="marketData"
@@ -186,7 +214,7 @@ export function MarketHistoryPanel({
                 >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                     <Tooltip content={<CustomTooltip />} />
-                    <XAxis dataKey="date" hide/>
+                    <XAxis dataKey="date" hide={true}/>
                     <YAxis 
                         yAxisId="left" 
                         orientation="right"
@@ -195,10 +223,20 @@ export function MarketHistoryPanel({
                         tickLine={false}
                         axisLine={false}
                         width={80}
-                        hide
+                        hide={true}
                     />
+                     <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        domain={yDomainCandlestick}
+                        tickLine={false}
+                        axisLine={false}
+                        width={80}
+                        hide={true}
+                    />
+                    
+                    <Bar yAxisId="right" dataKey="high" shape={<RangeBar />} barSize={10} />
 
-                    {/* Average price line */}
                     <Line 
                         yAxisId="left"
                         type="monotone" 
@@ -222,7 +260,7 @@ export function MarketHistoryPanel({
                         type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
-                        strokeWidth={1.5} 
+                        strokeWidth={1.5} _
                         strokeDasharray="8 4"
                         dot={false}
                         connectNulls
@@ -236,29 +274,6 @@ export function MarketHistoryPanel({
                 </ComposedChart>
             </ResponsiveContainer>
             
-            <ResponsiveContainer width="100%" height="35%">
-                <BarChart
-                    data={chartData}
-                    syncId="marketData"
-                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
-                >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                    <XAxis dataKey="date" hide={true} />
-                    <YAxis
-                        orientation="right"
-                        domain={yDomainCandlestick}
-                        tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
-                        tickLine={false}
-                        axisLine={false}
-                        width={80}
-                        hide
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey={['low', 'high']} fill="hsl(var(--foreground))" fillOpacity={0.4} barSize={2} />
-                    <Bar dataKey="average" fill="hsl(var(--primary))" barSize={10} />
-                </BarChart>
-            </ResponsiveContainer>
-
             <ResponsiveContainer width="100%" height="25%">
                 <BarChart 
                     data={chartData}
@@ -267,7 +282,7 @@ export function MarketHistoryPanel({
                 >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                     <Tooltip content={<CustomTooltip />} />
-                    <XAxis dataKey="date" tickLine={false} axisLine={false} hide/>
+                    <XAxis dataKey="date" tickLine={false} axisLine={false} hide={true}/>
                     <YAxis hide domain={['dataMin', 'dataMax']} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
