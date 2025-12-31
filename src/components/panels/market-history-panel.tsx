@@ -31,6 +31,7 @@ export function MarketHistoryPanel({
 
   const { chartData, yDomainPrice } = useMemo(() => {
     const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const dataForHorizon = chronologicalHistory.slice(-timeHorizonDays);
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
         return data.map((_item, index, arr) => {
@@ -44,7 +45,7 @@ export function MarketHistoryPanel({
         });
     };
     
-    // Отображаем все доступные данные, а не только за timeHorizonDays
+    // Рассчитываем SMA на основе полных данных, но будем использовать только для нужного горизонта
     const sma7 = calculateSMA(chronologicalHistory, 7);
     const sma30 = calculateSMA(chronologicalHistory, 30);
 
@@ -58,7 +59,9 @@ export function MarketHistoryPanel({
       'SMA 30': sma30[index],
     }));
 
-    const allPriceValues = fullChartData.flatMap(d => [d['Цена'], d['SMA 7'], d['SMA 30']]).filter(v => v != null) as number[];
+    const chartData = fullChartData.slice(-timeHorizonDays);
+
+    const allPriceValues = chartData.flatMap(d => [d['Цена'], d['SMA 7'], d['SMA 30']]).filter(v => v != null) as number[];
 
     let domain: [number | string, number | string] = ['auto', 'auto'];
     if (allPriceValues.length > 0) {
@@ -73,9 +76,9 @@ export function MarketHistoryPanel({
       ];
     }
     
-    return { chartData: fullChartData, yDomainPrice: domain };
+    return { chartData, yDomainPrice: domain };
 
-  }, [history]);
+  }, [history, timeHorizonDays]);
   
   
   const CustomTooltip = ({ active, payload, label }: any) => {
