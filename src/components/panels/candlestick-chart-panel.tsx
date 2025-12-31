@@ -55,26 +55,26 @@ const Candle = (props: any) => {
 };
 
 
-export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
+export function CandlestickChartPanel({ history, timeHorizonDays }: { history: MarketHistoryItem[], timeHorizonDays: number }) {
   const {data, yDomain} = useMemo(() => {
      if (!history || history.length === 0) {
       return { data: [], yDomain: [0, 10] };
     }
+    
+    const dataForHorizon = history.slice(-timeHorizonDays);
 
-    const volumes = history.map(h => h.volume);
+    const volumes = dataForHorizon.map(h => h.volume);
     const maxVolume = Math.max(...volumes);
     const minVolume = Math.min(...volumes);
     const volumeRange = maxVolume - minVolume;
 
-    const chartData = history.map((item, index) => {
+    const chartData = dataForHorizon.map((item, index) => {
         const { lowest, highest, volume, average } = item;
 
-        // Calculate body size based on volume percentage
         const volumePercentage = volumeRange > 0 ? (volume - minVolume) / volumeRange : 0;
         const priceRange = highest - lowest;
         const bodySize = priceRange * volumePercentage;
 
-        // Center the body around the average price
         const open = average - bodySize / 2;
         const close = average + bodySize / 2;
         
@@ -84,9 +84,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             close: Number(close.toFixed(4)),
             high: Number(highest.toFixed(4)),
             low: Number(lowest.toFixed(4)),
-            // For recharts <Bar>, the dataKey determines the 'y' prop for the shape.
-            // We need to provide a range for the bar to occupy space.
-            // Here, we'll use [low, high] so the bar's shape can access the full range.
             range: [Number(lowest.toFixed(4)), Number(highest.toFixed(4))]
         }
     });
@@ -100,7 +97,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         data: chartData,
         yDomain: [minPrice - padding, maxPrice + padding]
     };
-  }, [history]);
+  }, [history, timeHorizonDays]);
 
   return (
     <Card>

@@ -69,7 +69,10 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
               />
             </div>
              <div className="lg:col-span-2">
-                <CandlestickChartPanel history={state.data.history} />
+                <CandlestickChartPanel 
+                  history={state.data.history}
+                  timeHorizonDays={state.data.inputs.timeHorizonDays}
+                />
             </div>
             <div className="lg:col-span-2">
               <OrderBookPanel 
