@@ -161,7 +161,7 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
         <CardTitle className="text-lg">Стакан</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="max-h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
+        <ScrollArea className="h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
           <Table>
             <TableHeader className='invisible h-0'>
                 <TableRow className='h-0'>
