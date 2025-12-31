@@ -96,17 +96,19 @@ export function MarketHistoryPanel({
                 >
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <Tooltip content={<CustomTooltip />} />
+                    <YAxis domain={yDomainPrice()} hide={true} />
                     <Line type="monotone" dataKey="Цена" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                 </LineChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
                 <BarChart 
-                    data={chartData} 
+                    data={chartData} _
                     syncId="marketData"
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <Tooltip content={<CustomTooltip />} />
+                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
             </ResponsiveContainer>
