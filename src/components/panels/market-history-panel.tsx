@@ -7,31 +7,32 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YA
 import { useMemo } from 'react';
 
 const Candlestick = (props: any) => {
-    const { x, y, width, height, low, high, average, previousAverage, yAxis } = props;
+    const { x, y, width, height, low, high, average, previousAverage } = props;
   
-    if ([x, y, width, height, low, high, average].some(val => val === undefined || val === null) || !yAxis?.scale) {
+    if ([x, y, width, height, low, high, average].some(val => val === undefined || val === null)) {
       return null;
     }
   
     const isBullish = previousAverage !== undefined ? average > previousAverage : true;
     const color = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
     
-    // Use a small portion of the range for the body
-    const bodyTopValue = isBullish ? average : (average + (high-average)*0.1);
-    const bodyBottomValue = isBullish ? (average - (average-low)*0.1) : average;
+    // This is a simplified representation. A real candlestick would need access 
+    // to the y-axis scale to properly position high and low wicks.
+    // Recharts doesn't easily provide this to custom bar shapes.
+    // So we'll represent the body as a small part of the bar's height.
+    const bodyHeight = Math.max(2, height * 0.3);
+    const bodyY = y + (height - bodyHeight) / 2;
 
-    const highWickY = yAxis.scale(high);
-    const lowWickY = yAxis.scale(low);
-    const bodyTopY = yAxis.scale(bodyTopValue);
-    const bodyBottomY = yAxis.scale(bodyBottomValue);
-    const bodyHeight = Math.max(1, bodyBottomY - bodyTopY);
+    const wickY1 = y;
+    const wickY2 = y + height;
+    const wickX = x + width / 2;
 
     return (
       <g stroke={color} fill={color} strokeWidth={1}>
         {/* Wick */}
-        <line x1={x + width / 2} y1={highWickY} x2={x + width / 2} y2={lowWickY} />
+        <line x1={wickX} y1={wickY1} x2={wickX} y2={wickY2} />
         {/* Body */}
-        <rect x={x} y={bodyTopY} width={width} height={bodyHeight} />
+        <rect x={x} y={bodyY} width={width} height={bodyHeight} />
       </g>
     );
 };
@@ -59,7 +60,7 @@ export function MarketHistoryPanel({
     };
   }, [recommendations]);
 
-  const { chartData, yDomainPrice, yDomainCandlestick } = useMemo(() => {
+  const { chartData, yDomainPrice } = useMemo(() => {
     const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
@@ -104,20 +105,7 @@ export function MarketHistoryPanel({
       ];
     }
     
-    const candlestickPriceValues = dataForHorizon.flatMap(d => [d.high, d.low]).filter(v => v != null) as number[];
-    let candlestickDomain: [number | string, number | string] = ['auto', 'auto'];
-     if (candlestickPriceValues.length > 0) {
-      const minPrice = Math.min(...candlestickPriceValues);
-      const maxPrice = Math.max(...candlestickPriceValues);
-      const range = maxPrice - minPrice;
-      const padding = range * 0.15; // Increased padding for candlestick
-       candlestickDomain = [
-        Math.max(0, Math.floor((minPrice - padding))),
-        Math.ceil((maxPrice + padding))
-      ];
-    }
-    
-    return { chartData: dataForHorizon, yDomainPrice: priceDomain, yDomainCandlestick: candlestickDomain };
+    return { chartData: dataForHorizon, yDomainPrice: priceDomain };
 
   }, [history, timeHorizonDays]);
   
@@ -209,7 +197,7 @@ export function MarketHistoryPanel({
       </CardHeader>
       <CardContent>
         <div className="h-[48rem] w-full">
-            <ResponsiveContainer width="100%" height="30%">
+            <ResponsiveContainer width="100%" height="40%">
                 <ComposedChart
                     data={chartData} 
                     syncId="marketData"
@@ -265,7 +253,7 @@ export function MarketHistoryPanel({
                     )}
                 </ComposedChart>
             </ResponsiveContainer>
-            <ResponsiveContainer width="100%" height="45%">
+            <ResponsiveContainer width="100%" height="35%">
                 <ComposedChart
                   data={chartData}
                   syncId="marketData"
@@ -274,9 +262,9 @@ export function MarketHistoryPanel({
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                   <XAxis dataKey="date" hide={true} />
                   <YAxis 
-                    yAxisId="candlestick" 
-                    domain={yDomainCandlestick}
+                    yAxisId="left"
                     orientation="right"
+                    domain={yDomainPrice}
                     tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
                     tickLine={false}
                     axisLine={false}
@@ -284,7 +272,7 @@ export function MarketHistoryPanel({
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar
-                    yAxisId="candlestick"
+                    yAxisId="left"
                     dataKey="average"
                     shape={<Candlestick />}
                     barSize={10}
@@ -309,5 +297,3 @@ export function MarketHistoryPanel({
     </Card>
   );
 }
-
-    
