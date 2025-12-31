@@ -1,3 +1,4 @@
+
 import type { DataIntegrityOutput } from '@/ai/flows/data-integrity-analysis';
 
 export interface MarketHistoryItem {
@@ -36,6 +37,7 @@ export interface Recommendation {
   profitPerItem: number;
   potentialProfit: number;
   executableVolume: number;
+  estimatedExecutionDays: number;
 }
 
 export interface AnalysisResult {

@@ -29,78 +29,46 @@ export function calculateAnalysis(
     const buyOrders = orders.filter(o => o.is_buy_order).sort((a, b) => b.price - a.price);
     const sellOrders = orders.filter(o => !o.is_buy_order).sort((a, b) => a.price - b.price);
 
+    const recommendations: Recommendation[] = [];
+
     // 1. Анализ исторических данных
     const historicalPrices = history.map(h => h.average);
     const totalVolume = history.reduce((sum, item) => sum + item.volume, 0);
     const averageDailyVolume = history.length > 0 ? totalVolume / history.length : 0;
     
-    const price25thPercentile = getPercentile(historicalPrices, 25);
-    const price75thPercentile = getPercentile(historicalPrices, 75);
+    // 2. Моделирование единственной торговой возможности
+    const recommendedBuyPrice = getPercentile(historicalPrices, 25);
+    const recommendedSellPrice = getPercentile(historicalPrices, 75);
 
+    if (recommendedBuyPrice > 0 && recommendedSellPrice > 0 && recommendedBuyPrice < recommendedSellPrice) {
+        const netProfit = calculateNetProfit(recommendedBuyPrice, recommendedSellPrice, inputs);
+        const netMarginPercent = (netProfit / recommendedBuyPrice) * 100;
+        
+        // Рекомендация создается независимо от того, выше ли она желаемой маржи.
+        // Пользователь увидит реальную маржу и сам примет решение.
+        const executableVolume = Math.round(averageDailyVolume * 0.15); // 15% от среднего дневного объема
+        const estimatedExecutionDays = 1; // Так как мы берем долю от дневного объема
+
+        if (executableVolume > 0) {
+            recommendations.push({
+                buyPrice: recommendedBuyPrice,
+                sellPrice: recommendedSellPrice,
+                netMarginPercent: netMarginPercent,
+                profitPerItem: netProfit,
+                potentialProfit: netProfit * executableVolume,
+                executableVolume: executableVolume,
+                estimatedExecutionDays,
+            });
+        }
+    }
+
+
+    // 3. Анализ волатильности и целевого объема
     const averagePriceHistory = history.length > 0 ? historicalPrices.reduce((sum, p) => sum + p, 0) / historicalPrices.length : 0;
     const variance = history.length > 0 ? history.reduce((sum, h) => sum + Math.pow(h.average - averagePriceHistory, 2), 0) / history.length : 0;
     const stdDev = Math.sqrt(variance);
     const volatility = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
 
-    const recommendations: Recommendation[] = [];
-
-    // 2. Анализ глубины стакана и генерация рекомендаций
-    // Мы будем рассматривать несколько потенциальных "ценовых уровней" для наших ордеров,
-    // основываясь на исторических данных и текущем стакане.
-
-    // Потенциальные цены покупки: начинаем от 25-го перцентиля и идем вверх до средней цены
-    const potentialBuyPrices: number[] = [];
-    if (buyOrders.length > 0) {
-        potentialBuyPrices.push(buyOrders[0].price + 0.01); // Классический вариант "перебить топ"
-    }
-    if (price25thPercentile > 0) potentialBuyPrices.push(price25thPercentile);
-    
-    // Потенциальные цены продажи: начинаем от 75-го перцентиля и идем вниз до средней цены
-    const potentialSellPrices: number[] = [];
-    if (sellOrders.length > 0) {
-        potentialSellPrices.push(sellOrders[0].price - 0.01); // "Перебить" низ рынка
-    }
-    if (price75thPercentile > 0) potentialSellPrices.push(price75thPercentile);
-
-    // Добавим уникальные цены, чтобы избежать дублирования
-    const buyPriceSet = new Set(potentialBuyPrices.filter(p => p > 0));
-    const sellPriceSet = new Set(potentialSellPrices.filter(p => p > 0));
-
-    buyPriceSet.forEach(buyPrice => {
-        sellPriceSet.forEach(sellPrice => {
-            if (buyPrice >= sellPrice) {
-                return; // Пропускаем бессмысленные пары
-            }
-
-            const netProfit = calculateNetProfit(buyPrice, sellPrice, inputs);
-            const netMarginPercent = (netProfit / buyPrice) * 100;
-
-            if (netMarginPercent >= inputs.desiredNetMarginPercent) {
-                // 3. Оценка исполняемого объема
-                // Оцениваем объем как небольшую долю (например, 10-25%) от среднего дневного объема,
-                // чтобы ордер не висел на рынке слишком долго.
-                const executableVolume = Math.round(averageDailyVolume * 0.15);
-
-                if (executableVolume > 0) {
-                    recommendations.push({
-                        buyPrice: buyPrice,
-                        sellPrice: sellPrice,
-                        netMarginPercent: netMarginPercent,
-                        profitPerItem: netProfit,
-                        potentialProfit: netProfit * executableVolume,
-                        executableVolume: executableVolume,
-                    });
-                }
-            }
-        });
-    });
-
-    // Сортируем рекомендации по марже
-    recommendations.sort((a, b) => b.netMarginPercent - a.netMarginPercent);
-    const uniqueRecommendations = Array.from(new Map(recommendations.map(item => [`${item.buyPrice.toFixed(2)}-${item.sellPrice.toFixed(2)}`, item])).values());
-
-
-    // 4. Анализ целевого объема
     let feasibility: 'low' | 'medium' | 'high' = 'low';
     if (inputs.optionalTargetVolume) {
         if (averageDailyVolume > inputs.optionalTargetVolume) {
@@ -123,7 +91,7 @@ export function calculateAnalysis(
       orders,
       buyOrders,
       sellOrders,
-      recommendations: uniqueRecommendations.slice(0, 50),
+      recommendations, // Будет содержать 0 или 1 рекомендацию
       volumeAnalysis: {
         averageDailyVolume,
         estimatedExecutionTimeDays,

@@ -1,3 +1,4 @@
+
 'use client';
 import type { AnalysisResult, Recommendation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,7 +24,7 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
 
 
 export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
-  const { priceAnalysis, volumeAnalysis, recommendations } = data;
+  const { priceAnalysis, volumeAnalysis, recommendations, inputs } = data;
 
   const feasibilityMap = {
     high: 'Высокая',
@@ -38,7 +39,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
             <Lightbulb className="h-6 w-6 text-accent" />
             <CardTitle>Анализ и рекомендации</CardTitle>
         </div>
-        <CardDescription>Ключевые метрики и выгодные торговые возможности на основе ваших параметров.</CardDescription>
+        <CardDescription>Ключевые метрики и смоделированная торговая возможность на основе ваших параметров.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -58,15 +59,17 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         </div>
 
         <div>
-            <h3 className="mb-2 text-lg font-semibold">Лучшие возможности</h3>
-            <ScrollArea className="h-64 w-full rounded-md border">
+            <h3 className="mb-2 text-lg font-semibold">Рекомендуемая торговая операция</h3>
+            <div className="w-full rounded-md border">
               <Table>
-                <TableHeader className="sticky top-0 bg-muted/50">
+                <TableHeader>
                   <TableRow>
                     <TableHead>Цена покупки</TableHead>
                     <TableHead>Цена продажи</TableHead>
-                    <TableHead className="text-right">Маржа</TableHead>
-                    <TableHead className="text-right">Объем</TableHead>
+                    <TableHead>Расчетная маржа</TableHead>
+                    <TableHead>Желаемая маржа</TableHead>
+                    <TableHead>Объем</TableHead>
+                    <TableHead>Срок исп.</TableHead>
                     <TableHead className="text-right">Потенц. прибыль</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -74,23 +77,29 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                   {recommendations.length > 0 ? (
                     recommendations.map((rec, index) => (
                       <TableRow key={index}>
-                        <TableCell className="font-mono text-green-400">{rec.buyPrice.toFixed(2)}</TableCell>
-                        <TableCell className="font-mono text-red-400">{rec.sellPrice.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-mono text-accent">{rec.netMarginPercent.toFixed(2)}%</TableCell>
-                        <TableCell className="text-right font-mono">{rec.executableVolume.toLocaleString('ru-RU')}</TableCell>
-                        <TableCell className="text-right font-mono text-primary">{rec.potentialProfit.toFixed(2)}</TableCell>
+                        <TableCell className="font-mono text-green-400">{rec.buyPrice.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="font-mono text-red-400">{rec.sellPrice.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="font-mono">
+                            <Badge variant={rec.netMarginPercent >= inputs.desiredNetMarginPercent ? "default" : "destructive"}>
+                                {rec.netMarginPercent.toFixed(2)}%
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono">{inputs.desiredNetMarginPercent.toFixed(2)}%</TableCell>
+                        <TableCell className="font-mono">{rec.executableVolume.toLocaleString('ru-RU')}</TableCell>
+                        <TableCell className="font-mono">{`~${rec.estimatedExecutionDays} д.`}</TableCell>
+                        <TableCell className="text-right font-mono text-primary">{rec.potentialProfit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
-                        Прибыльных возможностей с заданной маржой не найдено.
+                      <TableCell colSpan={7} className="h-24 text-center">
+                        Не удалось смоделировать прибыльную операцию на основе исторических данных. Возможно, цена покупки выше цены продажи.
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
         </div>
       </CardContent>
     </Card>
