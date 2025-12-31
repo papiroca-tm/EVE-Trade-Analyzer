@@ -98,33 +98,38 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
         }
     }
 
-    const center = avg_t;
-    const half_body = body_height_t / 2;
-
+    // Calculate the shift from the center based on avg_t's proximity to low_t or high_t
     let open_t: number;
     let close_t: number;
+    const half_body = body_height_t / 2;
 
-    if (direction === 'bullish') {
-        open_t = center - half_body;
-        close_t = center + half_body;
-    } else { // Bearish or Neutral
-        open_t = center + half_body;
-        close_t = center - half_body;
+    if (avg_t <= low_t + (high_t - low_t) / 2) {
+      // If avg_t is closer to low_t, the body starts closer to low_t
+      open_t = low_t + half_body;
+      close_t = low_t + body_height_t;
+    } else if (avg_t >= high_t - (high_t - low_t) / 2) {
+      // If avg_t is closer to high_t, the body starts closer to high_t
+      open_t = high_t - body_height_t;
+      close_t = high_t - half_body;
+    } else {
+      // If avg_t is roughly in the middle, the body is centered around avg_t
+      open_t = avg_t - half_body;
+      close_t = avg_t + half_body;
     }
-    
+
     // Final assembly for the day
     return {
-        date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-        open: open_t,
-        high: high_t,
-        low: low_t,
-        close: close_t,
-        // The `body` dataKey is what recharts uses to calculate y and height for the custom shape.
-        // It needs to represent the full range of the wick (high to low).
-        body: [low_t, high_t] 
+      date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+      open: open_t,
+      high: high_t,
+      low: low_t,
+      close: close_t,
+      // The `body` dataKey is what recharts uses to calculate y and height for the custom shape.
+      // It needs to represent the full range of the wick (high to low).
+      body: [low_t, high_t] 
     };
   });
-  
+
   return transformedData;
 }
 
