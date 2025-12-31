@@ -14,7 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown, Loader2, Zap } from 'lucide-react';
-import { getInitialData } from '@/lib/actions';
 import type { Region, ItemType } from '@/lib/types';
 
 const formSchema = z.object({
@@ -40,9 +39,13 @@ function SubmitButton() {
   );
 }
 
-export function InputForm({ formAction }: { formAction: (payload: FormData) => void }) {
-  const [initialData, setInitialData] = useState<{ regions: Region[], itemTypes: ItemType[] }>({ regions: [], itemTypes: [] });
-  const [loadingInitialData, setLoadingInitialData] = useState(true);
+interface InputFormProps {
+  formAction: (payload: FormData) => void;
+  initialData: { regions: Region[], itemTypes: ItemType[] };
+  isLoading: boolean;
+}
+
+export function InputForm({ formAction, initialData, isLoading }: InputFormProps) {
   const [itemSearch, setItemSearch] = useState("");
 
   const [openItemPopover, setOpenItemPopover] = useState(false);
@@ -62,21 +65,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     },
   });
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoadingInitialData(true);
-      try {
-        const data = await getInitialData();
-        setInitialData(data);
-      } catch (error) {
-        console.error("Failed to fetch initial data:", error);
-      } finally {
-        setLoadingInitialData(false);
-      }
-    }
-    fetchData();
-  }, []);
-  
   const filteredItems = itemSearch
     ? initialData.itemTypes.filter(item => item.name.toLowerCase().includes(itemSearch.toLowerCase()))
     : initialData.itemTypes;
@@ -92,7 +80,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       <Form {...form}>
         <form action={formAction}>
           <CardContent className="flex flex-col gap-y-2 p-3">
-            {loadingInitialData ? (
+            {isLoading ? (
                 <>
                     <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
                     <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
