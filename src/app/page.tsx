@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { getMarketAnalysis } from '@/lib/actions';
 import type { AnalysisState } from '@/lib/types';
 import { InputForm } from '@/components/input-form';
@@ -15,7 +16,7 @@ const initialState: AnalysisState = {
 };
 
 export default function Home() {
-  const [state, formAction] = useFormState(getMarketAnalysis, initialState);
+  const [state, formAction] = useActionState(getMarketAnalysis, initialState);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
