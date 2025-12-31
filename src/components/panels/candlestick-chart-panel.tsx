@@ -6,6 +6,34 @@ import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Bar } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
+// Function to generate random but realistic stock data
+const generateRandomCandlestickData = (count: number) => {
+  const data = [];
+  let lastClose = Math.random() * 2 + 3; // Start between 3 and 5
+
+  for (let i = 0; i < count; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - (count - i));
+    
+    const open = lastClose;
+    const close = open + (Math.random() - 0.5) * 0.5;
+    const high = Math.max(open, close) + Math.random() * 0.3;
+    const low = Math.min(open, close) - Math.random() * 0.3;
+    
+    data.push({
+      date: date.toISOString().split('T')[0],
+      open: Number(open.toFixed(4)),
+      close: Number(close.toFixed(4)),
+      high: Number(high.toFixed(4)),
+      low: Number(low.toFixed(4)),
+    });
+    
+    lastClose = close;
+  }
+  return data;
+};
+
+
 // Custom shape for the candlestick
 const Candle = (props: any) => {
   const { x, y, width, height, payload, yAxis } = props;
@@ -14,8 +42,9 @@ const Candle = (props: any) => {
     return null;
   }
 
-  const { high, low, open, close, color } = payload;
-  
+  const { high, low, open, close } = payload;
+  const isBullish = close >= open;
+
   const wickHighY = yAxis.scale(high);
   const wickLowY = yAxis.scale(low);
   
@@ -23,8 +52,8 @@ const Candle = (props: any) => {
   const bodyBottomY = yAxis.scale(Math.min(open, close));
   const bodyHeight = Math.max(1, Math.abs(bodyTopY - bodyBottomY));
   
-  const fillColor = color;
-  const strokeColor = color;
+  const fillColor = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+  const strokeColor = fillColor;
 
   return (
     <g>
@@ -39,55 +68,30 @@ const Candle = (props: any) => {
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
   const {data, yDomain} = useMemo(() => {
-    if (!history || history.length === 0) {
-      return { data: [], yDomain: [0, 100]};
-    }
     
-    // Find min/max volume for the whole period
-    const volumes = history.map(h => h.volume);
-    const maxVolume = Math.max(...volumes);
-    const minVolume = Math.min(...volumes);
-    const volumeRange = maxVolume - minVolume;
+    const randomData = generateRandomCandlestickData(90);
 
-    const chartData = history.map((histItem, index) => {
-        const { highest, lowest, average, volume } = histItem;
-        
-        const volumePercentage = volumeRange > 0 ? (volume - minVolume) / volumeRange : 1;
-        const dayPriceRange = highest - lowest;
-        const bodySize = dayPriceRange * volumePercentage;
-
-        const prevAverage = index > 0 ? history[index-1].average : average;
-        const color = average >= prevAverage ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-
-        let open, close;
-        
-        // Center the body around the average price
-        open = average - bodySize / 2;
-        close = average + bodySize / 2;
-
+    const chartData = randomData.map((item, index) => {
         return {
-            date: new Date(histItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            high: Number(highest.toFixed(4)),
-            low: Number(lowest.toFixed(4)),
-            open: Number(open.toFixed(4)),
-            close: Number(close.toFixed(4)),
-            color: color,
-            body: [Number(open.toFixed(4)), Number(close.toFixed(4))],
+            date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+            high: item.high,
+            low: item.low,
+            open: item.open,
+            close: item.close,
+            body: [item.open, item.close], // For recharts bar
         }
     });
 
-    const prices = history.flatMap(d => [d.lowest, d.highest]);
-    if (prices.length === 0) {
-        return { data: [], yDomain: [0, 100] };
-    }
+    const prices = chartData.flatMap(d => [d.low, d.high]);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const padding = (maxPrice - minPrice) * 0.1;
+    
     return {
         data: chartData,
         yDomain: [minPrice - padding, maxPrice + padding]
     };
-  }, [history]);
+  }, []);
 
   return (
     <Card>
@@ -97,7 +101,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             <CardTitle>График цен (Свечи)</CardTitle>
         </div>
         <CardDescription>
-            Дневной диапазон цен. Тело свечи представляет объем торгов.
+            Дневной диапазон цен (open, high, low, close).
         </CardDescription>
       </CardHeader>
       <CardContent>
