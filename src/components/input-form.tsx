@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -43,14 +43,15 @@ function SubmitButton() {
 }
 
 export function InputForm({ formAction }: { formAction: (payload: FormData) => void }) {
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [itemOptions, setItemOptions] = useState<ItemType[]>([]);
+  const [initialData, setInitialData] = useState<{ regions: Region[], itemTypes: ItemType[] }>({ regions: [], itemTypes: [] });
   const [loadingInitialData, setLoadingInitialData] = useState(true);
 
   const [itemSearch, setItemSearch] = useState('');
   const [isSearchingItems, setIsSearchingItems] = useState(false);
   const [openItemPopover, setOpenItemPopover] = useState(false);
   const [openRegionPopover, setOpenRegionPopover] = useState(false);
+  
+  const [itemOptions, setItemOptions] = useState<ItemType[]>([]);
 
   const debouncedItemSearch = useDebounce(itemSearch, 300);
 
@@ -72,9 +73,9 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     async function fetchData() {
       setLoadingInitialData(true);
       try {
-        const { regions: fetchedRegions, itemTypes: initialItems } = await getInitialData();
-        setRegions(fetchedRegions);
-        setItemOptions(initialItems);
+        const data = await getInitialData();
+        setInitialData(data);
+        setItemOptions(data.itemTypes);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       } finally {
@@ -87,17 +88,22 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   useEffect(() => {
     async function performSearch() {
       if (debouncedItemSearch.length < 3) {
+        // If search is cleared, revert to initial items
+        if (debouncedItemSearch.length === 0) {
+            setItemOptions(initialData.itemTypes);
+        }
         return;
       }
       
       setIsSearchingItems(true);
       try {
         const results = await searchItemTypes(debouncedItemSearch);
-        setItemOptions(prevOptions => {
-          const newOptions = new Map(prevOptions.map(item => [item.type_id, item]));
-          results.forEach(item => newOptions.set(item.type_id, item));
-          return Array.from(newOptions.values()).sort((a,b) => a.name.localeCompare(b.name));
-        });
+        const currentItem = itemOptions.find(item => item.type_id === form.getValues('typeId'));
+        const newOptions = new Map(results.map(item => [item.type_id, item]));
+        if (currentItem && !newOptions.has(currentItem.type_id)) {
+            newOptions.set(currentItem.type_id, currentItem);
+        }
+        setItemOptions(Array.from(newOptions.values()).sort((a,b) => a.name.localeCompare(b.name)));
       } catch (error) {
         console.error("Failed to search for item types:", error);
       } finally {
@@ -106,9 +112,12 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     }
 
     performSearch();
-  }, [debouncedItemSearch]);
+  }, [debouncedItemSearch, initialData.itemTypes, form]);
 
-  const selectedItemName = itemOptions.find(item => item.type_id === form.watch('typeId'))?.name;
+  const selectedItemName = useMemo(() => {
+    return itemOptions.find(item => item.type_id === form.watch('typeId'))?.name;
+  }, [itemOptions, form.watch('typeId')]);
+  
 
   return (
     <Card>
@@ -144,7 +153,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                           )}
                         >
                           {field.value
-                            ? regions.find(
+                            ? initialData.regions.find(
                                 (region) => region.region_id === field.value
                               )?.name
                             : "Выберите регион"}
@@ -160,7 +169,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                         <CommandList>
                         <CommandEmpty>Регион не найден.</CommandEmpty>
                         <CommandGroup>
-                          {regions.map((region) => (
+                          {initialData.regions.map((region) => (
                             <CommandItem
                               value={region.name}
                               key={region.region_id}
@@ -337,7 +346,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 )}
             />
 
-            {/* These hidden inputs are crucial for react-hook-form to correctly handle the values from custom comboboxes */}
             <input type="hidden" {...form.register('regionId')} />
             <input type="hidden" {...form.register('typeId')} />
 
@@ -350,5 +358,3 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
-
-    

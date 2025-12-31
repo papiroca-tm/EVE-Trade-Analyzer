@@ -13,10 +13,8 @@ async function fetchEsi(path: string, cache: boolean = false): Promise<Response>
         const response = await fetch(url, options);
 
         if (!response.ok) {
-            // ESI returns 404 for not found (search, empty history, no orders)
-            // This is not a critical error, so we can return the response to be handled by the caller
             if (response.status === 404) {
-                // Return a new response with an empty JSON array to avoid cascading errors
+                // For 404, return a response with an empty JSON array to prevent crashes.
                 return new Response(JSON.stringify([]), {
                     status: 200,
                     headers: { 'Content-Type': 'application/json' }
@@ -63,7 +61,7 @@ async function fetchAllPages(path: string): Promise<any[]> {
             if (xPagesHeader) {
                 totalPages = parseInt(xPagesHeader, 10);
             } else {
-                break; // No more pages header, assume single page
+                break; 
             }
             page++;
         } catch (e) {
@@ -86,7 +84,6 @@ export async function getRegions(): Promise<Region[]> {
     
     const regionDetailsPromises = regionIds.map(async id => {
         try {
-            // We only care about the main regions with markets
             if (id > 11000000) {
                 return null;
             }
@@ -112,20 +109,20 @@ export async function getRegions(): Promise<Region[]> {
 }
 
 
-export async function searchItemTypes(query: string): Promise<ItemType[]> {
+export async function searchItemTypes(query: string, category: string = 'inventory_type'): Promise<ItemType[]> {
     if (!query || query.length < 3) return [];
     
-    const searchResponse = await fetchEsi(`/search/?categories=inventory_type&search=${encodeURIComponent(query)}&strict=false`);
+    const searchResponse = await fetchEsi(`/search/?categories=${category}&search=${encodeURIComponent(query)}&strict=false`);
     
     const searchResult = await searchResponse.json();
-    const typeIds: number[] = searchResult.inventory_type || [];
+    const typeIds: number[] = searchResult[category] || [];
 
     if (typeIds.length === 0) return [];
     
-    const maxIdsToFetch = 50; 
-    const cappedTypeIds = typeIds.slice(0, maxIdsToFetch);
-    
-    const itemDetailsPromises = cappedTypeIds.map(async (id) => {
+    // ESI search can be broad, let's get names and filter for published items
+    const namesResponse = await fetchEsi(`/universe/names/`, false);
+    if (namesResponse.status !== 200) {
+      const itemDetailsPromises = typeIds.slice(0, 50).map(async (id) => {
         try {
             const response = await fetchEsi(`/universe/types/${id}/`, true);
             const data = await response.json();
@@ -137,15 +134,22 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
             console.warn(`Could not fetch details for typeId ${id}.`);
             return null;
         }
-    });
+      });
+      const settledDetails = await Promise.allSettled(itemDetailsPromises);
+      return settledDetails
+        .filter((r): r is PromiseFulfilledResult<ItemType | null> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value as ItemType)
+        .sort((a,b) => a.name.localeCompare(b.name));
+    }
+    const itemNames = (await namesResponse.json()) as {id: number, name: string}[];
 
-    const settledDetails = await Promise.allSettled(itemDetailsPromises);
-
-    const successfulItems = settledDetails
-        .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
-        .map(result => result.value as ItemType);
-
-    return successfulItems.sort((a, b) => a.name.localeCompare(b.name));
+    const nameMap = new Map(itemNames.map(item => [item.id, item.name]));
+    
+    return typeIds
+      .map(id => ({ type_id: id, name: nameMap.get(id) || 'Unknown Item' }))
+      .filter(item => item.name !== 'Unknown Item')
+      .slice(0, 100)
+      .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getInitialItemTypes(): Promise<ItemType[]> {
@@ -157,25 +161,20 @@ export async function getInitialItemTypes(): Promise<ItemType[]> {
         if (typeIds.length === 0) {
             return [];
         }
-
-        const itemDetailsPromises = typeIds.map(async (id) => {
-            try {
-                const response = await fetchEsi(`/universe/types/${id}/`, true);
-                const data = await response.json();
-                if (data.published) {
-                    return { type_id: id, name: data.name };
-                }
-                return null;
-            } catch {
-                return null;
-            }
-        });
-
-        const settledDetails = await Promise.allSettled(itemDetailsPromises);
         
-        const items = settledDetails
-            .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
-            .map(result => result.value as ItemType);
+        // Let's use the /universe/names endpoint for efficiency
+        const namesResponse = await fetch('/universe/names/', {
+            method: 'POST',
+            body: JSON.stringify(typeIds),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const itemNames: {id: number, name: string}[] = await namesResponse.json();
+        const nameMap = new Map(itemNames.map(item => [item.id, item.name]));
+
+        const items: ItemType[] = typeIds.map(id => ({
+            type_id: id,
+            name: nameMap.get(id) || 'Unknown Mineral'
+        }));
 
         return items.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {

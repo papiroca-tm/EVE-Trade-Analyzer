@@ -96,7 +96,6 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
         ]);
         
         const finalItems = new Map<number, ItemType>();
-        // Ensure Tritanium is always in the list as a default
         const tritanium = { type_id: 34, name: 'Tritanium' };
         finalItems.set(tritanium.type_id, tritanium);
         initialItems.forEach(item => finalItems.set(item.type_id, item));
@@ -104,11 +103,10 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
         return { regions, itemTypes: Array.from(finalItems.values()) };
     } catch (error) {
         console.error("Failed to get initial data", error);
-        // Fallback to avoid complete UI crash
         return { regions: [], itemTypes: [{ type_id: 34, name: 'Tritanium' }] };
     }
 }
 
 export async function searchItemTypes(query: string): Promise<ItemType[]> {
-    return searchItemTypesEsi(query);
+    return searchItemTypesEsi(query, 'inventory_type');
 }
