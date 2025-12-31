@@ -6,13 +6,27 @@ import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: string, value: string, unit?: string }) => (
+const StatCard = ({ icon, title, value, unit, tooltipText }: { icon: React.ReactNode, title: string, value: string, unit?: string, tooltipText?: string }) => (
     <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
             {icon}
         </div>
         <div>
-            <p className="text-xs text-muted-foreground">{title}</p>
+            <div className="flex items-center gap-1">
+                <p className="text-xs text-muted-foreground">{title}</p>
+                {tooltipText && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Info className="h-3 w-3 text-muted-foreground/70" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p className="max-w-xs">{tooltipText}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+            </div>
             <p className="text-base font-bold">
                 {value}
                 {unit && <span className="text-xs font-normal text-muted-foreground ml-1">{unit}</span>}
@@ -20,6 +34,7 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
         </div>
     </div>
 );
+
 
 const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, priceRange: PriceRange, icon: React.ReactNode, colorClass: string }) => {
     const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -141,7 +156,13 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                <StatCard icon={<Percent size={16}/>} title="Расчетная маржа" value={rec.netMarginPercent.toFixed(2)} unit="%"/>
+                <StatCard 
+                    icon={<Percent size={16}/>} 
+                    title="Расчетная маржа" 
+                    value={rec.netMarginPercent.toFixed(2)} 
+                    unit="%"
+                    tooltipText="Эта маржа рассчитана на основе разницы между тактической (краткосрочной) ценой покупки и тактической (краткосрочной) ценой продажи, за вычетом всех комиссий и налогов."
+                />
                 <StatCard icon={<TrendingUp size={16}/>} title="Выполн. объем" value={`${rec.executableVolume.low.toLocaleString('ru-RU')} - ${rec.executableVolume.high.toLocaleString('ru-RU')}`} />
                 <StatCard icon={<Clock size={16}/>} title="Время исполн." value={`${rec.estimatedExecutionDays.min}-${rec.estimatedExecutionDays.max}`} unit="дней"/>
                 <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
@@ -189,7 +210,13 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                <StatCard icon={<Percent size={16}/>} title="Расчетная маржа" value={"0.00"} unit="%"/>
+                <StatCard 
+                    icon={<Percent size={16}/>} 
+                    title="Расчетная маржа" 
+                    value={"0.00"} 
+                    unit="%"
+                    tooltipText="Эта маржа рассчитана на основе разницы между тактической (краткосрочной) ценой покупки и тактической (краткосрочной) ценой продажи, за вычетом всех комиссий и налогов."
+                />
                 <StatCard icon={<TrendingUp size={16}/>} title="Выполн. объем" value={"0 - 0"} />
                 <StatCard icon={<Clock size={16}/>} title="Время исполн." value={"0-0"} unit="дней"/>
                 <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
