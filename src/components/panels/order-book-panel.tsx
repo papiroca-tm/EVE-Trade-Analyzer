@@ -49,8 +49,8 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
                 </TableHeader>
                 <TableBody>
                 {ordersWithCumulative.length > 0 ? (
-                    ordersWithCumulative.slice(0, 100).map((order) => (
-                    <TableRow key={order.order_id} className={cn(order.isWall && "bg-muted/50 font-bold")}>
+                    ordersWithCumulative.slice(0, 100).map((order, index) => (
+                    <TableRow key={order.order_id} className={cn(index === 0 && "bg-muted/50 font-bold")}>
                         <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
                     </TableRow>
@@ -86,7 +86,7 @@ export function OrderBookPanel({ buyOrders, sellOrders, averageDailyVolume }: { 
             <BookOpen className="h-6 w-6 text-primary" />
             <CardTitle>Активные ордера</CardTitle>
         </div>
-        <CardDescription>Снимок топ-100 текущих ордеров. Уровни поддержки/сопротивления подсвечены.</CardDescription>
+        <CardDescription>Снимок топ-100 текущих ордеров. Лучшие предложения подсвечены.</CardDescription>
       </CardHeader>
       <CardContent className="flex gap-4">
         <OrderTable orders={sortedBuyOrders} type="buy" averageDailyVolume={averageDailyVolume} />
