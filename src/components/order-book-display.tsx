@@ -23,12 +23,10 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
     const processedOrders = useMemo(() => {
         if (!orders || orders.length === 0) return [];
         
-        // Final display order: lowest price at the bottom
         const displaySorted = [...orders].sort((a, b) => b.price - a.price);
 
         const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
         
-        // To find the wall, we need to sort by price ascending (cheapest first)
         const logicSorted = [...orders].sort((a, b) => a.price - b.price); 
         
         let cumulativeForWallCheck = 0;
@@ -38,7 +36,7 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
             cumulativeForWallCheck += order.volume_remain;
             if (cumulativeForWallCheck >= wallThreshold) {
                 wallOrderId = order.order_id;
-                break; // Found our wall order
+                break; 
             }
         }
 
@@ -64,8 +62,10 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
                 processedOrders.map((order) => (
                     <TableRow 
                         key={order.order_id} 
-                        className={cn("border-b-0", order.isWall && 'text-accent-foreground font-bold')}
-                        style={{
+                        className={cn("border-b-0", order.isWall && 'font-bold')}
+                        style={order.isWall ? {
+                            background: `linear-gradient(to left, hsl(0 72% 51% / 0.7) ${order.fillPercent}%, hsl(0 72% 51% / 0.4) ${order.fillPercent}%)`
+                        } : {
                             background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
                         }}
                     >
@@ -90,14 +90,12 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
     const processedOrders = useMemo(() => {
         if (!orders || orders.length === 0) return [];
         
-        // Display order: highest price at top
         const sorted = [...orders].sort((a, b) => b.price - a.price); 
         
         const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
         let cumulativeVolume = 0;
         let wallOrderId: number | undefined;
 
-        // Find the specific order that crosses the threshold
         for (const order of sorted) {
             cumulativeVolume += order.volume_remain;
             if (cumulativeVolume >= wallThreshold) {
@@ -127,8 +125,10 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
                 processedOrders.map((order) => (
                     <TableRow 
                         key={order.order_id} 
-                        className={cn("border-b-0", order.isWall && 'text-accent-foreground font-bold')}
-                        style={{
+                        className={cn("border-b-0", order.isWall && 'font-bold')}
+                        style={order.isWall ? {
+                             background: `linear-gradient(to left, hsl(142 76% 36% / 0.7) ${order.fillPercent}%, hsl(142 76% 36% / 0.4) ${order.fillPercent}%)`
+                        } : {
                             background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
                         }}
                     >
