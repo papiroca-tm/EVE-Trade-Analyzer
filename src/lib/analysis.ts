@@ -75,23 +75,31 @@ export function calculateAnalysis(
 
     const recommendations: Recommendation[] = [];
     
-    const recommendedBuyPrice = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
+    const lowerBound = supportWallBuyPrice > 0 ? supportWallBuyPrice + tickSize : 0;
+    const upperBound = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
 
-    const recommendation: Recommendation = {
-      recommendedBuyPrice: recommendedBuyPrice, // This will be the upper bound
-      buyPriceRange: { 
-          min: supportWallBuyPrice > 0 ? supportWallBuyPrice + tickSize : 0, 
-          max: bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0
-      },
-      sellPriceRange: { min: 0, max: 0 },
-      netMarginPercent: 0,
-      potentialProfit: 0,
-      executableVolume: { low: 0, high: 0 },
-      estimatedExecutionDays: { min: 0, max: 0 },
-      feasibility: 'medium',
-      feasibilityReason: "Диапазон покупки основан на 'стене' поддержки и лучшем ордере в стакане."
-    };
-    recommendations.push(recommendation);
+    // Ensure min is not greater than max
+    const finalMin = Math.min(lowerBound, upperBound);
+    const finalMax = Math.max(lowerBound, upperBound);
+
+    if (finalMax > 0) {
+        const recommendation: Recommendation = {
+          buyPriceRange: { 
+              min: finalMin, 
+              max: finalMax,
+          },
+          // All other fields are placeholders for now
+          recommendedBuyPrice: 0,
+          sellPriceRange: { min: 0, max: 0 },
+          netMarginPercent: 0,
+          potentialProfit: 0,
+          executableVolume: { low: 0, high: 0 },
+          estimatedExecutionDays: { min: 0, max: 0 },
+          feasibility: 'medium',
+          feasibilityReason: "Диапазон покупки основан на 'стене' поддержки и лучшем ордере в стакане."
+        };
+        recommendations.push(recommendation);
+    }
 
     return {
       inputs,

@@ -1,3 +1,4 @@
+
 'use client';
 import type { AnalysisResult, Feasibility } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -19,14 +20,22 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
     </div>
 );
 
-const PriceCard = ({ title, price, icon }: { title: string, price: number, icon: React.ReactNode }) => (
+const PriceCard = ({ title, priceMin, priceMax, icon }: { title: string, priceMin: number, priceMax: number, icon: React.ReactNode }) => (
     <div className="flex flex-col gap-1 rounded-lg bg-muted/50 p-2">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             {icon}
             <span>{title}</span>
         </div>
         <div className="flex items-baseline justify-center gap-2">
-            <span className="text-base font-bold text-foreground font-mono">{price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            {priceMin === priceMax ? (
+                 <span className="text-base font-bold text-foreground font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            ) : (
+                <>
+                <span className="text-base font-bold text-foreground font-mono">{priceMin.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-xs text-muted-foreground">-</span>
+                <span className="text-base font-bold text-foreground font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </>
+            )}
         </div>
          <p className="text-center text-xs text-muted-foreground">ISK</p>
     </div>
@@ -70,8 +79,8 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         {rec ? (
           <div className="space-y-3">
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <PriceCard title="Рекомендуемая цена покупки" price={rec.recommendedBuyPrice} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
-                <PriceCard title="Ориентир цены продажи" price={rec.sellPriceRange.min} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+                <PriceCard title="Рекомендуемая цена покупки" priceMin={rec.buyPriceRange.min} priceMax={rec.buyPriceRange.max} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
+                <PriceCard title="Ориентир цены продажи" priceMin={rec.sellPriceRange.min} priceMax={rec.sellPriceRange.max} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -108,8 +117,8 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         ) : (
           <div className="space-y-3">
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <PriceCard title="Рекомендуемая цена покупки" price={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
-                <PriceCard title="Ориентир цены продажи" price={0} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+                <PriceCard title="Рекомендуемая цена покупки" priceMin={0} priceMax={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
+                <PriceCard title="Ориентир цены продажи" priceMin={0} priceMax={0} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
