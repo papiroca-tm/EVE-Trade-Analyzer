@@ -63,12 +63,16 @@ export function calculateAnalysis(
 
 
     if (averageDailyVolume > 0 && buyLadder.length > 0) {
-        // Upper bound is always the price for immediate execution
-        finalMax = bestBuyPrice + tickSize;
+        finalMax = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
 
-        // Calculate lower bound based on capital and execution time
         const buyExecutionDays = inputs.executionDays / 2;
-        const targetExecutionVolume = averageDailyVolume * buyExecutionDays;
+        const volumePerDay = averageDailyVolume * buyExecutionDays;
+
+        const averagePriceForVolumeCalc = bestBuyPrice > 0 ? bestBuyPrice : (averagePriceHistory > 0 ? averagePriceHistory : 1);
+        const volumeForCapital = inputs.positionCapital ? inputs.positionCapital / averagePriceForVolumeCalc : Infinity;
+        
+        // We target the smaller of the two volumes: what's needed for the timeframe, vs what the capital allows
+        const targetExecutionVolume = Math.min(volumePerDay, volumeForCapital);
 
         // Find the price level where we need to place our order.
         // We look for the first order where the cumulative volume *before* it exceeds our target.
@@ -82,7 +86,7 @@ export function calculateAnalysis(
             // If the entire book volume is less than our target execution volume,
             // it means we can likely get filled at the top of the book within our timeframe.
             // So, the strategic price is the same as the immediate price.
-            finalMin = bestBuyPrice + tickSize;
+            finalMin = finalMax;
         }
         
         feasibilityReason = `Диапазон покупки основан на желаемом сроке исполнения (${inputs.executionDays} дней, ~${buyExecutionDays.toFixed(0)} на покупку), что соответствует целевому объему ~${targetExecutionVolume.toLocaleString('ru-RU', {maximumFractionDigits: 0})} ед. Нижняя граница (${finalMin.toFixed(2)} ISK) - это стратегическая цена для исполнения в срок. Верхняя граница (${finalMax.toFixed(2)} ISK) - цена для немедленного исполнения.`;
@@ -98,23 +102,21 @@ export function calculateAnalysis(
 
     const recommendations: Recommendation[] = [];
     
-    if (finalMax > 0) {
-        const recommendation: Recommendation = {
-          buyPriceRange: { 
-              min: finalMin, 
-              max: finalMax,
-          },
-          // All other fields are placeholders for now
-          sellPriceRange: { min: 0, max: 0 },
-          netMarginPercent: 0,
-          potentialProfit: 0,
-          executableVolume: { low: 0, high: 0 },
-          estimatedExecutionDays: { min: 0, max: 0 },
-          feasibility: 'medium',
-          feasibilityReason: feasibilityReason,
-        };
-        recommendations.push(recommendation);
-    }
+    // We always create a recommendation now, even if it's not profitable, to show the calculated range.
+    const recommendation: Recommendation = {
+      buyPriceRange: { 
+          min: finalMin, 
+          max: finalMax,
+      },
+      sellPriceRange: { min: 0, max: 0 },
+      netMarginPercent: 0,
+      potentialProfit: 0,
+      executableVolume: { low: 0, high: 0 },
+      estimatedExecutionDays: { min: 0, max: 0 },
+      feasibility: 'medium', // Default feasibility
+      feasibilityReason: feasibilityReason,
+    };
+    recommendations.push(recommendation);
 
 
     return {
