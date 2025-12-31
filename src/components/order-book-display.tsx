@@ -18,6 +18,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { MarketOrderItem, PriceAnalysis } from '@/lib/types';
 import { useMemo, useRef, useEffect } from 'react';
+import { Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem[], averageDailyVolume: number }) => {
     const processedOrders = useMemo(() => {
@@ -190,7 +193,19 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
   return (
     <Card>
       <CardHeader className="p-3">
-        <CardTitle className="text-lg">Стакан</CardTitle>
+        <div className='flex items-center gap-2'>
+            <CardTitle className="text-lg">Стакан</CardTitle>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className='max-w-xs'>
+                        <p>Фон каждой строки показывает долю объема этого ордера от половины среднесуточного объема, помогая оценить его 'вес'. Ярким цветом подсвечивается 'стена' — первый ордер, где совокупный объем достигает этого порога, указывая на ключевой уровень поддержки (зеленый) или сопротивления (красный).</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
