@@ -145,7 +145,7 @@ export function MarketHistoryPanel({
                 >
                     <Tooltip content={<CustomTooltip />} />
                     <XAxis dataKey="date" hide/>
-                    <YAxis yAxisId="0" domain={['dataMin', 'dataMax']} tick={false} axisLine={false} width={0} />
+                    <YAxis yAxisId="0" tick={false} axisLine={false} width={0} />
                     
                     <Line 
                         yAxisId="0"
@@ -184,7 +184,7 @@ export function MarketHistoryPanel({
                           name="Рекомендация покупки"
                           stroke="#888888"
                           strokeWidth={1.5}
-                          strokeDasharray="3 3"
+                          strokeDasharray="5 5"
                           dot={false}
                           connectNulls
                         />
@@ -195,7 +195,7 @@ export function MarketHistoryPanel({
                           name="Рекомендация продажи"
                           stroke="#888888"
                           strokeWidth={1.5}
-                          strokeDasharray="3 3"
+                          strokeDasharray="5 5"
                           dot={false}
                           connectNulls
                         />
