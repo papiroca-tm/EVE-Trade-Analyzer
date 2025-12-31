@@ -6,54 +6,23 @@ import { CandlestickChart } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Bar } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
-// Function to generate random but realistic stock data
-const generateCandlestickData = (count: number) => {
-  let lastClose = 100;
-  const data = [];
-  for (let i = 0; i < count; i++) {
-    const open = lastClose + (Math.random() - 0.5) * 5;
-    const close = open + (Math.random() - 0.5) * 8;
-    const high = Math.max(open, close) + Math.random() * 4;
-    const low = Math.min(open, close) - Math.random() * 4;
-    const date = new Date();
-    date.setDate(date.getDate() + i - count);
-    data.push({
-      date: date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-    });
-    lastClose = close;
-  }
-  return data;
-};
 
-// Custom shape for the candlestick
+// Custom shape for the candlestick wick
 const Candle = (props: any) => {
-  const { x, y, width, height, low, high, open, close } = props;
-  const isGrowing = open < close;
-  const color = isGrowing ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+  const { x, width, low, high, yAxis } = props;
   
-  // This logic is tricky. Recharts gives us the `y` and `height` for the main bar value.
-  // We need to draw the wick based on high/low and the body based on open/close.
-  // For this random data, `open` is the primary value for the bar.
-  // The y prop corresponds to the top of the bar for the `open` value.
-  
-  // The body of the candle
-  const bodyHeight = Math.abs(y - (y - open + close));
-  const bodyY = isGrowing ? (y - open + close) : y;
-  
-  // The wick of the candle
-  const wickHighY = y - open + high;
-  const wickLowY = y - open + low;
+  if (!yAxis || typeof yAxis.scale !== 'function' || high === undefined || low === undefined) {
+    return null;
+  }
+
+  const wickHighY = yAxis.scale(high);
+  const wickLowY = yAxis.scale(low);
+  const color = 'hsl(var(--foreground) / 0.5)';
 
   return (
     <g>
       {/* Wick */}
       <line x1={x + width / 2} y1={wickLowY} x2={x + width / 2} y2={wickHighY} stroke={color} strokeWidth="1" />
-      {/* Body */}
-      <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={color} />
     </g>
   );
 };
@@ -61,19 +30,12 @@ const Candle = (props: any) => {
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
   const {data, yDomain} = useMemo(() => {
-    // Generate random bodies for now
-    const randomBodies = generateCandlestickData(history.length);
-
-    const chartData = history.map((histItem, index) => {
-        const body = randomBodies[index] || {open: histItem.average, close: histItem.average};
+    
+    const chartData = history.map((histItem) => {
         return {
             date: new Date(histItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            // Use real high/low for wicks
             high: histItem.highest,
             low: histItem.lowest,
-            // Use random open/close for body for now
-            open: body.open,
-            close: body.close,
         }
     });
 
@@ -95,10 +57,10 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
       <CardHeader>
         <div className="flex items-center gap-2">
             <CandlestickChart className="h-6 w-6 text-primary" />
-            <CardTitle>Классический свечной график (Пример)</CardTitle>
+            <CardTitle>Диапазон цен (Low-High)</CardTitle>
         </div>
         <CardDescription>
-            Пример классического японского свечного графика со случайными данными.
+            Вертикальные линии показывают полный диапазон цен (от min до max) за каждый день.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -118,7 +80,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                 axisLine={false}
               />
               <Tooltip />
-              <Bar dataKey="open" shape={<Candle />} />
+              <Bar dataKey="low" shape={<Candle />} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
