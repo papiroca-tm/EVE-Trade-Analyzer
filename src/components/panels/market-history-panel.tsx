@@ -30,7 +30,7 @@ export function MarketHistoryPanel({
   }, [recommendations]);
 
   const chartData = useMemo(() => {
-    const chronologicalHistory = [...history].reverse();
+    const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
         return data.map((_item, index, arr) => {
@@ -214,7 +214,7 @@ export function MarketHistoryPanel({
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <Tooltip content={<CustomTooltip />} />
-                    <XAxis dataKey="date" hide/>
+                    <XAxis dataKey="date" />
                     <YAxis hide domain={['dataMin', 'dataMax']} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
