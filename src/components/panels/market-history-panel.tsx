@@ -7,30 +7,15 @@ import { Line, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Cartes
 import { useMemo } from 'react';
 
 
-const RangeBar = (props: any) => {
-    const { background, x, y, width, height, low, high, yAxis } = props;
+const CandleStickBody = (props: any) => {
+    const { x, y, width, height, fill } = props;
+    return <rect x={x} y={y} width={width} height={height} fill={fill} />;
+};
 
-    if (!yAxis || typeof yAxis.scale !== 'function' || high === undefined || low === undefined) {
-        return null;
-    }
-    
-    const lowPoint = yAxis.scale(low);
-    const highPoint = yAxis.scale(high);
-
-    // Ensure the bar has at least 1px height to be visible
-    const barHeight = Math.max(1, Math.abs(lowPoint - highPoint));
-    const barY = Math.min(lowPoint, highPoint);
-
-    return (
-        <rect 
-            x={x + width / 4}
-            y={barY}
-            width={width / 2}
-            height={barHeight}
-            fill="hsl(var(--foreground))"
-            fillOpacity={0.4}
-        />
-    );
+const CandleStickWick = (props: any) => {
+    const { x, y, width, height, fill } = props;
+    // We draw a thin line for the wick
+    return <rect x={x + width / 2 - 0.5} y={y} width={1} height={height} fill={fill} />;
 };
 
 
@@ -71,18 +56,25 @@ export function MarketHistoryPanel({
     const sma7 = calculateSMA(chronologicalHistory, 7);
     const sma30 = calculateSMA(chronologicalHistory, 30);
 
-    const fullChartData = chronologicalHistory.map((item, index) => ({
-      date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-      fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
-      'Цена': item.average,
-      'Объем': item.volume,
-      'SMA 7': sma7[index],
-      'SMA 30': sma30[index],
-      low: item.lowest,
-      high: item.highest,
-      average: item.average,
-      previousAverage: index > 0 ? chronologicalHistory[index-1].average : undefined,
-    }));
+    const fullChartData = chronologicalHistory.map((item, index) => {
+      const open = index > 0 ? chronologicalHistory[index-1].average : item.average;
+      const close = item.average;
+      
+      return {
+        date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+        fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
+        'Цена': item.average,
+        'Объем': item.volume,
+        'SMA 7': sma7[index],
+        'SMA 30': sma30[index],
+        low: item.lowest,
+        high: item.highest,
+        // Data for candlestick
+        wick: [item.lowest, item.highest],
+        body: [open, close],
+        color: close >= open ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))',
+      }
+    });
 
     const dataForHorizon = fullChartData.slice(-timeHorizonDays);
     
@@ -107,7 +99,7 @@ export function MarketHistoryPanel({
         const minPrice = Math.min(...candlePriceValues);
         const maxPrice = Math.max(...candlePriceValues);
         const range = maxPrice - minPrice;
-        const padding = range * 0.2; 
+        const padding = range * 0.1; 
         candlestickDomain = [
             Math.max(0, minPrice - padding),
             maxPrice + padding
@@ -123,6 +115,10 @@ export function MarketHistoryPanel({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
 
+      const open = data.body ? data.body[0] : null;
+      const close = data.body ? data.body[1] : null;
+
+
       return (
         <div className="rounded-lg border bg-background p-2 shadow-sm">
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -135,14 +131,23 @@ export function MarketHistoryPanel({
               </span>
             </div>
             
-            {data.Цена && <div className="flex flex-col">
+            {open && <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Средняя
+                Открытие
               </span>
-              <span className="font-bold" style={{ color: 'hsl(var(--primary))' }}>
-                {data.Цена.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
+              <span className="font-bold">
+                {open.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
               </span>
             </div>}
+            {close && <div className="flex flex-col">
+              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                Закрытие (сред.)
+              </span>
+              <span className="font-bold">
+                {close.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
+              </span>
+            </div>}
+
              {data.high && <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 Макс.
@@ -201,12 +206,12 @@ export function MarketHistoryPanel({
             <CardTitle>Динамика рынка</CardTitle>
         </div>
         <CardDescription>
-            Средняя цена и объем торгов за последние {chartData.length} дней.
+            Средняя цена, диапазон и объем торгов за последние {chartData.length} дней.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[32rem] w-full">
-            <ResponsiveContainer width="100%" height="75%">
+        <div className="h-[48rem] w-full">
+            <ResponsiveContainer width="100%" height="40%">
                 <ComposedChart
                     data={chartData} 
                     syncId="marketData"
@@ -225,18 +230,6 @@ export function MarketHistoryPanel({
                         width={80}
                         hide={true}
                     />
-                     <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        domain={yDomainCandlestick}
-                        tickLine={false}
-                        axisLine={false}
-                        width={80}
-                        hide={true}
-                    />
-                    
-                    <Bar yAxisId="right" dataKey="high" shape={<RangeBar />} barSize={10} />
-
                     <Line 
                         yAxisId="left"
                         type="monotone" 
@@ -271,6 +264,29 @@ export function MarketHistoryPanel({
                         <ReferenceLine yAxisId="left" y={recommendationLines.sell} label={{ value: "Реком. продажа", position: 'insideBottomLeft', fill: 'hsl(var(--destructive))' }} stroke="hsl(var(--destructive))" strokeDasharray="3 3" />
                       </>
                     )}
+                </ComposedChart>
+            </ResponsiveContainer>
+
+             <ResponsiveContainer width="100%" height="35%">
+                <ComposedChart
+                    data={chartData}
+                    syncId="marketData"
+                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                    <XAxis dataKey="date" hide={true}/>
+                    <YAxis 
+                        domain={yDomainCandlestick} 
+                        orientation="right" 
+                        tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
+                        tickLine={false}
+                        axisLine={false}
+                        width={80}
+                        hide={true}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    {chartData.map((d, i) => <Bar key={i} dataKey="wick" fill="hsl(var(--muted-foreground))" shape={<CandleStickWick />} barSize={1} />)}
+                    {chartData.map((d, i) => <Bar key={i} dataKey="body" fill={d.color} shape={<CandleStickBody />} barSize={8} />)}
                 </ComposedChart>
             </ResponsiveContainer>
             
