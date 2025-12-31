@@ -63,12 +63,14 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
 }
 
 
-async function fetchAllPages<T>(url: string): Promise<T[]> {
-  const response = await fetchWithCache(url);
+async function fetchAllPages<T>(baseUrl: string): Promise<T[]> {
+  const firstPageUrl = `${baseUrl}?page=1`;
+  const response = await fetchWithCache(firstPageUrl);
   if (!response.ok) {
-    console.error(`Failed to fetch initial page for ${url}: ${response.statusText}`);
+    console.error(`Failed to fetch initial page for ${baseUrl}: ${response.statusText}`);
     throw new Error(`Failed to fetch paged data from ESI: ${response.statusText}`);
   }
+  
   const xPagesHeader = response.headers.get('x-pages');
   const totalPages = xPagesHeader ? parseInt(xPagesHeader, 10) : 1;
   
@@ -77,11 +79,11 @@ async function fetchAllPages<T>(url: string): Promise<T[]> {
   if (totalPages > 1) {
     const pagePromises: Promise<T[]>[] = [];
     for (let page = 2; page <= totalPages; page++) {
-        const pageUrl = `${url.includes('?') ? url : url + '?'}&page=${page}`;
+        const pageUrl = `${baseUrl}?page=${page}`;
         pagePromises.push(
             fetchWithCache(pageUrl).then(res => {
                 if (!res.ok) {
-                    console.error(`Failed to fetch page ${page} for ${url}: ${res.statusText}`);
+                    console.error(`Failed to fetch page ${page} for ${baseUrl}: ${res.statusText}`);
                     return []; // Return empty array on error for a specific page
                 }
                 return res.json() as Promise<T[]>;
@@ -98,7 +100,7 @@ async function fetchAllPages<T>(url: string): Promise<T[]> {
 
 export async function getRegions(): Promise<Region[]> {
     const regionIdsUrl = `${ESI_BASE_URL}/universe/regions/`;
-    const regionIds = await fetchAllPages<number>(regionIdsUrl);
+    const regionIds = await fetch(regionIdsUrl, { next: { revalidate: 3600 } }).then(res => res.json() as Promise<number[]>);
 
     const regionDetails = await Promise.all(
         regionIds.map(async id => {
@@ -121,25 +123,25 @@ export async function getRegions(): Promise<Region[]> {
 }
 
 
-export async function getItemTypes(): Promise<ItemType[]> {
-    const typeIdsUrl = `${ESI_BASE_URL}/universe/types/`;
-    const allTypeIds = await fetchAllPages<number>(typeIdsUrl);
-
-    const uniqueTypeIds = [...new Set(allTypeIds)];
+export async function searchItemTypes(query: string): Promise<ItemType[]> {
+    if (!query || query.length < 3) return [];
     
-    // We can't fetch all types at once. We'll rely on the default values and search.
-    // Let's pre-warm with some common types.
-    const defaultTypeIds = [34, 35, 36, 37, 38, 39, 40]; // Tritanium, Pyerite, etc.
-    const idsToFetch = [...new Set([...defaultTypeIds, ...uniqueTypeIds.slice(0, 100)])]; // Fetch a small subset to start with.
+    const searchUrl = `${ESI_BASE_URL}/search/?categories=inventory_type&search=${query}&strict=false`;
+    const searchResponse = await fetch(searchUrl, { cache: 'no-store' });
+    if(!searchResponse.ok) return [];
 
+    const searchResult = await searchResponse.json();
+    const typeIds = searchResult.inventory_type || [];
+
+    if (typeIds.length === 0) return [];
+    
     const typeDetails = await Promise.all(
-      idsToFetch.map(async id => {
+      typeIds.map(async (id: number) => {
         try {
             const url = `${ESI_BASE_URL}/universe/types/${id}/`;
             const response = await fetchWithCache(url);
             if (!response.ok) return null;
             const data = await response.json();
-            // We only want items that can be on the market.
             if (data.published && data.market_group_id) {
                 return { type_id: id, name: data.name };
             }

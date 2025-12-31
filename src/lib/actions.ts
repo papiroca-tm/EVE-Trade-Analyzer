@@ -1,8 +1,9 @@
+
 'use server';
 
 import { z } from 'zod';
 import { analyzeDataIntegrity } from '@/ai/flows/data-integrity-analysis';
-import { fetchMarketHistory, fetchMarketOrders, getRegions, getItemTypes } from './eve-esi';
+import { fetchMarketHistory, fetchMarketOrders, getRegions, searchItemTypes } from './eve-esi';
 import { calculateAnalysis } from './analysis';
 import type { AnalysisState, MarketHistoryItem, MarketOrderItem, AnalysisResult, Region, ItemType } from './types';
 
@@ -88,14 +89,14 @@ export async function getMarketAnalysis(
   }
 }
 
-export async function getRegionsAndItemTypes(): Promise<{ regions: Region[], itemTypes: ItemType[] }> {
+export async function getInitialData(): Promise<{ regions: Region[], itemTypes: ItemType[] }> {
     try {
-        const [regions, itemTypes] = await Promise.all([getRegions(), getItemTypes()]);
-        return { regions, itemTypes };
+        const regions = await getRegions();
+        // Pre-warm with Tritanium as a default
+        const initialItems = await searchItemTypes('Tritanium');
+        return { regions, itemTypes: initialItems };
     } catch (error) {
-        console.error("Failed to get regions and item types", error);
-        // Return empty arrays on failure to prevent crashing the form.
-        // The user will see empty dropdowns, but the app won't break.
+        console.error("Failed to get initial data", error);
         return { regions: [], itemTypes: [] };
     }
 }
