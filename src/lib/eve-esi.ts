@@ -4,7 +4,7 @@ const ESI_BASE_URL = 'https://esi.evetech.net/latest';
 
 export async function fetchMarketHistory(regionId: number, typeId: number): Promise<MarketHistoryItem[]> {
   const url = `${ESI_BASE_URL}/markets/${regionId}/history/?type_id=${typeId}`;
-  const response = await fetch(url, { next: { revalidate: 3600 } }); // Cache for 1 hour
+  const response = await fetch(url, { cache: 'no-store' });
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -22,7 +22,7 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
 
   while (page <= totalPages) {
     const url = `${ESI_BASE_URL}/markets/${regionId}/orders/?order_type=all&type_id=${typeId}&page=${page}`;
-    const response = await fetch(url, { next: { revalidate: 300 } }); // Cache for 5 minutes
+    const response = await fetch(url, { cache: 'no-store' });
 
     if (!response.ok) {
        const errorBody = await response.text();
@@ -54,7 +54,7 @@ async function fetchAllPages<T>(url: string): Promise<T[]> {
 
   while (page <= totalPages) {
     const pageUrl = `${url}?page=${page}`;
-    const response = await fetch(pageUrl, { next: { revalidate: 86400 } }); // Cache for a day
+    const response = await fetch(pageUrl, { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch paged data from ${url}: ${response.statusText}`);
@@ -79,14 +79,14 @@ async function fetchAllPages<T>(url: string): Promise<T[]> {
 
 export async function getRegions(): Promise<Region[]> {
     const regionIdsUrl = `${ESI_BASE_URL}/universe/regions/`;
-    const regionIdsResponse = await fetch(regionIdsUrl, { next: { revalidate: 86400 }});
+    const regionIdsResponse = await fetch(regionIdsUrl, { cache: 'no-store' });
     if (!regionIdsResponse.ok) throw new Error("Failed to fetch region IDs");
     const regionIds: number[] = await regionIdsResponse.json();
 
     const regionDetails = await Promise.all(
         regionIds.map(async id => {
             const url = `${ESI_BASE_URL}/universe/regions/${id}/`;
-            const response = await fetch(url, { next: { revalidate: 86400 }});
+            const response = await fetch(url, { cache: 'no-store' });
             if (!response.ok) return null;
             const data = await response.json();
             return { region_id: id, name: data.name };
@@ -103,7 +103,7 @@ export async function getItemTypes(): Promise<ItemType[]> {
     const typeDetails = await Promise.all(
         ids.map(async id => {
             const url = `${ESI_BASE_URL}/universe/types/${id}/`;
-            const response = await fetch(url, { next: { revalidate: 86400 }});
+            const response = await fetch(url, { cache: 'no-store' });
             if (!response.ok) return null;
             const data = await response.json();
             // We only care about published market items
