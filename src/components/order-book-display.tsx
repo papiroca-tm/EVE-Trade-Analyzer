@@ -32,20 +32,7 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
             .reverse(); // Show lowest price at the bottom
 
         const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
-        let wallFound = false;
         
-        let cumulativeVolume = 0;
-        const withCumulative: OrderWithWall[] = sorted.map(order => {
-            cumulativeVolume += order.volume_remain;
-            let isWall = false;
-            // Check against cumulative volume of orders AT OR BELOW this price
-            if (!wallFound && cumulativeVolume >= wallThreshold) {
-                isWall = true;
-                wallFound = true; 
-            }
-            return { ...order, isWall };
-        });
-
         // The logic for sell walls is based on orders *at or cheaper* than the current one.
         // We need to re-process to apply the flag correctly after sorting.
         let cumulativeForWallCheck = 0;
@@ -174,7 +161,7 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
         <CardTitle className="text-lg">Стакан</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-42rem)]" viewportRef={viewportRef}>
+        <ScrollArea className="max-h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
           <Table>
             <TableHeader className='invisible h-0'>
                 <TableRow className='h-0'>
