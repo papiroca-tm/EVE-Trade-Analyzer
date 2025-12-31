@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { calculateAnalysis } from './analysis';
-import { fetchMarketHistory, fetchMarketOrders, getRegions, getInitialItemTypes } from './eve-esi';
+import { fetchMarketHistory, fetchMarketOrders, getRegions, getInitialItemTypes, searchItemTypes as searchItemTypesEsi } from './eve-esi';
 import type { AnalysisState, AnalysisResult, Region, ItemType } from './types';
 
 const formSchema = z.object({
@@ -107,4 +107,8 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
         // Fallback to avoid complete UI crash
         return { regions: [], itemTypes: [{ type_id: 34, name: 'Tritanium' }] };
     }
+}
+
+export async function searchItemTypes(query: string): Promise<ItemType[]> {
+    return searchItemTypesEsi(query);
 }

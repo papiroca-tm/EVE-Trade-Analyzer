@@ -15,8 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown, Loader2, Zap } from 'lucide-react';
-import { getInitialData } from '@/lib/actions';
-import { searchItemTypes } from '@/lib/eve-esi';
+import { getInitialData, searchItemTypes } from '@/lib/actions';
 import type { Region, ItemType } from '@/lib/types';
 import { useDebounce } from '@/hooks/use-debounce';
 
@@ -87,24 +86,24 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   
   useEffect(() => {
     if (debouncedItemSearch.length < 3) {
-        setIsSearchingItems(false);
-        return;
+      setIsSearchingItems(false);
+      return;
     }
-    
+
     const search = async () => {
-        setIsSearchingItems(true);
-        try {
-            const results = await searchItemTypes(debouncedItemSearch);
-            setItemOptions(prevOptions => {
-                const newOptions = new Map(prevOptions.map(item => [item.type_id, item]));
-                results.forEach(item => newOptions.set(item.type_id, item));
-                return Array.from(newOptions.values()).sort((a,b) => a.name.localeCompare(b.name));
-            });
-        } catch (error) {
-            console.error("Failed to search for item types:", error);
-        } finally {
-            setIsSearchingItems(false);
-        }
+      setIsSearchingItems(true);
+      try {
+        const results = await searchItemTypes(debouncedItemSearch);
+        setItemOptions(prevOptions => {
+          const newOptions = new Map(prevOptions.map(item => [item.type_id, item]));
+          results.forEach(item => newOptions.set(item.type_id, item));
+          return Array.from(newOptions.values()).sort((a,b) => a.name.localeCompare(b.name));
+        });
+      } catch (error) {
+        console.error("Failed to search for item types:", error);
+      } finally {
+        setIsSearchingItems(false);
+      }
     };
 
     search();
