@@ -85,13 +85,11 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   }, []);
   
   useEffect(() => {
-    const search = async () => {
+    async function performSearch() {
       if (debouncedItemSearch.length < 3) {
-        setIsSearchingItems(false);
         return;
       }
-      if (isSearchingItems) return;
-
+      
       setIsSearchingItems(true);
       try {
         const results = await searchItemTypes(debouncedItemSearch);
@@ -105,9 +103,9 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       } finally {
         setIsSearchingItems(false);
       }
-    };
+    }
 
-    search();
+    performSearch();
   }, [debouncedItemSearch]);
 
   const selectedItemName = itemOptions.find(item => item.type_id === form.watch('typeId'))?.name;
