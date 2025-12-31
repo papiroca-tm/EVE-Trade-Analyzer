@@ -205,7 +205,7 @@ export function MarketHistoryPanel({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[48rem] w-full">
+        <div className="h-[32rem] w-full">
             <ResponsiveContainer width="100%" height="75%">
                 <ComposedChart
                     data={chartData} 
@@ -260,7 +260,7 @@ export function MarketHistoryPanel({
                         type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
-                        strokeWidth={1.5} _
+                        strokeWidth={1.5} 
                         strokeDasharray="8 4"
                         dot={false}
                         connectNulls
