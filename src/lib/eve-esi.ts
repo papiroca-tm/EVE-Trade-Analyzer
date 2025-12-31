@@ -30,8 +30,10 @@ async function fetchAllPages(path: string): Promise<any[]> {
     let page = 1;
     let totalPages = 1;
 
+    const separator = path.includes('?') ? '&' : '?';
+
     while (page <= totalPages) {
-        const url = `${path}${path.includes('?') ? '&' : '?'}page=${page}`;
+        const url = `${path}${separator}page=${page}`;
         const response = await fetchEsi(url);
         const data = await response.json();
 
@@ -64,7 +66,7 @@ export async function getRegions(): Promise<Region[]> {
         regionIds.map(async id => {
             try {
                 // We only care about the main regions with markets
-                if (id > 11000000) {
+                if (id >= 11000000) {
                     return null;
                 }
                 const response = await fetchEsi(`/universe/regions/${id}/`, true);
