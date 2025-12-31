@@ -2,7 +2,7 @@
 import type { MarketHistoryItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, ComposedChart, Line, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 export function MarketHistoryPanel({ 
@@ -46,7 +46,7 @@ export function MarketHistoryPanel({
       <CardContent>
         <ChartContainer config={chartConfig} className="h-64 w-full">
             <ResponsiveContainer>
-                <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                      <XAxis
                         dataKey="date"
@@ -61,6 +61,7 @@ export function MarketHistoryPanel({
                         orientation="left"
                         stroke="hsl(var(--primary))"
                         tickFormatter={(value) => `₽${(value / 1000).toFixed(1)}k`}
+                        domain={['dataMin - 100', 'dataMax + 100']}
                     />
                     <YAxis
                         dataKey="volume"
@@ -87,7 +88,7 @@ export function MarketHistoryPanel({
                     />
                     <Line type="monotone" dataKey="price" stroke="var(--color-price)" strokeWidth={2} dot={false} yAxisId="left" name="Цена"/>
                     <Bar dataKey="volume" fill="var(--color-volume)" yAxisId="right" name="Объем" fillOpacity={0.3} />
-                </LineChart>
+                </ComposedChart>
             </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
