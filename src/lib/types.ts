@@ -26,7 +26,9 @@ export interface UserInputs {
   salesTaxPercent: number;
   desiredNetMarginPercent: number;
   timeHorizonDays: number;
-  optionalTargetVolume?: number;
+  executionDays: number;
+  volatilityFactor: number;
+  positionCapital?: number;
 }
 
 export type Feasibility = 'low' | 'medium' | 'high' | 'very high';

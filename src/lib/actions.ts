@@ -14,7 +14,9 @@ const formSchema = z.object({
   salesTaxPercent: z.coerce.number().min(0).max(100),
   desiredNetMarginPercent: z.coerce.number().min(0).max(1000),
   timeHorizonDays: z.coerce.number().int().positive().min(1).max(365),
-  optionalTargetVolume: z.coerce.number().int().positive().optional(),
+  executionDays: z.coerce.number().int().positive().min(1).max(90),
+  volatilityFactor: z.coerce.number().min(0.1).max(5),
+  positionCapital: z.coerce.number().int().positive().optional(),
 });
 
 export async function getMarketAnalysis(
@@ -30,7 +32,9 @@ export async function getMarketAnalysis(
     salesTaxPercent: formData.get('salesTaxPercent'),
     desiredNetMarginPercent: formData.get('desiredNetMarginPercent'),
     timeHorizonDays: formData.get('timeHorizonDays'),
-    optionalTargetVolume: formData.get('optionalTargetVolume') || undefined,
+    executionDays: formData.get('executionDays'),
+    volatilityFactor: formData.get('volatilityFactor'),
+    positionCapital: formData.get('positionCapital') || undefined,
   });
 
   if (!validatedFields.success) {

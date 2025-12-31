@@ -24,7 +24,9 @@ const formSchema = z.object({
   salesTaxPercent: z.coerce.number().min(0).max(100, "Должно быть между 0-100"),
   desiredNetMarginPercent: z.coerce.number().min(0, "Должно быть положительным").max(1000, "Слишком большая маржа"),
   timeHorizonDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(365, "Максимум 365 дней"),
-  optionalTargetVolume: z.string().optional(),
+  executionDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(90, "Максимум 90 дней"),
+  volatilityFactor: z.coerce.number().min(0.1, "Минимум 0.1").max(5, "Максимум 5"),
+  positionCapital: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -61,7 +63,9 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
       salesTaxPercent: 3.37,
       desiredNetMarginPercent: 5.0,
       timeHorizonDays: 90,
-      optionalTargetVolume: "",
+      executionDays: 14,
+      volatilityFactor: 1.0,
+      positionCapital: "",
     },
   });
 
@@ -271,7 +275,7 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
                 name="timeHorizonDays"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Временной горизонт (дни)</FormLabel>
+                    <FormLabel>Анализ истории (дни)</FormLabel>
                     <FormControl>
                         <Input type="number" {...field} />
                     </FormControl>
@@ -280,16 +284,44 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
                     </FormItem>
                 )}
             />
-             <FormField
+            <FormField
                 control={form.control}
-                name="optionalTargetVolume"
+                name="executionDays"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Целевой объем (опц.)</FormLabel>
+                    <FormLabel>Желаемый срок сделки (дни)</FormLabel>
                     <FormControl>
-                        <Input type="number" placeholder="например, 1000000" {...field} />
+                        <Input type="number" {...field} />
                     </FormControl>
-                    <FormDescription>Оценка времени на покупку/продажу.</FormDescription>
+                    <FormDescription>За сколько дней вы хотите купить и продать.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="volatilityFactor"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Фактор волатильности</FormLabel>
+                    <FormControl>
+                        <Input type="number" step="0.1" {...field} />
+                    </FormControl>
+                    <FormDescription>Коэф. риска. 1.0 - стандарт. &gt;1 - осторожнее.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <FormField
+                control={form.control}
+                name="positionCapital"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Инвестируемый капитал (ISK, опц.)</FormLabel>
+                    <FormControl>
+                        <Input type="number" placeholder="например, 100000000" {...field} />
+                    </FormControl>
+                    <FormDescription>Сумма, которую вы готовы вложить.</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
