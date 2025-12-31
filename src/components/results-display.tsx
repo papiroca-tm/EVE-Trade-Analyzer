@@ -9,7 +9,6 @@ import { ResultsSkeleton } from './panels/results-skeleton';
 import { RecommendationsPanel } from './panels/recommendations-panel';
 import { WarningsPanel } from './panels/warnings-panel';
 import { MarketHistoryPanel } from './panels/market-history-panel';
-import { OrderBookPanel } from './panels/order-book-panel';
 import { CandlestickChartPanel } from './panels/candlestick-chart-panel';
 
 export function ResultsDisplay({ state }: { state: AnalysisState }) {
@@ -73,13 +72,6 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
                   history={state.data.history}
                   timeHorizonDays={state.data.inputs.timeHorizonDays}
                 />
-            </div>
-            <div className="lg:col-span-2">
-              <OrderBookPanel 
-                buyOrders={state.data.buyOrders} 
-                sellOrders={state.data.sellOrders} 
-                averageDailyVolume={state.data.volumeAnalysis.averageDailyVolume}
-              />
             </div>
         </div>
       );
