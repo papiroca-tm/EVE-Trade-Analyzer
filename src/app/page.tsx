@@ -29,11 +29,11 @@ export default function Home() {
           </h1>
         </div>
       </header>
-      <main className="grid flex-1 grid-cols-12 gap-2 p-2 md:gap-4 md:p-4">
-        <div className="col-span-3">
+      <main className="grid flex-1 grid-cols-10 gap-2 p-2 md:gap-4 md:p-4">
+        <div className="col-span-2">
           <InputForm formAction={formAction} />
         </div>
-        <div className="col-span-3">
+        <div className="col-span-2">
            <OrderBookDisplay
             buyOrders={state.data?.buyOrders ?? []}
             sellOrders={state.data?.sellOrders ?? []}
