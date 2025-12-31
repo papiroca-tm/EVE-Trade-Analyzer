@@ -60,9 +60,9 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     defaultValues: {
       regionId: 10000002, // The Forge
       typeId: 34, // Tritanium
-      brokerBuyFeePercent: 3.0,
-      brokerSellFeePercent: 3.0,
-      salesTaxPercent: 5.0,
+      brokerBuyFeePercent: 0.5,
+      brokerSellFeePercent: 1.33,
+      salesTaxPercent: 3.37,
       desiredNetMarginPercent: 5.0,
       timeHorizonDays: 90,
       optionalTargetVolume: "",
