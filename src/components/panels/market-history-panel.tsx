@@ -9,13 +9,14 @@ import { useMemo } from 'react';
 const Candlestick = (props: any) => {
     const { x, y, width, height, low, high, average, previousAverage, yAxis } = props;
   
-    if ([x, y, width, height, low, high, average, yAxis, yAxis.scale].some(val => val === undefined || val === null)) {
+    if ([x, y, width, height, low, high, average].some(val => val === undefined || val === null) || !yAxis?.scale) {
       return null;
     }
   
     const isBullish = previousAverage !== undefined ? average > previousAverage : true;
     const color = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
     
+    // Use a small portion of the range for the body
     const bodyTopValue = isBullish ? average : (average + (high-average)*0.1);
     const bodyBottomValue = isBullish ? (average - (average-low)*0.1) : average;
 
