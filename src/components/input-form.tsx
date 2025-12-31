@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -49,10 +50,16 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const { regions, itemTypes } = await getRegionsAndItemTypes();
-      setRegions(regions);
-      setItemTypes(itemTypes);
-      setLoading(false);
+      try {
+        const { regions, itemTypes } = await getRegionsAndItemTypes();
+        setRegions(regions);
+        setItemTypes(itemTypes);
+      } catch (error) {
+        console.error("Failed to fetch initial data:", error);
+        // Optionally set an error state here to show in the UI
+      } finally {
+        setLoading(false);
+      }
     }
     fetchData();
   }, []);
@@ -114,18 +121,14 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[26rem] p-0">
-                      <Command filter={(value, search) => {
-                        const region = regions.find(r => r.region_id.toString() === value);
-                        if (region && region.name.toLowerCase().includes(search.toLowerCase())) return 1;
-                        return 0;
-                      }}>
+                      <Command>
                         <CommandInput placeholder="Search region..." />
                         <CommandEmpty>No region found.</CommandEmpty>
                         <CommandList>
                         <CommandGroup>
                           {regions.map((region) => (
                             <CommandItem
-                              value={region.region_id.toString()}
+                              value={region.name}
                               key={region.region_id}
                               onSelect={() => {
                                 form.setValue("regionId", region.region_id)
@@ -178,18 +181,14 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[26rem] p-0">
-                      <Command filter={(value, search) => {
-                        const item = itemTypes.find(i => i.type_id.toString() === value);
-                        if (item && item.name.toLowerCase().includes(search.toLowerCase())) return 1;
-                        return 0;
-                      }}>
+                      <Command>
                         <CommandInput placeholder="Search item..." />
                         <CommandEmpty>No item found.</CommandEmpty>
                          <CommandList>
                         <CommandGroup>
                           {itemTypes.map((item) => (
                             <CommandItem
-                              value={item.type_id.toString()}
+                              value={item.name}
                               key={item.type_id}
                               onSelect={() => {
                                 form.setValue("typeId", item.type_id)

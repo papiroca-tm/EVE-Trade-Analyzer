@@ -117,21 +117,29 @@ export async function getItemTypes(): Promise<ItemType[]> {
 
     for (let i = 0; i < uniqueTypeIds.length; i += batchSize) {
         const batchIds = uniqueTypeIds.slice(i, i + batchSize);
-        const batchPromises = batchIds.map(async id => {
-             try {
-                const url = `${ESI_BASE_URL}/universe/types/${id}/`;
-                const response = await fetchWithCache(url);
-                if (!response.ok) return null;
-                const data = await response.json();
-                if (!data.published) return null;
-                return { type_id: id, name: data.name };
-            } catch (e) {
-                console.error(`Failed to fetch item details for ID ${id}`, e);
-                return null;
-            }
-        });
-        const batchResults = await Promise.all(batchPromises);
-        allTypeDetails = allTypeDetails.concat(batchResults);
+        try {
+            const url = `${ESI_BASE_URL}/universe/types/`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(batchIds),
+                cache: 'force-cache',
+            });
+            if (!response.ok) continue;
+
+            const data = await response.json();
+            const batchDetails = data.map((item: any) => {
+                if (!item.published) return null;
+                return { type_id: item.type_id, name: item.name };
+            });
+            allTypeDetails.push(...batchDetails);
+
+        } catch (e) {
+            console.error(`Failed to fetch item details for batch`, e);
+        }
         await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to be polite to the API
     }
     
