@@ -2,7 +2,7 @@
 import type { MarketHistoryItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar } from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, YAxis } from 'recharts';
 import { useMemo } from 'react';
 
 
@@ -13,24 +13,25 @@ export function MarketHistoryPanel({
 }) {
     
   const chartData = useMemo(() => {
-    return history.map((item, index) => ({
+    return history.map(item => ({
       date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
       fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
       Цена: item.average,
       Объем: item.volume,
-      index: index, // for trend calculation
     })).reverse();
   }, [history]);
-  
+
   const yDomainPrice = useMemo(() => {
       if (chartData.length === 0) return [0, 0];
       const prices = chartData.map(p => p.Цена);
       const min = Math.min(...prices);
       const max = Math.max(...prices);
       const padding = (max - min) * 0.1;
-      return [min - padding, max + padding];
-  }, [chartData])
-
+      // Ensure padding is not zero if all prices are the same
+      const finalPadding = padding === 0 ? max * 0.1 : padding;
+      return [min - finalPadding, max + finalPadding];
+  }, [chartData]);
+  
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const pricePayload = payload.find(p => p.dataKey === 'Цена');
@@ -100,13 +101,13 @@ export function MarketHistoryPanel({
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                     <Tooltip content={<CustomTooltip />} />
+                    <YAxis domain={yDomainPrice} hide />
                     <Line 
                         type="monotone" 
                         dataKey="Цена" 
                         stroke="hsl(var(--primary))" 
                         strokeWidth={2} 
                         dot={false}
-                        yAxisId="left" 
                     />
                 </LineChart>
             </ResponsiveContainer>
