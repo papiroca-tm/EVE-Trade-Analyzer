@@ -50,7 +50,7 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
                 <TableBody>
                 {ordersWithCumulative.length > 0 ? (
                     ordersWithCumulative.slice(0, 100).map((order) => (
-                    <TableRow key={order.order_id} className={order.isWall ? "bg-muted/50 font-bold" : ""}>
+                    <TableRow key={order.order_id} className={cn(order.isWall && "bg-muted/50 font-bold")}>
                         <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
                     </TableRow>
