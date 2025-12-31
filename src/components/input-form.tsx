@@ -73,7 +73,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   
   useEffect(() => {
     if (debouncedItemSearch.length < 3) {
-      // Do not clear item types, so the initial/previous search result persists
       setIsSearchingItems(false);
       return;
     }
@@ -108,11 +107,10 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       optionalTargetVolume: "",
     },
   });
-
-  const filteredRegions = regions.filter(region => region.name.toLowerCase().includes(regionSearch.toLowerCase()));
   
-  const currentSelectedItem = form.getValues('typeId');
+  const currentSelectedItem = form.watch('typeId');
   const selectedItemInList = itemTypes.find(item => item.type_id === currentSelectedItem);
+
 
   return (
     <Card>
@@ -160,13 +158,11 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                       <Command>
                         <CommandInput 
                           placeholder="Search region..."
-                          value={regionSearch}
-                          onValueChange={setRegionSearch}
                          />
                         <CommandEmpty>No region found.</CommandEmpty>
                         <CommandList>
                         <CommandGroup>
-                          {filteredRegions.map((region) => (
+                          {regions.map((region) => (
                             <CommandItem
                               value={region.name}
                               key={region.region_id}
@@ -228,7 +224,20 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                         <CommandList>
                           {isSearchingItems && <CommandItem>Searching...</CommandItem>}
                           {!isSearchingItems && debouncedItemSearch.length >= 3 && itemTypes.length === 0 && <CommandItem>No item found.</CommandItem>}
+                          {!isSearchingItems && debouncedItemSearch.length < 3 && itemTypes.length === 0 && <CommandItem>Please enter 3 or more characters.</CommandItem>}
                           <CommandGroup>
+                           {!selectedItemInList && currentSelectedItem && (
+                              <CommandItem
+                                value={currentSelectedItem.toString()}
+                                key={currentSelectedItem}
+                                className="hidden"
+                                onSelect={() => {
+                                  form.setValue("typeId", currentSelectedItem);
+                                }}
+                              >
+                                {currentSelectedItem}
+                              </CommandItem>
+                            )}
                             {itemTypes.map((item) => (
                               <CommandItem
                                 value={item.name}
@@ -356,3 +365,5 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
+
+    

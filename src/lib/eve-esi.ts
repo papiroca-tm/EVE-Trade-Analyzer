@@ -1,4 +1,6 @@
 
+'use server';
+
 import type { MarketHistoryItem, MarketOrderItem, Region, ItemType } from './types';
 
 const ESI_BASE_URL = 'https://esi.evetech.net/latest';
@@ -62,45 +64,12 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
   return allOrders;
 }
 
-
-async function fetchAllPages<T>(baseUrl: string): Promise<T[]> {
-  const firstPageUrl = `${baseUrl}?page=1`;
-  const response = await fetchWithCache(firstPageUrl);
-  if (!response.ok) {
-    console.error(`Failed to fetch initial page for ${baseUrl}: ${response.statusText}`);
-    throw new Error(`Failed to fetch paged data from ESI: ${response.statusText}`);
-  }
-  
-  const xPagesHeader = response.headers.get('x-pages');
-  const totalPages = xPagesHeader ? parseInt(xPagesHeader, 10) : 1;
-  
-  let allData: T[] = await response.json();
-
-  if (totalPages > 1) {
-    const pagePromises: Promise<T[]>[] = [];
-    for (let page = 2; page <= totalPages; page++) {
-        const pageUrl = `${baseUrl}?page=${page}`;
-        pagePromises.push(
-            fetchWithCache(pageUrl).then(res => {
-                if (!res.ok) {
-                    console.error(`Failed to fetch page ${page} for ${baseUrl}: ${res.statusText}`);
-                    return []; // Return empty array on error for a specific page
-                }
-                return res.json() as Promise<T[]>;
-            })
-        );
-    }
-    const pagedData = await Promise.all(pagePromises);
-    pagedData.forEach(pageData => allData.push(...pageData));
-  }
-  
-  return allData;
-}
-
-
 export async function getRegions(): Promise<Region[]> {
     const regionIdsUrl = `${ESI_BASE_URL}/universe/regions/`;
-    const regionIds = await fetch(regionIdsUrl, { next: { revalidate: 3600 } }).then(res => res.json() as Promise<number[]>);
+    const regionIds: number[] = await fetchWithCache(regionIdsUrl).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch region IDs');
+        return res.json();
+    });
 
     const regionDetails = await Promise.all(
         regionIds.map(async id => {
@@ -126,22 +95,30 @@ export async function getRegions(): Promise<Region[]> {
 export async function searchItemTypes(query: string): Promise<ItemType[]> {
     if (!query || query.length < 3) return [];
     
-    const searchUrl = `${ESI_BASE_URL}/search/?categories=inventory_type&search=${query}&strict=false`;
+    const searchUrl = `${ESI_BASE_URL}/search/?categories=inventory_type&search=${encodeURIComponent(query)}&strict=false`;
     const searchResponse = await fetch(searchUrl, { cache: 'no-store' });
-    if(!searchResponse.ok) return [];
+    if(!searchResponse.ok) {
+        console.error(`Failed to search for items with query "${query}": ${searchResponse.statusText}`);
+        return [];
+    }
 
     const searchResult = await searchResponse.json();
-    const typeIds = searchResult.inventory_type || [];
+    const typeIds: number[] = searchResult.inventory_type || [];
 
     if (typeIds.length === 0) return [];
     
+    // ESI search can return a lot of IDs, let's cap it for performance.
+    const maxIdsToFetch = 50; 
+    const cappedTypeIds = typeIds.slice(0, maxIdsToFetch);
+    
     const typeDetails = await Promise.all(
-      typeIds.map(async (id: number) => {
+      cappedTypeIds.map(async (id) => {
         try {
             const url = `${ESI_BASE_URL}/universe/types/${id}/`;
             const response = await fetchWithCache(url);
             if (!response.ok) return null;
             const data = await response.json();
+            // Ensure the item is published and on the market.
             if (data.published && data.market_group_id) {
                 return { type_id: id, name: data.name };
             }
@@ -157,3 +134,5 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
         .filter((t): t is ItemType => t !== null && !!t.name)
         .sort((a,b) => a.name.localeCompare(b.name));
 }
+
+    
