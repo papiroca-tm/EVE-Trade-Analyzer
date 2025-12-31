@@ -68,8 +68,8 @@ export function MarketHistoryPanel({
       const padding = range * 0.1;
 
       priceDomain = [
-        Math.max(0, Math.floor((minPrice - padding) * 0.98)),
-        Math.ceil((maxPrice + padding) * 1.02)
+        Math.max(0, minPrice - padding),
+        maxPrice + padding
       ];
     }
     
