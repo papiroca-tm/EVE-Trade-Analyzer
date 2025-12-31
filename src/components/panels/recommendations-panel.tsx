@@ -4,6 +4,7 @@ import type { AnalysisResult, Feasibility } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: string, value: string, unit?: string }) => (
     <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-2">
@@ -20,7 +21,64 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
     </div>
 );
 
-const PriceCard = ({ title, priceMin, priceMax, icon }: { title: string, priceMin: number, priceMax: number, icon: React.ReactNode }) => (
+const PriceCard = ({ title, longTerm, midTerm, shortTerm, icon }: { title: string, longTerm: number, midTerm: number, shortTerm: number, icon: React.ReactNode }) => {
+    const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    return (
+        <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                {icon}
+                <span>{title}</span>
+            </div>
+            <div className="grid grid-cols-1 gap-1 text-center font-mono">
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                                <span className="text-xs font-sans text-muted-foreground">Долгосрок.</span>
+                                <span className="text-sm font-bold text-foreground">{formatPrice(longTerm)}</span>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Исторический минимум за выбранный период.</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                                <span className="text-xs font-sans text-muted-foreground">Среднесрок.</span>
+                                <span className="text-base font-bold text-primary">{formatPrice(midTerm)}</span>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Стратегическая цена для исполнения в заданный срок.</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                                <span className="text-xs font-sans text-muted-foreground">Краткосрок.</span>
+                                <span className="text-sm font-bold text-foreground">{formatPrice(shortTerm)}</span>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Тактическая цена для быстрого исполнения (~1 день).</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
+            <p className="text-center text-xs text-muted-foreground">ISK</p>
+        </div>
+    );
+};
+
+const PriceCardSell = ({ title, priceMin, priceMax, icon }: { title: string, priceMin: number, priceMax: number, icon: React.ReactNode }) => (
     <div className="flex flex-col gap-1 rounded-lg bg-muted/50 p-2">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             {icon}
@@ -40,6 +98,7 @@ const PriceCard = ({ title, priceMin, priceMax, icon }: { title: string, priceMi
          <p className="text-center text-xs text-muted-foreground">ISK</p>
     </div>
 );
+
 
 export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
   const { priceAnalysis, volumeAnalysis, recommendations, inputs } = data;
@@ -79,8 +138,14 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         {rec ? (
           <div className="space-y-3">
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <PriceCard title="Рекомендуемая цена покупки" priceMin={rec.buyPriceRange.min} priceMax={rec.buyPriceRange.max} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
-                <PriceCard title="Ориентир цены продажи" priceMin={rec.sellPriceRange.min} priceMax={rec.sellPriceRange.max} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+                <PriceCard 
+                    title="Рекомендуемая цена покупки" 
+                    longTerm={rec.buyPriceRange.longTerm} 
+                    midTerm={rec.buyPriceRange.midTerm}
+                    shortTerm={rec.buyPriceRange.shortTerm}
+                    icon={<ArrowDown className="h-4 w-4 text-green-400" />} 
+                />
+                <PriceCardSell title="Ориентир цены продажи" priceMin={rec.sellPriceRange.min} priceMax={rec.sellPriceRange.max} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -117,8 +182,8 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         ) : (
           <div className="space-y-3">
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <PriceCard title="Рекомендуемая цена покупки" priceMin={0} priceMax={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
-                <PriceCard title="Ориентир цены продажи" priceMin={0} priceMax={0} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+                <PriceCard title="Рекомендуемая цена покупки" longTerm={0} midTerm={0} shortTerm={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
+                <PriceCardSell title="Ориентир цены продажи" priceMin={0} priceMax={0} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
