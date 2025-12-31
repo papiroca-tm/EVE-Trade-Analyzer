@@ -15,6 +15,10 @@ async function fetchEsi(path: string, cache: boolean = false): Promise<Response>
         if (!response.ok) {
             const errorBody = await response.text();
             console.error(`ESI Error for ${url}: ${response.status} ${errorBody}`);
+            // Do not throw for 404 on search, as it means "not found"
+            if (response.status === 404 && path.startsWith('/search/')) {
+                return response; 
+            }
             throw new Error(`Failed to fetch from ESI at ${url}: ${response.statusText}`);
         }
         return response;
@@ -106,6 +110,11 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
     if (!query || query.length < 3) return [];
     
     const searchResponse = await fetchEsi(`/search/?categories=inventory_type&search=${encodeURIComponent(query)}&strict=false`);
+    
+    // ESI search returns 404 if nothing is found.
+    if (searchResponse.status === 404) {
+        return [];
+    }
 
     const searchResult = await searchResponse.json();
     const typeIds: number[] = searchResult.inventory_type || [];
