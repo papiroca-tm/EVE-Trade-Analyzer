@@ -11,26 +11,23 @@ import type { MarketHistoryItem } from '@/lib/types';
 const Candle = (props: any) => {
   const { x, y, width, height, payload } = props;
   
-  if (!payload || payload.open === undefined) {
+  if (!payload || payload.open === undefined || height <= 0) {
     return null;
   }
   
   const { open, high, low, close } = payload;
   const isBullish = close >= open;
 
-  // This helper function maps a price value to a Y coordinate within the bar's space.
+  // This helper function maps a price value to a Y coordinate within the chart's space.
+  // It uses the payload's own price range to determine the position.
   const yValueToCoordinate = (value: number) => {
-    // The payload contains the full range of data for this point.
-    // The y and height props are for the entire bar space given by recharts.
-    // We can create a ratio and map it.
-    const domainRange = payload.high - payload.low;
-    // Handle case where high and low are the same to avoid division by zero
-    if (domainRange === 0) {
-      return y + height / 2;
-    }
-    const valueRatio = (value - payload.low) / domainRange;
-    // The Y-axis is inverted in SVG (0 is at the top), so we subtract from the bottom.
-    return y + (1 - valueRatio) * height;
+      const priceRange = payload.high - payload.low;
+      if (priceRange === 0) {
+          return y + height / 2;
+      }
+      const valueAsPercentage = (value - payload.low) / priceRange;
+      // In SVG, y=0 is at the top, so we invert the percentage.
+      return y + (1 - valueAsPercentage) * height;
   };
   
   const highY = yValueToCoordinate(high);
@@ -76,6 +73,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
         const bodySize = priceRange * volumePercentage;
         
         const midPoint = (highest + lowest) / 2;
+        
         const open = midPoint - bodySize / 2;
         const close = midPoint + bodySize / 2;
 
@@ -87,7 +85,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
             close: Number(isBullish ? close : open).toFixed(4),
             high: Number(highest.toFixed(4)),
             low: Number(lowest.toFixed(4)),
-            body: [open, close] // dataKey for the Bar
+            body: [isBullish ? open : close, isBullish ? close : open]
         }
     });
 
