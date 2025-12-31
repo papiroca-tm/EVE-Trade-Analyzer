@@ -3,36 +3,44 @@
 import type { MarketHistoryItem, Recommendation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, ReferenceLine } from 'recharts';
+import { Line, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, ReferenceLine } from 'recharts';
 import { useMemo } from 'react';
 
 const Candlestick = (props: any) => {
-    const { x, y, width, height, low, high, average, previousAverage } = props;
+    const { x, width, low, high, average, previousAverage, yAxis } = props;
   
-    if ([x, y, width, height, low, high, average].some(val => val === undefined || val === null)) {
+    // Check for essential props to prevent rendering errors
+    if ([x, width, low, high, average, yAxis, yAxis.scale].some(val => val === undefined || val === null)) {
       return null;
     }
   
     const isBullish = previousAverage !== undefined ? average > previousAverage : true;
     const color = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
     
-    // This is a simplified representation. A real candlestick would need access 
-    // to the y-axis scale to properly position high and low wicks.
-    // Recharts doesn't easily provide this to custom bar shapes.
-    // So we'll represent the body as a small part of the bar's height.
-    const bodyHeight = Math.max(2, height * 0.3);
-    const bodyY = y + (height - bodyHeight) / 2;
+    // Use the provided yAxis scale function to calculate pixel coordinates
+    const yHigh = yAxis.scale(high);
+    const yLow = yAxis.scale(low);
+    
+    // For simplicity, let's make the body a small, fixed percentage of the wick
+    const bodyRange = Math.abs(high - low) * 0.3;
+    const bodyTopValue = isBullish ? average + bodyRange / 2 : average - bodyRange / 2;
+    const bodyBottomValue = isBullish ? average - bodyRange / 2 : average + bodyRange / 2;
 
-    const wickY1 = y;
-    const wickY2 = y + height;
+    const yBodyTop = yAxis.scale(bodyTopValue);
+    const yBodyBottom = yAxis.scale(bodyBottomValue);
+
+    const bodyHeight = Math.abs(yBodyTop - yBodyBottom);
+    // Ensure the body is at least 1px tall to be visible
+    const finalBodyHeight = Math.max(1, bodyHeight);
+    
     const wickX = x + width / 2;
 
     return (
       <g stroke={color} fill={color} strokeWidth={1}>
-        {/* Wick */}
-        <line x1={wickX} y1={wickY1} x2={wickX} y2={wickY2} />
+        {/* Wick (the full range from low to high) */}
+        <line x1={wickX} y1={yHigh} x2={wickX} y2={yLow} />
         {/* Body */}
-        <rect x={x} y={bodyY} width={width} height={bodyHeight} />
+        <rect x={x} y={Math.min(yBodyTop, yBodyBottom)} width={width} height={finalBodyHeight} />
       </g>
     );
 };
@@ -60,7 +68,7 @@ export function MarketHistoryPanel({
     };
   }, [recommendations]);
 
-  const { chartData, yDomainPrice } = useMemo(() => {
+  const { chartData, yDomainPrice, yDomainCandlestick } = useMemo(() => {
     const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
@@ -89,7 +97,7 @@ export function MarketHistoryPanel({
     }));
 
     const dataForHorizon = fullChartData.slice(-timeHorizonDays);
-
+    
     const allPriceValues = dataForHorizon.flatMap(d => [d.high, d.low, d['SMA 7'], d['SMA 30']]).filter(v => v != null) as number[];
 
     let priceDomain: [number | string, number | string] = ['auto', 'auto'];
@@ -105,7 +113,20 @@ export function MarketHistoryPanel({
       ];
     }
     
-    return { chartData: dataForHorizon, yDomainPrice: priceDomain };
+    const candlePriceValues = dataForHorizon.flatMap(d => [d.high, d.low]).filter(v => v != null) as number[];
+    let candlestickDomain: [number | string, number | string] = ['auto', 'auto'];
+    if (candlePriceValues.length > 0) {
+        const minPrice = Math.min(...candlePriceValues);
+        const maxPrice = Math.max(...candlePriceValues);
+        const range = maxPrice - minPrice;
+        const padding = range * 0.1; // Add 10% padding
+        candlestickDomain = [
+            Math.max(0, minPrice - padding),
+            maxPrice + padding
+        ];
+    }
+
+    return { chartData: dataForHorizon, yDomainPrice: priceDomain, yDomainCandlestick: candlestickDomain };
 
   }, [history, timeHorizonDays]);
   
@@ -208,12 +229,12 @@ export function MarketHistoryPanel({
                     <XAxis dataKey="date" hide/>
                     <YAxis 
                         yAxisId="left" 
-                        orientation="left"
+                        orientation="right"
                         domain={yDomainPrice} 
                         tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
                         tickLine={false}
                         axisLine={false}
-                        hide={true}
+                        width={80}
                     />
 
                     {/* Average price line */}
@@ -253,32 +274,34 @@ export function MarketHistoryPanel({
                     )}
                 </ComposedChart>
             </ResponsiveContainer>
+            
             <ResponsiveContainer width="100%" height="35%">
                 <ComposedChart
                   data={chartData}
                   syncId="marketData"
                   margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                  <XAxis dataKey="date" hide={true} />
-                  <YAxis 
-                    yAxisId="left"
-                    orientation="right"
-                    domain={yDomainPrice}
-                    tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
-                    tickLine={false}
-                    axisLine={false}
-                    width={80}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="average"
-                    shape={<Candlestick />}
-                    barSize={10}
-                  />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                    <XAxis dataKey="date" hide={true} />
+                    <YAxis
+                        yAxisId="candlestick"
+                        orientation="right"
+                        domain={yDomainCandlestick}
+                        tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
+                        tickLine={false}
+                        axisLine={false}
+                        width={80}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar
+                        yAxisId="candlestick"
+                        dataKey="average" // dataKey is needed but values are taken from the full payload object in shape
+                        shape={(props) => <Candlestick {...props} yAxis={(props as any).yAxis} />}
+                        barSize={10}
+                    />
                 </ComposedChart>
             </ResponsiveContainer>
+
             <ResponsiveContainer width="100%" height="25%">
                 <BarChart 
                     data={chartData}
