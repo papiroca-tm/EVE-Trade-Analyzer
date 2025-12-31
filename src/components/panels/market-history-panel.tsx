@@ -2,7 +2,7 @@
 import type { MarketHistoryItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, ReferenceLine } from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar } from 'recharts';
 import { useMemo } from 'react';
 
 // Helper function for linear regression
@@ -119,7 +119,7 @@ export function MarketHistoryPanel({
             <CardTitle>Динамика рынка</CardTitle>
         </div>
         <CardDescription>
-            Цена и объем торгов за последние {history.length} дней.
+            Цена и объем торгов за последние {history.length} дней. Линия тренда показывает общее направление цены.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -129,10 +129,12 @@ export function MarketHistoryPanel({
                     data={chartData} 
                     syncId="marketData"
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    yAxisId="left"
+                    domain={yDomainPrice}
                 >
                     <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="Цена" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="trend" stroke="hsl(var(--accent))" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                    <Line type="monotone" dataKey="Цена" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} yAxisId="left" />
+                    <Line type="monotone" dataKey="trend" stroke="hsl(var(--accent))" strokeWidth={2} strokeDasharray="5 5" dot={false} yAxisId="left" />
                 </LineChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
