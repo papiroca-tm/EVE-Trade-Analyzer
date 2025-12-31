@@ -85,7 +85,7 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
     const volume_ratio_t = V_max > 0 ? volume_t / V_max : 0;
     
     // The extension is proportional to volume and capped by a fraction of max daily range to keep it reasonable
-    const volume_extension = volume_ratio_t * (max_range > 0 ? max_range * 0.75 : avg_t * 0.15);
+    const volume_extension = volume_ratio_t * (max_range > 0 ? max_range * 0.75 : avg_t * 0.15) * 3;
 
     // New wicks are based on volume
     const new_high = high_t + volume_extension;
@@ -124,6 +124,7 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
       // Pass original values for tooltip
       original_high: high_t,
       original_low: low_t,
+      average: avg_t,
       volume: volume_t,
       // The `body` dataKey is what recharts uses for y/height. It must span the full wick range.
       body: [new_low, new_high] 
@@ -179,7 +180,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} />
+              <XAxis dataKey="date" tickLine={false} axisLine={false} hide={true} />
               <YAxis 
                 hide={true}
                 orientation="right" 
@@ -194,9 +195,10 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                     const { payload } = props;
                     if (name === 'body' && payload) {
                        return [
-                        `High (цена): ${Number(payload.original_high).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `Low (цена): ${Number(payload.original_low).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `Объем: ${Number(payload.volume).toLocaleString('ru-RU')}`,
+                        `МАКС.: ${Number(payload.original_high).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `МИН.: ${Number(payload.original_low).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `СРЕДНЯЯ: ${Number(payload.average).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `ОБЪЕМ: ${Number(payload.volume).toLocaleString('ru-RU')}`,
                        ]
                     }
                     return null;
