@@ -101,10 +101,13 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       
       setIsSearchingItems(true);
       
-      // DEBUG TOAST
+      const ESI_BASE_URL = 'https://esi.evetech.net/latest';
+      const category = 'inventory_type';
+      const fullRequestUrl = `${ESI_BASE_URL}/search/?categories=${category}&search=${encodeURIComponent(debouncedItemSearch)}&strict=false`;
+
       toast({
           title: "Отправка запроса к API",
-          description: `Поиск по запросу: "${debouncedItemSearch}"`
+          description: `GET ${fullRequestUrl}`
       });
 
       try {
@@ -377,5 +380,3 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
-
-    
