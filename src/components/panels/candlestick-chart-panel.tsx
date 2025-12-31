@@ -61,10 +61,26 @@ const Candle = (props: any) => {
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
   const {data, yDomain} = useMemo(() => {
-    // For now, we are still using the random data as requested.
-    // The real `history` data is available but not yet used.
-    const chartData = generateCandlestickData(90);
-    const prices = chartData.flatMap(d => [d.low, d.high]);
+    // Generate random bodies for now
+    const randomBodies = generateCandlestickData(history.length);
+
+    const chartData = history.map((histItem, index) => {
+        const body = randomBodies[index] || {open: histItem.average, close: histItem.average};
+        return {
+            date: new Date(histItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+            // Use real high/low for wicks
+            high: histItem.highest,
+            low: histItem.lowest,
+            // Use random open/close for body for now
+            open: body.open,
+            close: body.close,
+        }
+    });
+
+    const prices = history.flatMap(d => [d.lowest, d.highest]);
+    if (prices.length === 0) {
+        return { data: [], yDomain: [0, 100] };
+    }
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const padding = (maxPrice - minPrice) * 0.1;
@@ -72,7 +88,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         data: chartData,
         yDomain: [minPrice - padding, maxPrice + padding]
     };
-  }, []);
+  }, [history]);
 
   return (
     <Card>
