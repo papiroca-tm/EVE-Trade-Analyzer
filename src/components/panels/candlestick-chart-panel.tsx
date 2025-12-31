@@ -75,10 +75,8 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
         const priceRange = highest - lowest;
         const bodySize = priceRange * volumePercentage;
         
-        const midPoint = (highest + lowest) / 2;
-        
-        const open = midPoint - bodySize / 2;
-        const close = midPoint + bodySize / 2;
+        const open = average - bodySize / 2;
+        const close = average + bodySize / 2;
 
         const isBullish = index > 0 ? average > dataForHorizon[index-1].average : true;
         
