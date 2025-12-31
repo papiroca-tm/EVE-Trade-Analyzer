@@ -55,7 +55,7 @@ export function calculateAnalysis(
     let recommendations: Recommendation[] = [];
 
     // --- New Algorithm Implementation ---
-    if (history.length > 0 && bestSellPrice !== Infinity) {
+    if (history.length > 0 && averagePrice > 0) {
         
         // Step 1: Определяем волатильность
         const min_price = history.reduce((min, h) => Math.min(min, h.lowest), Infinity);
@@ -64,7 +64,7 @@ export function calculateAnalysis(
         const price_floor = min_price + inputs.volatilityFactor * volatility;
 
         // Step 2: Расчёт максимальной цены покупки
-        const AssumedSellPrice = bestSellPrice; // Используем лучший селл-ордер
+        const AssumedSellPrice = averagePrice; // Используем среднюю историческую цену как более стабильный ориентир
         const broker_buy_fee_rate = inputs.brokerBuyFeePercent / 100;
         const broker_sell_fee_rate = inputs.brokerSellFeePercent / 100;
         const tax_rate = inputs.salesTaxPercent / 100;
@@ -72,8 +72,7 @@ export function calculateAnalysis(
         
         const MaxBuyPrice = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) / ((1 + broker_buy_fee_rate) * (1 + target_profit_rate));
 
-        // Step 3: Применяем нижнюю границу (больше не блокируем, а используем для информации)
-        // Шаг 3 теперь не изменяет цену, а только используется для анализа рисков
+        // Step 3 (now just info): Check against floor
         let recommended_buy = MaxBuyPrice;
         
         // Step 4: Коррекция по текущему стакану
@@ -85,9 +84,12 @@ export function calculateAnalysis(
 
         // --- End of New Algorithm Core Logic ---
 
-        if (recommended_buy > 0 && recommended_buy < AssumedSellPrice) {
+        // We check if the calculated buy price is positive. The check against sell price is removed
+        // as it was causing issues and AssumedSellPrice is now based on average, not best sell.
+        if (recommended_buy > 0) {
             
             const buyPriceRange = { min: price_floor, max: recommended_buy };
+            // The sell price range is now based on the average and historical max, as that's our target
             const sellPriceRange = { min: AssumedSellPrice, max: max_price };
 
             const executableVolume = {
@@ -117,11 +119,13 @@ export function calculateAnalysis(
             const feasibility = feasibilityLevels[score];
 
             const netProfitPerItem = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) - (recommended_buy * (1 + broker_buy_fee_rate));
-            const netMarginPercent = (netProfitPerItem / (recommended_buy * (1 + broker_buy_fee_rate))) * 100;
+            const netMarginPercent = (recommended_buy * (1 + broker_buy_fee_rate)) > 0 
+                ? (netProfitPerItem / (recommended_buy * (1 + broker_buy_fee_rate))) * 100 
+                : 0;
             
             // Step 5: Ограничение по капиталу
             const capital = inputs.positionCapital ?? 100000000;
-            const quantity = Math.floor(capital / recommended_buy);
+            const quantity = recommended_buy > 0 ? Math.floor(capital / recommended_buy) : 0;
             const potentialProfit = netProfitPerItem * quantity;
 
             if (quantity >= 1) {
