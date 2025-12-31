@@ -14,7 +14,7 @@ interface OrderWithCumulative extends MarketOrderItem {
 }
 
 const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderItem[], type: 'buy' | 'sell', averageDailyVolume: number }) => {
-    const wallThreshold = averageDailyVolume / 2;
+    const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
 
     const ordersWithCumulative = useMemo(() => {
         let cumulativeVolume = 0;
@@ -36,7 +36,7 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
 
     return (
         <div className='w-1/2'>
-            <h3 className={`mb-2 text-lg font-semibold ${type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
+            <h3 className={cn('mb-2 text-lg font-semibold', type === 'buy' ? 'text-green-400' : 'text-red-400')}>
                 {type === 'buy' ? 'Ордера на покупку' : 'Ордера на продажу'}
             </h3>
             <ScrollArea className="h-64 border rounded-md">
