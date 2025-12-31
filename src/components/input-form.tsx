@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,9 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown, Loader2, Zap } from 'lucide-react';
-import { getInitialData, searchItemTypes } from '@/lib/actions';
+import { getInitialData } from '@/lib/actions';
 import type { Region, ItemType } from '@/lib/types';
-import { useDebounce } from '@/hooks/use-debounce';
 
 const formSchema = z.object({
   regionId: z.coerce.number().int().positive("Необходимо выбрать регион."),
@@ -46,15 +45,9 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   const [initialData, setInitialData] = useState<{ regions: Region[], itemTypes: ItemType[] }>({ regions: [], itemTypes: [] });
   const [loadingInitialData, setLoadingInitialData] = useState(true);
 
-  const [itemSearch, setItemSearch] = useState('');
-  const [isSearchingItems, setIsSearchingItems] = useState(false);
   const [openItemPopover, setOpenItemPopover] = useState(false);
   const [openRegionPopover, setOpenRegionPopover] = useState(false);
   
-  const [itemOptions, setItemOptions] = useState<ItemType[]>([]);
-
-  const debouncedItemSearch = useDebounce(itemSearch, 300);
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,7 +68,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       try {
         const data = await getInitialData();
         setInitialData(data);
-        setItemOptions(data.itemTypes);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       } finally {
@@ -85,44 +77,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     fetchData();
   }, []);
   
-  useEffect(() => {
-    async function performSearch() {
-      if (debouncedItemSearch.length < 3) {
-        setItemOptions(initialData.itemTypes);
-        return;
-      }
-      
-      setIsSearchingItems(true);
-      try {
-        const results = await searchItemTypes(debouncedItemSearch);
-        const currentItem = itemOptions.find(item => item.type_id === form.getValues('typeId'));
-        const newOptions = new Map<number, ItemType>();
-        
-        if (currentItem) {
-            newOptions.set(currentItem.type_id, currentItem);
-        }
-        results.forEach(item => newOptions.set(item.type_id, item));
-        
-        setItemOptions(Array.from(newOptions.values()).sort((a,b) => a.name.localeCompare(b.name)));
-      } catch (error) {
-        console.error("Failed to search for item types:", error);
-      } finally {
-        setIsSearchingItems(false);
-      }
-    }
-
-    if(!loadingInitialData) {
-      performSearch();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedItemSearch, loadingInitialData]);
-
-
-  const selectedItemName = useMemo(() => {
-    return itemOptions.find(item => item.type_id === form.watch('typeId'))?.name || initialData.itemTypes.find(item => item.type_id === form.watch('typeId'))?.name;
-  }, [itemOptions, initialData.itemTypes, form.watch('typeId')]);
-  
-
   return (
     <Card>
       <CardHeader>
@@ -219,7 +173,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                           {selectedItemName ?? "Выберите предмет"}
+                           {initialData.itemTypes.find(item => item.type_id === field.value)?.name ?? "Выберите предмет"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -227,17 +181,12 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                     <PopoverContent className="w-[26rem] p-0">
                       <Command>
                         <CommandInput 
-                          placeholder="Поиск предмета (3+ симв)..."
-                          value={itemSearch}
-                          onValueChange={setItemSearch}
+                          placeholder="Поиск предмета..."
                         />
                         <CommandList>
-                          {isSearchingItems && <CommandItem disabled className='flex items-center justify-center gap-2'><Loader2 className="h-4 w-4 animate-spin" />Поиск...</CommandItem>}
-                          <CommandEmpty>
-                            {!isSearchingItems && 'Предмет не найден.'}
-                          </CommandEmpty>
+                          <CommandEmpty>Предмет не найден.</CommandEmpty>
                           <CommandGroup>
-                            {itemOptions.map((item) => (
+                            {initialData.itemTypes.map((item) => (
                               <CommandItem
                                 value={item.name}
                                 key={item.type_id}

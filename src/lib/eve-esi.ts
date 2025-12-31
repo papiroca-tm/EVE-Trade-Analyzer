@@ -7,17 +7,15 @@ const ESI_BASE_URL = 'https://esi.evetech.net/latest';
 
 async function fetchEsi(path: string, options: RequestInit = {}): Promise<Response> {
     const url = `${ESI_BASE_URL}${path}`;
-    const defaultOptions: RequestInit = path.startsWith('/universe/names/') ? {} : { next: { revalidate: 3600 } };
-    const finalOptions: RequestInit = { ...defaultOptions, ...options, cache: path.startsWith('/universe/names/') ? 'no-store' : options.cache };
+    const finalOptions: RequestInit = { ...options, next: { revalidate: 3600 } };
     
-    console.log(`Fetching ESI: ${url} with options: ${JSON.stringify(finalOptions)}`);
+    console.log(`Fetching ESI: ${url}`);
 
     try {
         const response = await fetch(url, finalOptions);
 
         if (!response.ok) {
             if (response.status === 404) {
-                 // For 404, return a response with an empty JSON array to prevent crashes.
                 console.warn(`ESI 404 Not Found for ${url}, returning empty array.`);
                 return new Response(JSON.stringify([]), {
                     status: 200,
@@ -33,13 +31,6 @@ async function fetchEsi(path: string, options: RequestInit = {}): Promise<Respon
         console.error(`Network error or failed fetch for ${url}:`, error);
         throw error;
     }
-}
-
-
-export async function fetchMarketHistory(regionId: number, typeId: number): Promise<MarketHistoryItem[]> {
-  const response = await fetchEsi(`/markets/${regionId}/history/?type_id=${typeId}`);
-  const data: MarketHistoryItem[] = await response.json();
-  return data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 async function fetchAllPages(path: string): Promise<any[]> {
@@ -76,6 +67,11 @@ async function fetchAllPages(path: string): Promise<any[]> {
     return allItems;
 }
 
+export async function fetchMarketHistory(regionId: number, typeId: number): Promise<MarketHistoryItem[]> {
+  const response = await fetchEsi(`/markets/${regionId}/history/?type_id=${typeId}`);
+  const data: MarketHistoryItem[] = await response.json();
+  return data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
 
 export async function fetchMarketOrders(regionId: number, typeId: number): Promise<MarketOrderItem[]> {
   const response = await fetchAllPages(`/markets/${regionId}/orders/?order_type=all&type_id=${typeId}`);
@@ -88,7 +84,6 @@ export async function getRegions(): Promise<Region[]> {
     
     const regionDetailsPromises = regionIds.map(async id => {
         try {
-            // Filter out wormhole space and other weird regions
             if (id > 11000000) {
                 return null;
             }
@@ -102,83 +97,61 @@ export async function getRegions(): Promise<Region[]> {
     });
 
     const settledDetails = await Promise.all(regionDetailsPromises);
-
     const successfulRegions = settledDetails.filter((r): r is Region => r !== null);
-
     return successfulRegions.sort((a,b) => a.name.localeCompare(b.name));
 }
 
+async function resolveTypeNames(typeIds: number[]): Promise<Map<number, string>> {
+    const nameMap = new Map<number, string>();
+    const chunks = [];
+    for (let i = 0; i < typeIds.length; i += 1000) {
+        chunks.push(typeIds.slice(i, i + 1000));
+    }
 
-export async function searchItemTypes(query: string, category: string = 'inventory_type'): Promise<ItemType[]> {
-    if (!query || query.length < 3) return [];
-    
-    const searchResponse = await fetchEsi(`/search/?categories=${category}&search=${encodeURIComponent(query)}&strict=false`);
-    
-    const searchResult = await searchResponse.json();
-    const typeIds: number[] = searchResult[category] || [];
-
-    if (typeIds.length === 0) return [];
-    
-    // ESI has a /universe/names/ endpoint that can resolve multiple IDs at once via POST
-    const namesResponse = await fetchEsi(`/universe/names/`, {
-        method: 'POST',
-        body: JSON.stringify(typeIds.slice(0, 500)), // Capped at 500 for safety
-        headers: { 'Content-Type': 'application/json' },
-    });
-    
-    const itemNames = (await namesResponse.json()) as {id: number, name: string}[];
-
-    const nameMap = new Map(itemNames.map(item => [item.id, item.name]));
-    
-    // We still need to check if items are published (marketable)
-    const itemDetailsPromises = typeIds.slice(0, 100).map(async (id) => {
+    for (const chunk of chunks) {
         try {
-            const response = await fetchEsi(`/universe/types/${id}/`);
-            const data = await response.json();
-            if (data.published) {
-                return { type_id: id, name: nameMap.get(id) || data.name };
+            const namesResponse = await fetchEsi(`/universe/names/`, {
+                method: 'POST',
+                body: JSON.stringify(chunk),
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const itemNames: {id: number, name: string}[] = await namesResponse.json();
+            for (const item of itemNames) {
+                nameMap.set(item.id, item.name);
             }
-            return null;
         } catch (error) {
-            console.warn(`Could not fetch details for typeId ${id}.`);
-            return null;
+            console.error(`Failed to resolve names for a chunk`, error);
         }
-    });
-
-    const settledDetails = await Promise.all(itemDetailsPromises);
-    
-    return settledDetails
-        .filter((r): r is ItemType => r !== null)
-        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return nameMap;
 }
 
-export async function getInitialItemTypes(): Promise<ItemType[]> {
+export async function getAllMarketableTypes(regionId: number): Promise<ItemType[]> {
     try {
-        const marketGroupResponse = await fetchEsi(`/markets/groups/1857/`, { next: { revalidate: 86400 }}); // Minerals, cache for a day
-        const marketGroupData = await marketGroupResponse.json();
-        const typeIds: number[] = marketGroupData.types || [];
-        
+        console.log(`Fetching all marketable type IDs for region ${regionId}`);
+        const typeIds: number[] = await fetchAllPages(`/markets/${regionId}/types/`);
+        console.log(`Found ${typeIds.length} type IDs. Resolving names...`);
+
         if (typeIds.length === 0) {
+            console.warn(`No marketable types found for region ${regionId}.`);
             return [];
         }
-        
-        const namesResponse = await fetchEsi('/universe/names/', {
-            method: 'POST',
-            body: JSON.stringify(typeIds),
-            headers: { 'Content-Type': 'application/json' },
-            cache: 'no-store',
-        });
-        const itemNames: {id: number, name: string}[] = await namesResponse.json();
-        const nameMap = new Map(itemNames.map(item => [item.id, item.name]));
 
-        const items: ItemType[] = typeIds.map(id => ({
-            type_id: id,
-            name: nameMap.get(id) || 'Unknown Mineral'
-        }));
+        const nameMap = await resolveTypeNames(typeIds);
+        console.log(`Resolved ${nameMap.size} names.`);
 
+        const items: ItemType[] = typeIds
+            .map(id => ({
+                type_id: id,
+                name: nameMap.get(id) || `Unknown Type ID: ${id}`
+            }))
+            .filter(item => !item.name.startsWith('Unknown'));
+
+        console.log(`Returning ${items.length} marketable items.`);
         return items.sort((a, b) => a.name.localeCompare(b.name));
+
     } catch (error) {
-        console.error("Failed to get initial item types from market group, falling back.", error);
+        console.error("Failed to get all marketable types, falling back to minerals.", error);
         return [
             { type_id: 34, name: 'Tritanium' },
             { type_id: 35, name: 'Pyerite' },

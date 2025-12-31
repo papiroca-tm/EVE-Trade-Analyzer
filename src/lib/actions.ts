@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { calculateAnalysis } from './analysis';
-import { fetchMarketHistory, fetchMarketOrders, getRegions, getInitialItemTypes, searchItemTypes as searchItemTypesEsi } from './eve-esi';
+import { fetchMarketHistory, fetchMarketOrders, getRegions, getAllMarketableTypes } from './eve-esi';
 import type { AnalysisState, AnalysisResult, Region, ItemType } from './types';
 
 const formSchema = z.object({
@@ -90,23 +90,19 @@ export async function getMarketAnalysis(
 
 export async function getInitialData(): Promise<{ regions: Region[], itemTypes: ItemType[] }> {
     try {
-        const [regions, initialItems] = await Promise.all([
+        const defaultRegionId = 10000002; // The Forge
+        const [regions, itemTypes] = await Promise.all([
           getRegions(),
-          getInitialItemTypes(),
+          getAllMarketableTypes(defaultRegionId),
         ]);
         
-        const finalItems = new Map<number, ItemType>();
-        const tritanium = { type_id: 34, name: 'Tritanium' };
-        finalItems.set(tritanium.type_id, tritanium);
-        initialItems.forEach(item => finalItems.set(item.type_id, item));
-
-        return { regions, itemTypes: Array.from(finalItems.values()) };
+        return { regions, itemTypes };
     } catch (error) {
         console.error("Failed to get initial data", error);
-        return { regions: [], itemTypes: [{ type_id: 34, name: 'Tritanium' }] };
+        // Fallback to a very small list if the main fetch fails
+        return { 
+            regions: [{ region_id: 10000002, name: 'The Forge' }], 
+            itemTypes: [{ type_id: 34, name: 'Tritanium' }] 
+        };
     }
-}
-
-export async function searchItemTypes(query: string): Promise<ItemType[]> {
-    return searchItemTypesEsi(query);
 }
