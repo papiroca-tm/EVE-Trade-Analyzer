@@ -38,6 +38,7 @@ export interface Recommendation {
     longTerm: number; 
     midTerm: number;
     shortTerm: number;
+    average: number;
   };
   sellPriceRange: { min: number; max: number };
   netMarginPercent: number;

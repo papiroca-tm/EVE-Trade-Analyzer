@@ -21,15 +21,23 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
     </div>
 );
 
-const PriceCard = ({ title, longTerm, midTerm, shortTerm, icon }: { title: string, longTerm: number, midTerm: number, shortTerm: number, icon: React.ReactNode }) => {
+const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon }: { title: string, average: number, longTerm: number, midTerm: number, shortTerm: number, icon: React.ReactNode }) => {
     const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
     return (
-        <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-2">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 {icon}
                 <span>{title}</span>
             </div>
+            
+            <div className='text-center my-2'>
+                <p className="text-3xl font-bold text-primary font-mono">
+                    {formatPrice(average)}
+                </p>
+                <p className="text-xs text-muted-foreground">ISK (обобщенная)</p>
+            </div>
+
             <div className="grid grid-cols-1 gap-1 text-center font-mono">
                 <TooltipProvider>
                     <Tooltip>
@@ -50,7 +58,7 @@ const PriceCard = ({ title, longTerm, midTerm, shortTerm, icon }: { title: strin
                         <TooltipTrigger asChild>
                              <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
                                 <span className="text-xs font-sans text-muted-foreground">Среднесрок.</span>
-                                <span className="text-base font-bold text-primary">{formatPrice(midTerm)}</span>
+                                <span className="text-sm font-bold text-foreground">{formatPrice(midTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -73,25 +81,24 @@ const PriceCard = ({ title, longTerm, midTerm, shortTerm, icon }: { title: strin
                     </Tooltip>
                 </TooltipProvider>
             </div>
-            <p className="text-center text-xs text-muted-foreground">ISK</p>
         </div>
     );
 };
 
 const PriceCardSell = ({ title, priceMin, priceMax, icon }: { title: string, priceMin: number, priceMax: number, icon: React.ReactNode }) => (
-    <div className="flex flex-col gap-1 rounded-lg bg-muted/50 p-2">
-        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+    <div className="flex flex-col gap-1 rounded-lg bg-muted/50 p-3 justify-center">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             {icon}
             <span>{title}</span>
         </div>
-        <div className="flex items-baseline justify-center gap-2">
+        <div className="flex items-baseline justify-center gap-2 my-auto">
             {priceMin === priceMax ? (
-                 <span className="text-base font-bold text-foreground font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                 <span className="text-3xl font-bold text-destructive font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             ) : (
                 <>
-                <span className="text-base font-bold text-foreground font-mono">{priceMin.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className="text-xs text-muted-foreground">-</span>
-                <span className="text-base font-bold text-foreground font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-xl font-bold text-destructive font-mono">{priceMin.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-sm text-muted-foreground">-</span>
+                <span className="text-xl font-bold text-destructive font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </>
             )}
         </div>
@@ -140,6 +147,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <PriceCard 
                     title="Рекомендуемая цена покупки" 
+                    average={rec.buyPriceRange.average}
                     longTerm={rec.buyPriceRange.longTerm} 
                     midTerm={rec.buyPriceRange.midTerm}
                     shortTerm={rec.buyPriceRange.shortTerm}
@@ -182,7 +190,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         ) : (
           <div className="space-y-3">
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <PriceCard title="Рекомендуемая цена покупки" longTerm={0} midTerm={0} shortTerm={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
+                <PriceCard title="Рекомендуемая цена покупки" average={0} longTerm={0} midTerm={0} shortTerm={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
                 <PriceCardSell title="Ориентир цены продажи" priceMin={0} priceMax={0} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
              </div>
 

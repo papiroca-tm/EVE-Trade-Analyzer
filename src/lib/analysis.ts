@@ -118,6 +118,9 @@ export async function calculateAnalysis(
     // 3. Short-Term (Tactical) - always uses 1 day (executionDays = 2 * (1/2 day))
     const { price: shortTermPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2);
 
+    // 4. Final Average Recommendation
+    const averageBuyPrice = (longTermPrice + midTermPrice + shortTermPrice) / 3;
+
     const recommendations: Recommendation[] = [];
     
     if (midTermPrice > 0) {
@@ -142,6 +145,7 @@ export async function calculateAnalysis(
               longTerm: longTermPrice, 
               midTerm: midTermPrice,
               shortTerm: shortTermPrice,
+              average: averageBuyPrice,
           },
           sellPriceRange: { 
               min: targetSellPrice, 
