@@ -111,7 +111,9 @@ export async function calculateAnalysis(
         : 0;
 
     // 2. Mid-Term (Strategic) - uses user-defined executionDays
-    const { price: midTermPrice, reason: feasibilityReason } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, inputs.executionDays);
+    const { price: midTermPriceRaw, reason: feasibilityReason } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, inputs.executionDays);
+    const midTermPrice = Math.max(midTermPriceRaw, longTermPrice);
+
 
     // 3. Short-Term (Tactical) - always uses 1 day (executionDays = 2 * (1/2 day))
     const { price: shortTermPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2);
