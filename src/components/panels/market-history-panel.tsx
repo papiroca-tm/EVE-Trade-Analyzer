@@ -7,15 +7,30 @@ import { Line, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Cartes
 import { useMemo } from 'react';
 
 
-const CandleStickBody = (props: any) => {
-    const { x, y, width, height, fill } = props;
-    return <rect x={x} y={y} width={width} height={height} fill={fill} />;
-};
+const CustomCandle = (props: any) => {
+    const { x, width, yAxis, low, high, average, color } = props;
 
-const CandleStickWick = (props: any) => {
-    const { x, y, width, height, fill } = props;
-    // We draw a thin line for the wick
-    return <rect x={x + width / 2 - 0.5} y={y} width={1} height={height} fill={fill} />;
+    if ([x, width, low, high, average, color].some(val => val === undefined || val === null) || !yAxis?.scale) {
+      return null;
+    }
+  
+    const { scale } = yAxis;
+    const yHigh = scale(high);
+    const yLow = scale(low);
+    const yAvg = scale(average);
+  
+    const wickWidth = 2;
+    const tickWidth = width * 0.8;
+    const tickHeight = 2;
+  
+    return (
+      <g>
+        {/* Wick */}
+        <rect x={x + (width - wickWidth) / 2} y={yHigh} width={wickWidth} height={yLow - yHigh} fill="hsl(var(--muted-foreground))" />
+        {/* Average Tick */}
+        <rect x={x + (width - tickWidth) / 2} y={yAvg - (tickHeight / 2)} width={tickWidth} height={tickHeight} fill={color} />
+      </g>
+    );
 };
 
 
@@ -57,8 +72,7 @@ export function MarketHistoryPanel({
     const sma30 = calculateSMA(chronologicalHistory, 30);
 
     const fullChartData = chronologicalHistory.map((item, index) => {
-      const open = index > 0 ? chronologicalHistory[index-1].average : item.average;
-      const close = item.average;
+      const prevAvg = index > 0 ? chronologicalHistory[index-1].average : item.average;
       
       return {
         date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
@@ -69,10 +83,8 @@ export function MarketHistoryPanel({
         'SMA 30': sma30[index],
         low: item.lowest,
         high: item.highest,
-        // Data for candlestick
-        wick: [item.lowest, item.highest],
-        body: [open, close],
-        color: close >= open ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))',
+        average: item.average,
+        color: item.average >= prevAvg ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))',
       }
     });
 
@@ -131,20 +143,12 @@ export function MarketHistoryPanel({
               </span>
             </div>
             
-            {open && <div className="flex flex-col">
+            {data.average && <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Открытие
+                Средняя
               </span>
               <span className="font-bold">
-                {open.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
-              </span>
-            </div>}
-            {close && <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Закрытие (сред.)
-              </span>
-              <span className="font-bold">
-                {close.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
+                {data.average.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK
               </span>
             </div>}
 
@@ -285,8 +289,7 @@ export function MarketHistoryPanel({
                         hide={true}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    {chartData.map((d, i) => <Bar key={i} dataKey="wick" fill="hsl(var(--muted-foreground))" shape={<CandleStickWick />} barSize={1} />)}
-                    {chartData.map((d, i) => <Bar key={i} dataKey="body" fill={d.color} shape={<CandleStickBody />} barSize={8} />)}
+                     <Bar dataKey="average" shape={<CustomCandle />} />
                 </ComposedChart>
             </ResponsiveContainer>
             
@@ -308,3 +311,4 @@ export function MarketHistoryPanel({
     </Card>
   );
 }
+
