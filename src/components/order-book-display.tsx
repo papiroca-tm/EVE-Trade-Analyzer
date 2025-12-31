@@ -27,22 +27,26 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
     const processedOrders = useMemo(() => {
         if (!orders || orders.length === 0) return [];
         
-        const sorted = [...orders]
-            .sort((a, b) => a.price - b.price) // Ascending for sells
-            .reverse(); // Show lowest price at the bottom
+        // Final display order: lowest price at the bottom
+        const displaySorted = [...orders].sort((a, b) => b.price - a.price);
 
         const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
         
-        // The logic for sell walls is based on orders *at or cheaper* than the current one.
-        let cumulativeForWallCheck = 0;
-        const sellOrdersSortedForWallCheck = [...orders].sort((a, b) => a.price - b.price); // sort ascending
+        // To find the wall, we need to sort by price ascending (cheapest first)
+        const logicSorted = [...orders].sort((a, b) => a.price - b.price); 
         
-        const wallPrice = sellOrdersSortedForWallCheck.find(o => {
-            cumulativeForWallCheck += o.volume_remain;
-            return cumulativeForWallCheck >= wallThreshold;
-        })?.price;
+        let cumulativeForWallCheck = 0;
+        let wallPrice: number | undefined;
 
-        const finalOrders = sorted.map(order => ({
+        for (const order of logicSorted) {
+            cumulativeForWallCheck += order.volume_remain;
+            if (cumulativeForWallCheck >= wallThreshold) {
+                wallPrice = order.price;
+                break; // Found our wall price level
+            }
+        }
+
+        const finalOrders = displaySorted.map(order => ({
             ...order,
             isWall: wallPrice !== undefined && order.price === wallPrice,
         }));
@@ -163,10 +167,10 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
       <CardContent className="p-0">
         <ScrollArea className="h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
           <Table>
-            <TableHeader className='invisible h-0'>
-                <TableRow className='h-0'>
-                    <TableHead className='py-0 px-2 w-1/2'></TableHead>
-                    <TableHead className='py-0 px-2 w-1/2'></TableHead>
+            <TableHeader className='sticky top-0 bg-background z-10'>
+                <TableRow className='hover:bg-muted/50'>
+                    <TableHead className='py-1 px-2 w-1/2 text-right'>Цена</TableHead>
+                    <TableHead className='py-1 px-2 w-1/2 text-right'>Объем</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
