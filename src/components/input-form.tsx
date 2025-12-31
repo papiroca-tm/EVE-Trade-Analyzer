@@ -44,6 +44,7 @@ function SubmitButton() {
 export function InputForm({ formAction }: { formAction: (payload: FormData) => void }) {
   const [initialData, setInitialData] = useState<{ regions: Region[], itemTypes: ItemType[] }>({ regions: [], itemTypes: [] });
   const [loadingInitialData, setLoadingInitialData] = useState(true);
+  const [itemSearch, setItemSearch] = useState("");
 
   const [openItemPopover, setOpenItemPopover] = useState(false);
   const [openRegionPopover, setOpenRegionPopover] = useState(false);
@@ -77,6 +78,8 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     fetchData();
   }, []);
   
+  const displayedItems = itemSearch ? initialData.itemTypes : initialData.itemTypes.slice(0, 20);
+
   return (
     <Card>
       <CardHeader>
@@ -182,11 +185,13 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                       <Command>
                         <CommandInput 
                           placeholder="Поиск предмета..."
+                          value={itemSearch}
+                          onValueChange={setItemSearch}
                         />
                         <CommandList>
                           <CommandEmpty>Предмет не найден.</CommandEmpty>
                           <CommandGroup>
-                            {initialData.itemTypes.map((item) => (
+                            {displayedItems.map((item) => (
                               <CommandItem
                                 value={item.name}
                                 key={item.type_id}
@@ -311,3 +316,5 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
+
+    
