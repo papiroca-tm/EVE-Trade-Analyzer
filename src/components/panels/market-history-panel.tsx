@@ -229,7 +229,6 @@ export function MarketHistoryPanel({
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                    <Tooltip content={<CustomTooltip />} />
                     <XAxis dataKey="date" tickLine={false} axisLine={false} hide={true}/>
                     <YAxis hide domain={['dataMin', 'dataMax']} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
