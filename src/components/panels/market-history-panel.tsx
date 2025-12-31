@@ -3,7 +3,7 @@
 import type { MarketHistoryItem, Recommendation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, ReferenceLine } from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { useMemo } from 'react';
 
 
@@ -17,10 +17,21 @@ export function MarketHistoryPanel({
     recommendations: Recommendation[]
 }) {
     
+  const recommendationLines = useMemo(() => {
+    if (!recommendations || recommendations.length === 0) return null;
+    const rec = recommendations[0];
+    const avgBuyPrice = (rec.buyPriceRange.min + rec.buyPriceRange.max) / 2;
+    const avgSellPrice = (rec.sellPriceRange.min + rec.sellPriceRange.max) / 2;
+
+    return {
+      buy: avgBuyPrice,
+      sell: avgSellPrice,
+    };
+  }, [recommendations]);
+
   const chartData = useMemo(() => {
     if (!history || history.length === 0) return [];
     
-    // Calculate SMA on the full history before slicing
     const chronologicalHistory = [...history].reverse();
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
@@ -42,12 +53,13 @@ export function MarketHistoryPanel({
       'Объем': item.volume,
       'SMA 7': sma7[index],
       'SMA 30': sma30[index],
+      'Рекомендация покупки': recommendationLines?.buy,
+      'Рекомендация продажи': recommendationLines?.sell,
     }));
     
-    // Slice only after all calculations are done
     return fullChartData.slice(-timeHorizonDays);
 
-  }, [history, timeHorizonDays]);
+  }, [history, timeHorizonDays, recommendationLines]);
   
   const yDomainPrice = useMemo(() => {
       if (!chartData || chartData.length === 0) return [0, 'auto'];
@@ -58,23 +70,11 @@ export function MarketHistoryPanel({
       const max = Math.max(...prices);
       const range = max - min;
       
-      // Use 10% of the range as padding, or 10% of the max price if range is 0
       const padding = range === 0 ? max * 0.1 : range * 0.1;
       
       return [Math.max(0, min - padding), max + padding];
   }, [chartData]);
   
-  const recommendationLines = useMemo(() => {
-    if (!recommendations || recommendations.length === 0) return null;
-    const rec = recommendations[0];
-    const avgBuyPrice = (rec.buyPriceRange.min + rec.buyPriceRange.max) / 2;
-    const avgSellPrice = (rec.sellPriceRange.min + rec.sellPriceRange.max) / 2;
-
-    return {
-      buy: avgBuyPrice,
-      sell: avgSellPrice,
-    };
-  }, [recommendations]);
   
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -155,13 +155,6 @@ export function MarketHistoryPanel({
                     <XAxis dataKey="date" hide/>
                     <YAxis hide domain={yDomainPrice} yAxisId="0" />
                     
-                    {recommendationLines && (
-                      <>
-                        <ReferenceLine y={recommendationLines.buy} label={{ value: 'Покупка', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" />
-                        <ReferenceLine y={recommendationLines.sell} label={{ value: 'Продажа', position: 'insideLeft', fill: '#888888', fontSize: 10 }} stroke="#888888" strokeDasharray="3 3" yAxisId="0" />
-                      </>
-                    )}
-
                     <Line 
                         yAxisId="0"
                         type="monotone" 
@@ -190,6 +183,30 @@ export function MarketHistoryPanel({
                         dot={false}
                         connectNulls
                     />
+                    {recommendationLines && (
+                      <>
+                        <Line
+                          yAxisId="0"
+                          type="monotone"
+                          dataKey="Рекомендация покупки"
+                          stroke="#888888"
+                          strokeWidth={1.5}
+                          strokeDasharray="3 3"
+                          dot={false}
+                          connectNulls
+                        />
+                        <Line
+                          yAxisId="0"
+                          type="monotone"
+                          dataKey="Рекомендация продажи"
+                          stroke="#888888"
+                          strokeWidth={1.5}
+                          strokeDasharray="3 3"
+                          dot={false}
+                          connectNulls
+                        />
+                      </>
+                    )}
                 </LineChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
