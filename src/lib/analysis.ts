@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { MarketHistoryItem, MarketOrderItem, UserInputs, Recommendation, Feasibility } from './types';
+import type { MarketHistoryItem, MarketOrderItem, UserInputs, Recommendation } from './types';
 
 // Helper to build a cumulative depth ladder from orders
 function buildDepthLadder(orders: MarketOrderItem[], side: 'buy' | 'sell'): { price: number; volume: number; cumulativeVolume: number }[] {
@@ -26,57 +26,61 @@ function getVolumeAhead(ladder: { price: number; cumulativeVolume: number }[], p
     if (relevantOrders.length === 0) {
         return 0;
     }
+    // For buy side, we look at the top of the book (highest price) which is the start of the sorted ladder.
+    // For sell side, we look at the bottom of the book (lowest price), which is also the start of its sorted ladder.
+    // The cumulative volume we want is the one from the order *just before* our price.
+    // Since `relevantOrders` are those "ahead" of us, the last one in that list holds the total cumulative volume of all orders ahead.
     return relevantOrders[relevantOrders.length - 1].cumulativeVolume;
 }
 
 function findStrategicPrice(
-    sortedBuyOrders: MarketOrderItem[],
-    buyLadder: { price: number; cumulativeVolume: number }[],
+    orders: MarketOrderItem[],
+    ladder: { price: number; cumulativeVolume: number }[],
     averageDailyVolume: number,
     executionDays: number,
+    side: 'buy' | 'sell'
 ): { price: number, reason: string } {
     const tickSize = 0.01;
-    if (sortedBuyOrders.length === 0) {
-        return { price: 0, reason: "Нет ордеров на покупку для анализа." };
+    if (orders.length === 0) {
+        return { price: 0, reason: `Нет ордеров на ${side === 'buy' ? 'покупку' : 'продажу'} для анализа.` };
     }
 
-    const bestBuyPrice = sortedBuyOrders[0].price;
-    // Рассчитываем "силу рынка" - объем, который предположительно будет проторгован
+    // Sort orders appropriately for our logic
+    const sortedOrders = [...orders].sort((a, b) => side === 'buy' ? b.price - a.price : a.price - b.price);
+    const bestPrice = sortedOrders[0].price;
+    
     const marketPower = (averageDailyVolume / 2) * (executionDays / 2);
-
-    // Находим "стену", опираясь на "силу рынка"
     const wallThreshold = marketPower;
+    
     let cumulativeVolumeForWall = 0;
     let wallIndex = -1;
 
-    for (const [index, order] of sortedBuyOrders.entries()) {
+    for (const [index, order] of sortedOrders.entries()) {
         cumulativeVolumeForWall += order.volume_remain;
         if (cumulativeVolumeForWall >= wallThreshold) {
             wallIndex = index;
             break;
         }
     }
-
-    // Если "стена" не найдена (рынок неглубокий), начинаем поиск с конца стакана
+    
     if (wallIndex === -1) {
-        wallIndex = sortedBuyOrders.length - 1;
+        wallIndex = sortedOrders.length - 1;
     }
 
-    // Ищем вверх от "стены"
     for (let i = wallIndex; i >= 0; i--) {
-        const order = sortedBuyOrders[i];
-        const volumeAhead = getVolumeAhead(buyLadder, order.price, 'buy');
+        const order = sortedOrders[i];
+        const volumeAhead = getVolumeAhead(ladder, order.price, side);
         
         if (volumeAhead < marketPower) {
-            const strategicPrice = order.price + tickSize;
-            const reason = `Стратегическая цена ${strategicPrice.toFixed(2)} найдена поиском вверх от 'стены' (${(sortedBuyOrders[wallIndex]?.price ?? 0).toFixed(2)} ISK). Объем впереди (${volumeAhead.toLocaleString('ru-RU')} ед.) меньше, чем 'сила' рынка (~${marketPower.toLocaleString('ru-RU')} ед.) за ${executionDays / 2} дней.`;
+            const strategicPrice = side === 'buy' ? order.price + tickSize : order.price - tickSize;
+            const reason = `Стратегическая цена ${strategicPrice.toFixed(2)} найдена поиском от 'стены' (${(sortedOrders[wallIndex]?.price ?? 0).toFixed(2)} ISK). Объем впереди (${volumeAhead.toLocaleString('ru-RU')} ед.) меньше, чем 'сила' рынка (~${marketPower.toLocaleString('ru-RU')} ед.) за ${executionDays / 2} дней.`;
             return { price: strategicPrice, reason };
         }
     }
 
-    // Если стратегическая цена не найдена (очень плотный рынок), возвращаем лучшую цену
-    const reason = `Рынок слишком 'плотный'. Не удалось найти стратегическую цену с исполнением в срок. Рекомендуется исполнение по лучшей цене (${(bestBuyPrice + tickSize).toFixed(2)} ISK), т.к. объем впереди (${(buyLadder[0]?.volume ?? 0).toLocaleString('ru-RU')} ед.) меньше 'силы' рынка (~${marketPower.toLocaleString('ru-RU')} ед.).`;
-    return { price: bestBuyPrice + tickSize, reason };
+    const fallbackPrice = side === 'buy' ? bestPrice + tickSize : bestPrice - tickSize;
+    const reason = `Рынок слишком 'плотный'. Не удалось найти стратегическую цену с исполнением в срок. Рекомендуется исполнение по лучшей цене (${fallbackPrice.toFixed(2)} ISK).`;
+    return { price: fallbackPrice, reason };
 }
 
 
@@ -89,69 +93,73 @@ export async function calculateAnalysis(
     const sellOrders = orders.filter(o => !o.is_buy_order);
 
     const sortedBuyOrders = [...buyOrders].sort((a, b) => b.price - a.price);
+    const sortedSellOrders = [...sellOrders].sort((a, b) => a.price - b.price);
+    
     const buyLadder = buildDepthLadder(buyOrders, 'buy');
     const sellLadder = buildDepthLadder(sellOrders, 'sell');
 
     const bestBuyPrice = buyOrders.reduce((max, o) => Math.max(max, o.price), 0);
     const bestSellPrice = sellOrders.reduce((min, o) => Math.min(min, o.price), Infinity);
     
-    const historicalPrices = history.map(h => h.average);
     const totalVolume = history.reduce((sum, item) => sum + item.volume, 0);
     const averageDailyVolume = history.length > 0 ? totalVolume / history.length : 0;
     
-    const averagePriceHistory = history.length > 0 ? historicalPrices.reduce((sum, p) => sum + p, 0) / historicalPrices.length : 0;
+    const averagePriceHistory = history.length > 0 ? history.reduce((sum, h) => sum + h.average, 0) / history.length : 0;
     const variance = history.length > 0 ? history.reduce((sum, h) => sum + Math.pow(h.average - averagePriceHistory, 2), 0) / history.length : 0;
     const stdDev = Math.sqrt(variance);
     const volatilityPercent = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
     
-    // --- Price Calculation ---
-    // 1. Long-Term (Optimistic)
-    const longTermPrice = history.length > 0 
-        ? Math.min(...history.map(h => h.lowest)) 
-        : 0;
+    // --- Buy Price Calculation ---
+    const longTermBuyPrice = history.length > 0 ? Math.min(...history.map(h => h.lowest)) : 0;
+    const { price: midTermBuyPriceRaw, reason: feasibilityReason } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, inputs.executionDays, 'buy');
+    const midTermBuyPrice = Math.max(midTermBuyPriceRaw, longTermBuyPrice);
+    const { price: shortTermBuyPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2, 'buy');
+    const averageBuyPrice = (longTermBuyPrice + midTermBuyPrice + shortTermBuyPrice) / 3;
 
-    // 2. Mid-Term (Strategic) - uses user-defined executionDays
-    const { price: midTermPriceRaw, reason: feasibilityReason } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, inputs.executionDays);
-    const midTermPrice = Math.max(midTermPriceRaw, longTermPrice);
+    // --- Sell Price Calculation (Mirrored Logic) ---
+    const longTermSellPrice = history.length > 0 ? Math.max(...history.map(h => h.highest)) : 0;
+    const { price: midTermSellPriceRaw } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, inputs.executionDays, 'sell');
+    const midTermSellPrice = longTermSellPrice > 0 ? Math.min(midTermSellPriceRaw, longTermSellPrice) : midTermSellPriceRaw;
+    const { price: shortTermSellPrice } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, 2, 'sell');
+    const averageSellPrice = (longTermSellPrice + midTermSellPrice + shortTermSellPrice) / 3;
 
-
-    // 3. Short-Term (Tactical) - always uses 1 day (executionDays = 2 * (1/2 day))
-    const { price: shortTermPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2);
-
-    // 4. Final Average Recommendation
-    const averageBuyPrice = (longTermPrice + midTermPrice + shortTermPrice) / 3;
 
     const recommendations: Recommendation[] = [];
     
-    if (midTermPrice > 0) {
-        // --- Sell Price Calculation ---
-        const cost = midTermPrice * (1 + inputs.brokerBuyFeePercent / 100);
-        const requiredRevenue = cost * (1 + inputs.desiredNetMarginPercent / 100);
-        const targetSellPrice = requiredRevenue / (1 - (inputs.brokerSellFeePercent / 100) - (inputs.salesTaxPercent / 100));
+    if (midTermBuyPrice > 0) {
+        // --- Executable Volume & Profit (based on mid-term prices) ---
+        const cost = midTermBuyPrice * (1 + inputs.brokerBuyFeePercent / 100);
+        
+        // Let's use the strategic sell price for profit calculation
+        const targetSellPrice = midTermSellPrice > 0 ? midTermSellPrice : (cost * (1 + inputs.desiredNetMarginPercent/100)) / (1 - (inputs.brokerSellFeePercent / 100) - (inputs.salesTaxPercent / 100));
 
-        // --- Executable Volume & Profit ---
+        const revenue = targetSellPrice * (1 - inputs.brokerSellFeePercent/100 - inputs.salesTaxPercent/100);
+        const actualNetMarginPercent = cost > 0 ? ((revenue - cost) / cost) * 100 : 0;
+
         const capital = inputs.positionCapital ?? Infinity;
-        const maxVolumeByCapital = midTermPrice > 0 ? Math.floor(capital / midTermPrice) : 0;
+        const maxVolumeByCapital = midTermBuyPrice > 0 ? Math.floor(capital / midTermBuyPrice) : 0;
 
+        // Simplified executable volume: what can we sell?
         const sellDepthAtTarget = getVolumeAhead(sellLadder, targetSellPrice, 'sell');
         const executableSellVolume = Math.max(0, (averageDailyVolume / 2) * (inputs.executionDays / 2) - sellDepthAtTarget);
         
         const finalExecutableVolume = Math.min(maxVolumeByCapital, executableSellVolume);
-        const potentialProfit = finalExecutableVolume * (targetSellPrice - midTermPrice) - (finalExecutableVolume * midTermPrice * (inputs.brokerBuyFeePercent / 100)) - (finalExecutableVolume * targetSellPrice * (inputs.brokerSellFeePercent / 100 + inputs.salesTaxPercent / 100));
-
+        const potentialProfit = finalExecutableVolume * (targetSellPrice - midTermBuyPrice) - (finalExecutableVolume * midTermBuyPrice * (inputs.brokerBuyFeePercent / 100)) - (finalExecutableVolume * targetSellPrice * (inputs.brokerSellFeePercent / 100 + inputs.salesTaxPercent / 100));
 
         const recommendation: Recommendation = {
           buyPriceRange: { 
-              longTerm: longTermPrice, 
-              midTerm: midTermPrice,
-              shortTerm: shortTermPrice,
+              longTerm: longTermBuyPrice, 
+              midTerm: midTermBuyPrice,
+              shortTerm: shortTermBuyPrice,
               average: averageBuyPrice,
           },
           sellPriceRange: { 
-              min: targetSellPrice, 
-              max: targetSellPrice 
-            },
-          netMarginPercent: inputs.desiredNetMarginPercent,
+              longTerm: longTermSellPrice,
+              midTerm: midTermSellPrice,
+              shortTerm: shortTermSellPrice,
+              average: averageSellPrice
+          },
+          netMarginPercent: actualNetMarginPercent,
           potentialProfit: potentialProfit > 0 ? potentialProfit : 0,
           executableVolume: { low: 0, high: Math.floor(finalExecutableVolume) },
           estimatedExecutionDays: { min: 1, max: inputs.executionDays },

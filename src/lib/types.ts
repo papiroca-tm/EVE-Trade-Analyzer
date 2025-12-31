@@ -33,14 +33,16 @@ export interface UserInputs {
 
 export type Feasibility = 'low' | 'medium' | 'high' | 'very high';
 
+export interface PriceRange {
+  longTerm: number;
+  midTerm: number;
+  shortTerm: number;
+  average: number;
+}
+
 export interface Recommendation {
-  buyPriceRange: { 
-    longTerm: number; 
-    midTerm: number;
-    shortTerm: number;
-    average: number;
-  };
-  sellPriceRange: { min: number; max: number };
+  buyPriceRange: PriceRange;
+  sellPriceRange: PriceRange;
   netMarginPercent: number;
   potentialProfit: number;
   executableVolume: { low: number; high: number };

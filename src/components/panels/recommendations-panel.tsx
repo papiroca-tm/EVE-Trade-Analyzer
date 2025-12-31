@@ -21,7 +21,7 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
     </div>
 );
 
-const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon }: { title: string, average: number, longTerm: number, midTerm: number, shortTerm: number, icon: React.ReactNode }) => {
+const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon, colorClass }: { title: string, average: number, longTerm: number, midTerm: number, shortTerm: number, icon: React.ReactNode, colorClass: string }) => {
     const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
     return (
@@ -32,7 +32,7 @@ const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon }: { tit
             </div>
             
             <div className='text-center my-2'>
-                <p className="text-3xl font-bold text-primary font-mono">
+                <p className={`text-3xl font-bold font-mono ${colorClass}`}>
                     {formatPrice(average)}
                 </p>
                 <p className="text-xs text-muted-foreground">ISK (обобщенная)</p>
@@ -48,7 +48,7 @@ const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon }: { tit
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Исторический минимум за выбранный период.</p>
+                            <p>Исторический ориентир за выбранный период.</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -84,27 +84,6 @@ const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon }: { tit
         </div>
     );
 };
-
-const PriceCardSell = ({ title, priceMin, priceMax, icon }: { title: string, priceMin: number, priceMax: number, icon: React.ReactNode }) => (
-    <div className="flex flex-col gap-1 rounded-lg bg-muted/50 p-3 justify-center">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {icon}
-            <span>{title}</span>
-        </div>
-        <div className="flex items-baseline justify-center gap-2 my-auto">
-            {priceMin === priceMax ? (
-                 <span className="text-3xl font-bold text-destructive font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            ) : (
-                <>
-                <span className="text-xl font-bold text-destructive font-mono">{priceMin.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className="text-sm text-muted-foreground">-</span>
-                <span className="text-xl font-bold text-destructive font-mono">{priceMax.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </>
-            )}
-        </div>
-         <p className="text-center text-xs text-muted-foreground">ISK</p>
-    </div>
-);
 
 
 export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
@@ -151,9 +130,18 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     longTerm={rec.buyPriceRange.longTerm} 
                     midTerm={rec.buyPriceRange.midTerm}
                     shortTerm={rec.buyPriceRange.shortTerm}
-                    icon={<ArrowDown className="h-4 w-4 text-green-400" />} 
+                    icon={<ArrowDown className="h-4 w-4 text-green-400" />}
+                    colorClass="text-primary"
                 />
-                <PriceCardSell title="Ориентир цены продажи" priceMin={rec.sellPriceRange.min} priceMax={rec.sellPriceRange.max} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+                 <PriceCard 
+                    title="Ориентир цены продажи" 
+                    average={rec.sellPriceRange.average}
+                    longTerm={rec.sellPriceRange.longTerm} 
+                    midTerm={rec.sellPriceRange.midTerm}
+                    shortTerm={rec.sellPriceRange.shortTerm}
+                    icon={<ArrowUp className="h-4 w-4 text-red-400" />}
+                    colorClass="text-destructive"
+                />
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -190,8 +178,18 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         ) : (
           <div className="space-y-3">
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <PriceCard title="Рекомендуемая цена покупки" average={0} longTerm={0} midTerm={0} shortTerm={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
-                <PriceCardSell title="Ориентир цены продажи" priceMin={0} priceMax={0} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+                <PriceCard 
+                    title="Рекомендуемая цена покупки" 
+                    average={0} longTerm={0} midTerm={0} shortTerm={0} 
+                    icon={<ArrowDown className="h-4 w-4 text-green-400" />}
+                    colorClass="text-primary"
+                />
+                 <PriceCard 
+                    title="Ориентир цены продажи" 
+                    average={0} longTerm={0} midTerm={0} shortTerm={0} 
+                    icon={<ArrowUp className="h-4 w-4 text-red-400" />}
+                    colorClass="text-destructive"
+                />
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
