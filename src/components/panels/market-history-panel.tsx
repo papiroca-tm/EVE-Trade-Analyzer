@@ -8,10 +8,11 @@ import { useMemo } from 'react';
 
 // Custom shape for the candlestick
 const Candlestick = (props: any) => {
-  const { x, y, width, height, low, high, average, previousAverage } = props;
+  const { x, y, width, height, low, high, average, previousAverage, ...rest } = props;
+  const yAxis = (rest as any).yAxis;
 
-  // If core props are missing, don't render.
-  if ([x, y, width, height, low, high, average, previousAverage].some(p => p === undefined || p === null)) {
+  // If core props are missing, or we can't get the y-axis scale function, don't render.
+  if ([x, y, width, height, low, high, average, previousAverage].some(p => p === undefined || p === null) || !yAxis?.scale) {
       return null;
   }
 
@@ -19,16 +20,6 @@ const Candlestick = (props: any) => {
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
-  // Recharts passes `y` and `height` based on the dataKey for the Bar.
-  // In our case, it's `average`. The `y` coordinate corresponds to the average price.
-  // We need to calculate the actual y-positions for high and low based on the full y-axis range.
-  const yAxis = props.yAxis; // Recharts *does* pass this, but it can be unreliable. Let's check it.
-  
-  if (!yAxis || typeof yAxis.scale !== 'function') {
-      // Fallback or error logging if yAxis isn't what we expect
-      return null; 
-  }
-  
   const highWickY = yAxis.scale(high);
   const lowWickY = yAxis.scale(low);
 
