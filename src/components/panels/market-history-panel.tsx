@@ -179,6 +179,7 @@ export function MarketHistoryPanel({
                         tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
                         tickLine={false}
                         axisLine={false}
+                        hide={true}
                     />
 
                     {/* Average price line */}
@@ -202,7 +203,7 @@ export function MarketHistoryPanel({
                     />
                     <Line 
                         yAxisId="left"
-                        type="monotone" 
+                        type="monotone" ovo
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
                         strokeWidth={1.5} 
@@ -225,7 +226,7 @@ export function MarketHistoryPanel({
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                     <Tooltip content={<CustomTooltip />} />
-                    <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                    <XAxis dataKey="date" hide={true} tickLine={false} axisLine={false} />
                     <YAxis hide domain={['dataMin', 'dataMax']} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
                 </BarChart>
