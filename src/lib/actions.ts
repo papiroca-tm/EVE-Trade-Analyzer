@@ -3,7 +3,6 @@
 
 import { z } from 'zod';
 import { calculateAnalysis } from './analysis';
-import { analyzeDataIntegrity, type DataIntegrityOutput } from '@/ai/flows/data-integrity-analysis';
 import { fetchMarketHistory, fetchMarketOrders, getRegions, getInitialItemTypes } from './eve-esi';
 import type { AnalysisState, AnalysisResult, Region, ItemType } from './types';
 
@@ -16,7 +15,6 @@ const formSchema = z.object({
   desiredNetMarginPercent: z.coerce.number().min(0).max(1000),
   timeHorizonDays: z.coerce.number().int().positive().min(1).max(365),
   optionalTargetVolume: z.coerce.number().int().positive().optional(),
-  runAiAnalysis: z.boolean().default(false),
 });
 
 export async function getMarketAnalysis(
@@ -33,7 +31,6 @@ export async function getMarketAnalysis(
     desiredNetMarginPercent: formData.get('desiredNetMarginPercent'),
     timeHorizonDays: formData.get('timeHorizonDays'),
     optionalTargetVolume: formData.get('optionalTargetVolume') || undefined,
-    runAiAnalysis: formData.get('runAiAnalysis') === 'on',
   });
 
   if (!validatedFields.success) {
@@ -69,32 +66,15 @@ export async function getMarketAnalysis(
       }
     }
     
-    let dataIntegrity: DataIntegrityOutput;
-    if (inputs.runAiAnalysis) {
-        const dataIntegrityInput = {
-            marketHistoryData: JSON.stringify(history),
-            marketOrderData: JSON.stringify(orders),
-            timeHorizonDays: inputs.timeHorizonDays,
-        };
-        dataIntegrity = await analyzeDataIntegrity(dataIntegrityInput);
-    } else {
-        dataIntegrity = {
-            analysisReport: 'AI-анализ не проводился. Включите опцию, чтобы запустить его.',
-            dataReliabilityScore: 0,
-            warnings: [],
-        };
-    }
-    
     const result: AnalysisResult = {
         ...analysis,
-        dataIntegrity,
     };
 
     return {
       status: 'success',
       data: result,
       error: null,
-      warnings: [...baseWarnings, ...dataIntegrity.warnings],
+      warnings: baseWarnings,
     };
 
   } catch (error) {

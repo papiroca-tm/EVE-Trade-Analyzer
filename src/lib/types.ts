@@ -1,5 +1,4 @@
 
-import type { DataIntegrityOutput } from '@/ai/flows/data-integrity-analysis';
 
 export interface MarketHistoryItem {
   date: string;
@@ -28,7 +27,6 @@ export interface UserInputs {
   desiredNetMarginPercent: number;
   timeHorizonDays: number;
   optionalTargetVolume?: number;
-  runAiAnalysis: boolean;
 }
 
 export type Feasibility = 'low' | 'medium' | 'high' | 'very high';
@@ -61,7 +59,6 @@ export interface AnalysisResult {
     midPrice: number;
     volatility: number;
   };
-  dataIntegrity: DataIntegrityOutput;
 }
 
 export type AnalysisStatus = 'idle' | 'loading' | 'success' | 'error';

@@ -13,13 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Check, ChevronsUpDown, Loader2, Zap, Bot } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, Zap } from 'lucide-react';
 import { getInitialData } from '@/lib/actions';
 import { searchItemTypes } from '@/lib/eve-esi';
 import type { Region, ItemType } from '@/lib/types';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Switch } from '@/components/ui/switch';
-
 
 const formSchema = z.object({
   regionId: z.coerce.number().int().positive("Необходимо выбрать регион."),
@@ -30,7 +28,6 @@ const formSchema = z.object({
   desiredNetMarginPercent: z.coerce.number().min(0, "Должно быть положительным").max(1000, "Слишком большая маржа"),
   timeHorizonDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(365, "Максимум 365 дней"),
   optionalTargetVolume: z.string().optional(),
-  runAiAnalysis: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -68,7 +65,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       desiredNetMarginPercent: 5.0,
       timeHorizonDays: 90,
       optionalTargetVolume: "",
-      runAiAnalysis: false,
     },
   });
 
@@ -344,28 +340,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 )}
             />
 
-            <FormField
-              control={form.control}
-              name="runAiAnalysis"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm sm:col-span-2 bg-muted/20">
-                  <div className="space-y-0.5">
-                    <FormLabel className="flex items-center gap-2"><Bot className="h-5 w-5 text-primary"/> AI-анализ целостности данных</FormLabel>
-                    <FormDescription>
-                      Включите для глубокого анализа данных с помощью AI (может использовать вашу квоту).
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-
             {/* These hidden inputs are crucial for react-hook-form to correctly handle the values from custom comboboxes */}
             <input type="hidden" {...form.register('regionId')} />
             <input type="hidden" {...form.register('typeId')} />
@@ -379,5 +353,3 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
-
-    
