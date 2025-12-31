@@ -18,6 +18,7 @@ import { Check, ChevronsUpDown, Loader2, Zap } from 'lucide-react';
 import { getInitialData, searchItemTypes } from '@/lib/actions';
 import type { Region, ItemType } from '@/lib/types';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   regionId: z.coerce.number().int().positive("Необходимо выбрать регион."),
@@ -54,6 +55,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   const [itemOptions, setItemOptions] = useState<ItemType[]>([]);
 
   const debouncedItemSearch = useDebounce(itemSearch, 300);
+  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -88,11 +90,23 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   useEffect(() => {
     async function performSearch() {
       if (debouncedItemSearch.length < 3) {
-        setItemOptions(initialData.itemTypes); // Revert to initial list if search is short
+        // When search is cleared or too short, revert to the initial list plus the currently selected item
+        const currentItem = initialData.itemTypes.find(item => item.type_id === form.getValues('typeId'));
+        const baseOptions = new Map<number, ItemType>();
+        if(currentItem) baseOptions.set(currentItem.type_id, currentItem);
+        initialData.itemTypes.forEach(item => baseOptions.set(item.type_id, item));
+        setItemOptions(Array.from(baseOptions.values()).sort((a,b) => a.name.localeCompare(b.name)));
         return;
       }
       
       setIsSearchingItems(true);
+      
+      // DEBUG TOAST
+      toast({
+          title: "Отправка запроса к API",
+          description: `Поиск по запросу: "${debouncedItemSearch}"`
+      });
+
       try {
         const results = await searchItemTypes(debouncedItemSearch);
         const currentItem = itemOptions.find(item => item.type_id === form.getValues('typeId'));
@@ -115,7 +129,8 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     }
 
     performSearch();
-  }, [debouncedItemSearch, initialData.itemTypes, form]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedItemSearch, initialData.itemTypes, form.getValues('typeId')]);
 
 
   const selectedItemName = useMemo(() => {
@@ -362,3 +377,5 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
+
+    
