@@ -85,12 +85,13 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   }, []);
   
   useEffect(() => {
-    if (debouncedItemSearch.length < 3) {
-      setIsSearchingItems(false);
-      return;
-    }
-
     const search = async () => {
+      if (debouncedItemSearch.length < 3) {
+        setIsSearchingItems(false);
+        return;
+      }
+      if (isSearchingItems) return;
+
       setIsSearchingItems(true);
       try {
         const results = await searchItemTypes(debouncedItemSearch);
@@ -351,3 +352,5 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
+
+    
