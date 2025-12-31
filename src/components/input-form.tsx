@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,8 +22,8 @@ import { useDebounce } from '@/hooks/use-debounce';
 
 
 const formSchema = z.object({
-  regionId: z.coerce.number().int().positive("Region ID must be a positive number."),
-  typeId: z.coerce.number().int().positive("Type ID must be a positive number."),
+  regionId: z.coerce.number().int().positive("Region must be selected."),
+  typeId: z.coerce.number().int().positive("Item must be selected."),
   brokerBuyFeePercent: z.coerce.number().min(0).max(100, "Must be between 0-100"),
   brokerSellFeePercent: z.coerce.number().min(0).max(100, "Must be between 0-100"),
   salesTaxPercent: z.coerce.number().min(0).max(100, "Must be between 0-100"),
@@ -46,10 +46,10 @@ function SubmitButton() {
 
 export function InputForm({ formAction }: { formAction: (payload: FormData) => void }) {
   const [regions, setRegions] = useState<Region[]>([]);
-  const [itemTypes, setItemTypes] = useState<ItemType[]>([]);
+  const [initialItemTypes, setInitialItemTypes] = useState<ItemType[]>([]);
+  const [searchedItemTypes, setSearchedItemTypes] = useState<ItemType[]>([]);
   const [loadingInitialData, setLoadingInitialData] = useState(true);
 
-  const [regionSearch, setRegionSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
   const [isSearchingItems, setIsSearchingItems] = useState(false);
 
@@ -61,7 +61,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       try {
         const { regions, itemTypes: initialItems } = await getInitialData();
         setRegions(regions);
-        setItemTypes(initialItems); // Set initial default items (e.g., Tritanium)
+        setInitialItemTypes(initialItems);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       } finally {
@@ -73,6 +73,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   
   useEffect(() => {
     if (debouncedItemSearch.length < 3) {
+      setSearchedItemTypes([]);
       setIsSearchingItems(false);
       return;
     }
@@ -81,10 +82,10 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       setIsSearchingItems(true);
       try {
         const results = await searchItemTypes(debouncedItemSearch);
-        setItemTypes(results);
+        setSearchedItemTypes(results);
       } catch (error) {
         console.error("Failed to search for item types:", error);
-        setItemTypes([]);
+        setSearchedItemTypes([]);
       } finally {
         setIsSearchingItems(false);
       }
@@ -107,9 +108,21 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       optionalTargetVolume: "",
     },
   });
-  
-  const currentSelectedItem = form.watch('typeId');
-  const selectedItemInList = itemTypes.find(item => item.type_id === currentSelectedItem);
+
+  const displayedItems = useMemo(() => {
+    const combined = new Map<number, ItemType>();
+    initialItemTypes.forEach(item => combined.set(item.type_id, item));
+    searchedItemTypes.forEach(item => combined.set(item.type_id, item));
+    
+    // Also ensure the currently selected item is in the list, even if it's not in the search results
+    const selectedTypeId = form.watch('typeId');
+    const selectedItem = initialItemTypes.find(i => i.type_id === selectedTypeId) || searchedItemTypes.find(i => i.type_id === selectedTypeId);
+    if(selectedTypeId && !combined.has(selectedTypeId) && selectedItem) {
+        combined.set(selectedTypeId, selectedItem);
+    }
+    
+    return Array.from(combined.values()).sort((a,b)=> a.name.localeCompare(b.name));
+  }, [initialItemTypes, searchedItemTypes, form.watch('typeId')]);
 
 
   return (
@@ -123,8 +136,8 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
           <CardContent className="grid grid-cols-1 gap-y-4 gap-x-2 sm:grid-cols-2">
             {loadingInitialData ? (
                 <>
-                    <div className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
-                    <div className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
+                    <div className="space-y-2 sm:col-span-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
+                    <div className="space-y-2 sm:col-span-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
                 </>
             ) : (
              <>
@@ -132,7 +145,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               control={form.control}
               name="regionId"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="flex flex-col sm:col-span-2">
                   <FormLabel>Region</FormLabel>
                    <Popover>
                     <PopoverTrigger asChild>
@@ -194,7 +207,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               control={form.control}
               name="typeId"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="flex flex-col sm:col-span-2">
                   <FormLabel>Item Type</FormLabel>
                    <Popover>
                     <PopoverTrigger asChild>
@@ -208,7 +221,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                           )}
                         >
                           {field.value
-                            ? itemTypes.find(item => item.type_id === field.value)?.name ?? 'Select item'
+                            ? displayedItems.find(item => item.type_id === field.value)?.name ?? 'Select item'
                             : "Select item"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -222,30 +235,19 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                           onValueChange={setItemSearch}
                         />
                         <CommandList>
-                          {isSearchingItems && <CommandItem>Searching...</CommandItem>}
-                          {!isSearchingItems && debouncedItemSearch.length >= 3 && itemTypes.length === 0 && <CommandItem>No item found.</CommandItem>}
-                          {!isSearchingItems && debouncedItemSearch.length < 3 && itemTypes.length === 0 && <CommandItem>Please enter 3 or more characters.</CommandItem>}
+                          {isSearchingItems && <CommandItem className='flex items-center gap-2'><Loader2 className="h-4 w-4 animate-spin" />Searching...</CommandItem>}
+                          <CommandEmpty>
+                            {!isSearchingItems && 'No item found.'}
+                          </CommandEmpty>
                           <CommandGroup>
-                           {!selectedItemInList && currentSelectedItem && (
-                              <CommandItem
-                                value={currentSelectedItem.toString()}
-                                key={currentSelectedItem}
-                                className="hidden"
-                                onSelect={() => {
-                                  form.setValue("typeId", currentSelectedItem);
-                                }}
-                              >
-                                {currentSelectedItem}
-                              </CommandItem>
-                            )}
-                            {itemTypes.map((item) => (
+                            {displayedItems.map((item) => (
                               <CommandItem
                                 value={item.name}
                                 key={item.type_id}
                                 onSelect={() => {
                                   form.setValue("typeId", item.type_id)
-                                  if (!itemTypes.some(i => i.type_id === item.type_id)) {
-                                    setItemTypes(prev => [...prev, item]);
+                                  if (!initialItemTypes.some(i => i.type_id === item.type_id)) {
+                                    setInitialItemTypes(prev => [...prev, item]);
                                   }
                                 }}
                               >

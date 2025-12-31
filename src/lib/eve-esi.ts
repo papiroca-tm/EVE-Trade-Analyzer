@@ -66,11 +66,12 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
 
 export async function getRegions(): Promise<Region[]> {
     const regionIdsUrl = `${ESI_BASE_URL}/universe/regions/`;
-    const regionIds: number[] = await fetchWithCache(regionIdsUrl).then(res => {
-        if (!res.ok) throw new Error('Failed to fetch region IDs');
-        return res.json();
-    });
-
+    const regionIdsRes = await fetchWithCache(regionIdsUrl);
+    if (!regionIdsRes.ok) {
+        throw new Error('Failed to fetch region IDs');
+    }
+    const regionIds: number[] = await regionIdsRes.json();
+    
     const regionDetails = await Promise.all(
         regionIds.map(async id => {
             try {
@@ -78,7 +79,11 @@ export async function getRegions(): Promise<Region[]> {
                 const response = await fetchWithCache(url);
                 if (!response.ok) return null;
                 const data = await response.json();
-                return { region_id: id, name: data.name };
+                // Filter out wormhole/special regions that don't have markets
+                if (id < 11000000) {
+                    return { region_id: id, name: data.name };
+                }
+                return null;
             } catch (e) {
                 console.error(`Failed to fetch region details for ID ${id}`, e);
                 return null;
@@ -96,7 +101,9 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
     if (!query || query.length < 3) return [];
     
     const searchUrl = `${ESI_BASE_URL}/search/?categories=inventory_type&search=${encodeURIComponent(query)}&strict=false`;
+    
     const searchResponse = await fetch(searchUrl, { cache: 'no-store' });
+
     if(!searchResponse.ok) {
         console.error(`Failed to search for items with query "${query}": ${searchResponse.statusText}`);
         return [];
@@ -134,5 +141,3 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
         .filter((t): t is ItemType => t !== null && !!t.name)
         .sort((a,b) => a.name.localeCompare(b.name));
 }
-
-    

@@ -2,9 +2,10 @@
 'use server';
 
 import { z } from 'zod';
+import { calculateAnalysis } from './analysis';
 import { analyzeDataIntegrity } from '@/ai/flows/data-integrity-analysis';
 import { fetchMarketHistory, fetchMarketOrders, getRegions, searchItemTypes } from './eve-esi';
-import type { AnalysisState, MarketHistoryItem, MarketOrderItem, AnalysisResult, Region, ItemType } from './types';
+import type { AnalysisState, AnalysisResult, Region, ItemType } from './types';
 
 const formSchema = z.object({
   regionId: z.coerce.number().int().positive("Region ID must be a positive number."),
@@ -12,7 +13,7 @@ const formSchema = z.object({
   brokerBuyFeePercent: z.coerce.number().min(0).max(100),
   brokerSellFeePercent: z.coerce.number().min(0).max(100),
   salesTaxPercent: z.coerce.number().min(0).max(100),
-  desiredNetMarginPercent: z.coerce.number().min(0).max(100),
+  desiredNetMarginPercent: z.coerce.number().min(0).max(1000),
   timeHorizonDays: z.coerce.number().int().positive().min(1).max(365),
   optionalTargetVolume: z.coerce.number().int().positive().optional(),
 });
@@ -96,6 +97,7 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
         return { regions, itemTypes: initialItems };
     } catch (error) {
         console.error("Failed to get initial data", error);
+        // Return empty arrays on failure so the app doesn't crash
         return { regions: [], itemTypes: [] };
     }
 }
