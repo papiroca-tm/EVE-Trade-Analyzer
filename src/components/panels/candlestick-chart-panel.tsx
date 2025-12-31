@@ -98,24 +98,19 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
         }
     }
 
-    // New approach: Balance between max/min and avg_t for more centered positioning
-    const range = high_t - low_t;
+    // --- COLOR FIX ---
+    // Determine open and close based on direction to ensure correct color
+    const center = avg_t;
     const half_body = body_height_t / 2;
     let open_t: number;
     let close_t: number;
 
-    if (avg_t <= low_t + range / 3) {
-      // If avg_t is closer to low_t, place the body closer to low_t
-      open_t = low_t + half_body;
-      close_t = low_t + body_height_t;
-    } else if (avg_t >= high_t - range / 3) {
-      // If avg_t is closer to high_t, place the body closer to high_t
-      open_t = high_t - body_height_t;
-      close_t = high_t - half_body;
-    } else {
-      // Otherwise, center the body around avg_t
-      open_t = avg_t - half_body;
-      close_t = avg_t + half_body;
+    if (direction === 'bullish') {
+      open_t = center - half_body;
+      close_t = center + half_body;
+    } else { // bearish or neutral
+      open_t = center + half_body;
+      close_t = center - half_body;
     }
 
     // Final assembly for the day
