@@ -112,6 +112,7 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
 
     if (typeIds.length === 0) return [];
     
+    // ESI search can return many results, limit what we fetch details for.
     const maxIdsToFetch = 50; 
     const cappedTypeIds = typeIds.slice(0, maxIdsToFetch);
     
@@ -119,12 +120,13 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
         try {
             const response = await fetchEsi(`/universe/types/${id}/`, true);
             const data = await response.json();
-            if (data.published && data.market_group_id) {
+            // Check if the item is published (meaning it's a usable item in the game)
+            if (data.published) {
                 return { type_id: id, name: data.name };
             }
             return null;
         } catch (error) {
-            console.warn(`Could not fetch details for typeId ${id}, it might not be a market item.`);
+            console.warn(`Could not fetch details for typeId ${id}.`);
             return null;
         }
     });
@@ -138,34 +140,45 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
     return successfulItems.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Gets a sample of marketable items to populate the list initially.
 export async function getInitialItemTypes(): Promise<ItemType[]> {
-    const requiredItems = 20;
-    
-    const typeIdsResponse = await fetchEsi(`/universe/types/?page=1`, true);
-    const typeIds: number[] = await typeIdsResponse.json();
-
-    if (typeIds.length === 0) {
-        return [];
-    }
-    
-    const itemDetailsPromises = typeIds.slice(0, requiredItems).map(async (id) => {
-        try {
-            const response = await fetchEsi(`/universe/types/${id}/`, true);
-            const data = await response.json();
-            if (data.published && data.market_group_id) {
-                return { type_id: id, name: data.name };
-            }
-            return null;
-        } catch {
-            return null;
+    try {
+        // We fetch one of the main market groups for minerals.
+        const marketGroupResponse = await fetchEsi(`/markets/groups/1857/`, true);
+        const marketGroupData = await marketGroupResponse.json();
+        const typeIds: number[] = marketGroupData.types || [];
+        
+        if (typeIds.length === 0) {
+            return [];
         }
-    });
 
-    const settledDetails = await Promise.allSettled(itemDetailsPromises);
-    
-    const items = settledDetails
-        .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
-        .map(result => result.value as ItemType);
+        const itemDetailsPromises = typeIds.map(async (id) => {
+            try {
+                const response = await fetchEsi(`/universe/types/${id}/`, true);
+                const data = await response.json();
+                if (data.published) {
+                    return { type_id: id, name: data.name };
+                }
+                return null;
+            } catch {
+                return null;
+            }
+        });
 
-    return items.sort((a, b) => a.name.localeCompare(b.name));
+        const settledDetails = await Promise.allSettled(itemDetailsPromises);
+        
+        const items = settledDetails
+            .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
+            .map(result => result.value as ItemType);
+
+        return items.sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+        console.error("Failed to get initial item types from market group, falling back.", error);
+        // Fallback in case the market group ID changes or is unavailable
+        return [
+            { type_id: 34, name: 'Tritanium' },
+            { type_id: 35, name: 'Pyerite' },
+            { type_id: 36, name: 'Mexallon' },
+        ];
+    }
 }
