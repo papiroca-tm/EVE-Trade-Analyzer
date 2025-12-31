@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 
 interface OrderWithCumulative extends MarketOrderItem {
     cumulativeVolume: number;
+    isWall: boolean;
 }
 
 const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderItem[], type: 'buy' | 'sell', averageDailyVolume: number }) => {
@@ -21,11 +22,16 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
 
         const processedOrders: OrderWithCumulative[] = orders.map(order => {
             cumulativeVolume += order.volume_remain;
-            return { ...order, cumulativeVolume };
+            let isWall = false;
+            if (!wallFound && cumulativeVolume >= wallThreshold) {
+                isWall = true;
+                wallFound = true;
+            }
+            return { ...order, cumulativeVolume, isWall };
         });
         
         return processedOrders;
-    }, [orders]);
+    }, [orders, wallThreshold]);
 
 
     return (
@@ -44,7 +50,7 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
                 <TableBody>
                 {ordersWithCumulative.length > 0 ? (
                     ordersWithCumulative.slice(0, 100).map((order, index) => (
-                    <TableRow key={order.order_id} data-state={index === 0 ? 'selected' : undefined}>
+                    <TableRow key={order.order_id} className={cn(index === 0 && 'bg-primary/10', order.isWall && 'bg-muted/50 font-bold')}>
                         <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
                     </TableRow>
