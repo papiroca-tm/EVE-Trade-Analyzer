@@ -46,54 +46,15 @@ function SubmitButton() {
 
 export function InputForm({ formAction }: { formAction: (payload: FormData) => void }) {
   const [regions, setRegions] = useState<Region[]>([]);
-  const [initialItemTypes, setInitialItemTypes] = useState<ItemType[]>([]);
-  const [searchedItemTypes, setSearchedItemTypes] = useState<ItemType[]>([]);
+  const [itemOptions, setItemOptions] = useState<ItemType[]>([]);
   const [loadingInitialData, setLoadingInitialData] = useState(true);
 
   const [itemSearch, setItemSearch] = useState('');
   const [isSearchingItems, setIsSearchingItems] = useState(false);
+  const [openItemPopover, setOpenItemPopover] = useState(false);
+  const [openRegionPopover, setOpenRegionPopover] = useState(false);
 
   const debouncedItemSearch = useDebounce(itemSearch, 300);
-
-  useEffect(() => {
-    async function fetchData() {
-      setLoadingInitialData(true);
-      try {
-        const { regions, itemTypes: initialItems } = await getInitialData();
-        setRegions(regions);
-        setInitialItemTypes(initialItems);
-      } catch (error) {
-        console.error("Failed to fetch initial data:", error);
-      } finally {
-        setLoadingInitialData(false);
-      }
-    }
-    fetchData();
-  }, []);
-  
-  useEffect(() => {
-    if (debouncedItemSearch.length < 3) {
-      setSearchedItemTypes([]);
-      setIsSearchingItems(false);
-      return;
-    }
-
-    const search = async () => {
-      setIsSearchingItems(true);
-      try {
-        const results = await searchItemTypes(debouncedItemSearch);
-        setSearchedItemTypes(results);
-      } catch (error) {
-        console.error("Failed to search for item types:", error);
-        setSearchedItemTypes([]);
-      } finally {
-        setIsSearchingItems(false);
-      }
-    };
-
-    search();
-  }, [debouncedItemSearch]);
-
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -109,23 +70,54 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     },
   });
 
-  const displayedItems = useMemo(() => {
-    const combined = new Map<number, ItemType>();
-    initialItemTypes.forEach(item => combined.set(item.type_id, item));
-    searchedItemTypes.forEach(item => combined.set(item.type_id, item));
-    
-    // Also ensure the currently selected item is in the list, even if it's not in the search results
-    const selectedTypeId = form.watch('typeId');
-    if(selectedTypeId && !combined.has(selectedTypeId)) {
-        const allItems = [...initialItemTypes, ...searchedItemTypes];
-        const selectedItem = allItems.find(i => i.type_id === selectedTypeId);
-        if (selectedItem) {
-            combined.set(selectedTypeId, selectedItem);
+  useEffect(() => {
+    async function fetchData() {
+      setLoadingInitialData(true);
+      try {
+        const { regions: fetchedRegions, itemTypes: initialItems } = await getInitialData();
+        setRegions(fetchedRegions);
+        // Ensure Tritanium is in the list
+        const tritanium = initialItems.find(i => i.type_id === 34);
+        if (tritanium) {
+          setItemOptions([tritanium]);
         }
+      } catch (error) {
+        console.error("Failed to fetch initial data:", error);
+      } finally {
+        setLoadingInitialData(false);
+      }
     }
-    
-    return Array.from(combined.values()).sort((a,b)=> a.name.localeCompare(b.name));
-  }, [initialItemTypes, searchedItemTypes, form.watch('typeId')]);
+    fetchData();
+  }, []);
+  
+  useEffect(() => {
+    if (debouncedItemSearch.length < 3) {
+      // Do not clear the list, just stop searching
+      setIsSearchingItems(false);
+      return;
+    }
+
+    const search = async () => {
+      setIsSearchingItems(true);
+      try {
+        const results = await searchItemTypes(debouncedItemSearch);
+        const currentItem = itemOptions.find(i => i.type_id === form.getValues('typeId'));
+        const newOptions = new Map<number, ItemType>();
+        if(currentItem) newOptions.set(currentItem.type_id, currentItem);
+        results.forEach(item => newOptions.set(item.type_id, item));
+        setItemOptions(Array.from(newOptions.values()));
+      } catch (error) {
+        console.error("Failed to search for item types:", error);
+      } finally {
+        setIsSearchingItems(false);
+      }
+    };
+
+    search();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedItemSearch]);
+
+  const selectedItem = useMemo(() => itemOptions.find(item => item.type_id === form.watch('typeId')), [itemOptions, form.watch('typeId')]);
 
 
   return (
@@ -150,7 +142,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               render={({ field }) => (
                 <FormItem className="flex flex-col sm:col-span-2">
                   <FormLabel>Region</FormLabel>
-                   <Popover>
+                   <Popover open={openRegionPopover} onOpenChange={setOpenRegionPopover}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -175,8 +167,8 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                         <CommandInput 
                           placeholder="Search region..."
                          />
-                        <CommandEmpty>No region found.</CommandEmpty>
                         <CommandList>
+                        <CommandEmpty>No region found.</CommandEmpty>
                         <CommandGroup>
                           {regions.map((region) => (
                             <CommandItem
@@ -184,6 +176,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                               key={region.region_id}
                               onSelect={() => {
                                 form.setValue("regionId", region.region_id)
+                                setOpenRegionPopover(false);
                               }}
                             >
                               <Check
@@ -212,7 +205,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               render={({ field }) => (
                 <FormItem className="flex flex-col sm:col-span-2">
                   <FormLabel>Item Type</FormLabel>
-                   <Popover>
+                   <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -223,9 +216,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {field.value
-                            ? displayedItems.find(item => item.type_id === field.value)?.name ?? 'Select item'
-                            : "Select item"}
+                           {selectedItem?.name ?? "Select item"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -238,19 +229,21 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                           onValueChange={setItemSearch}
                         />
                         <CommandList>
-                          {isSearchingItems && <CommandItem className='flex items-center gap-2'><Loader2 className="h-4 w-4 animate-spin" />Searching...</CommandItem>}
+                          {isSearchingItems && <CommandItem disabled className='flex items-center justify-center gap-2'><Loader2 className="h-4 w-4 animate-spin" />Searching...</CommandItem>}
                           <CommandEmpty>
                             {!isSearchingItems && 'No item found.'}
                           </CommandEmpty>
                           <CommandGroup>
-                            {displayedItems.map((item) => (
+                            {itemOptions.map((item) => (
                               <CommandItem
                                 value={item.name}
                                 key={item.type_id}
                                 onSelect={() => {
                                   form.setValue("typeId", item.type_id)
-                                  if (!initialItemTypes.some(i => i.type_id === item.type_id)) {
-                                    setInitialItemTypes(prev => [...prev, item]);
+                                  setOpenItemPopover(false);
+                                  // Ensure the selected item stays in the list
+                                  if (!itemOptions.some(i => i.type_id === item.type_id)) {
+                                    setItemOptions(prev => [...prev, item]);
                                   }
                                 }}
                               >
@@ -358,6 +351,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 )}
             />
 
+            {/* These hidden inputs are crucial for react-hook-form to correctly handle the values from custom comboboxes */}
             <input type="hidden" {...form.register('regionId')} />
             <input type="hidden" {...form.register('typeId')} />
 

@@ -91,13 +91,15 @@ export async function getMarketAnalysis(
 
 export async function getInitialData(): Promise<{ regions: Region[], itemTypes: ItemType[] }> {
     try {
-        const regions = await getRegions();
-        // Pre-warm with Tritanium as a default
-        const initialItems = await searchItemTypes('Tritanium');
+        const [regions, initialItems] = await Promise.all([
+          getRegions(),
+          // Pre-warm with Tritanium as a default
+          searchItemTypes('Tritanium')
+        ]);
         return { regions, itemTypes: initialItems };
     } catch (error) {
         console.error("Failed to get initial data", error);
-        // Return empty arrays on failure so the app doesn't crash
+        // Return empty arrays on failure so the app doesn't crash but show error in console
         return { regions: [], itemTypes: [] };
     }
 }
