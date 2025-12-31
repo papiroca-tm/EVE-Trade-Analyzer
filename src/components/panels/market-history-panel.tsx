@@ -6,6 +6,44 @@ import { TrendingUp } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, ReferenceLine } from 'recharts';
 import { useMemo } from 'react';
 
+const Candlestick = (props: any) => {
+    const { x, y, width, height, low, high, average, previousAverage } = props;
+  
+    // Check if necessary props are available
+    if (x === undefined || y === undefined || width === undefined || height === undefined || low === undefined || high === undefined || average === undefined) {
+      return null;
+    }
+  
+    const isBullish = previousAverage !== undefined ? average > previousAverage : true;
+    const color = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+    
+    // Y-coordinates are calculated from the top of the container.
+    // Recharts gives us the 'y' and 'height' for the 'average' value.
+    // We need to calculate the positions for high and low wicks based on the 'average' y-coordinate.
+    
+    const yRatio = height / average;
+
+    const highWickY = y - ((high - average) * yRatio);
+    const lowWickY = y + ((average - low) * yRatio);
+    
+    // Body can be a small range around the average
+    const bodyRange = Math.abs(high - low) * 0.2; // Let body be 20% of the day's range
+    const bodyTop = y - (bodyRange/2 * yRatio);
+    const bodyBottom = y + (bodyRange/2 * yRatio);
+    const bodyHeight = bodyBottom - bodyTop;
+
+
+    return (
+      <g stroke={color} fill={color} strokeWidth={1}>
+        {/* Wick */}
+        <line x1={x + width / 2} y1={highWickY} x2={x + width / 2} y2={lowWickY} />
+        {/* Body */}
+        <rect x={x} y={bodyTop} width={width} height={Math.max(1, bodyHeight)} />
+      </g>
+    );
+};
+
+
 export function MarketHistoryPanel({ 
     history,
     timeHorizonDays,
@@ -52,11 +90,13 @@ export function MarketHistoryPanel({
       'SMA 30': sma30[index],
       low: item.lowest,
       high: item.highest,
+      average: item.average,
+      previousAverage: index > 0 ? chronologicalHistory[index-1].average : undefined,
     }));
 
-    const chartData = fullChartData.slice(-timeHorizonDays);
+    const dataForHorizon = fullChartData.slice(-timeHorizonDays);
 
-    const allPriceValues = chartData.flatMap(d => [d.high, d.low, d['SMA 7'], d['SMA 30']]).filter(v => v != null) as number[];
+    const allPriceValues = dataForHorizon.flatMap(d => [d.high, d.low, d['SMA 7'], d['SMA 30']]).filter(v => v != null) as number[];
 
     let domain: [number | string, number | string] = ['auto', 'auto'];
     if (allPriceValues.length > 0) {
@@ -71,7 +111,7 @@ export function MarketHistoryPanel({
       ];
     }
     
-    return { chartData, yDomainPrice: domain };
+    return { chartData: dataForHorizon, yDomainPrice: domain };
 
   }, [history, timeHorizonDays]);
   
@@ -162,8 +202,8 @@ export function MarketHistoryPanel({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-96 w-full">
-            <ResponsiveContainer width="100%" height="70%">
+        <div className="h-[36rem] w-full">
+            <ResponsiveContainer width="100%" height="45%">
                 <ComposedChart
                     data={chartData} 
                     syncId="marketData"
@@ -203,7 +243,7 @@ export function MarketHistoryPanel({
                     />
                     <Line 
                         yAxisId="left"
-                        type="monotone" ovo
+                        type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
                         strokeWidth={1.5} 
@@ -220,6 +260,28 @@ export function MarketHistoryPanel({
                 </ComposedChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
+                <ComposedChart
+                  data={chartData}
+                  syncId="marketData"
+                  margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis dataKey="date" hide={true} />
+                  <YAxis 
+                    yAxisId="left" 
+                    domain={yDomainPrice}
+                    hide={true} 
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="average"
+                    shape={<Candlestick />}
+                    barSize={10}
+                  />
+                </ComposedChart>
+            </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="25%">
                 <BarChart 
                     data={chartData}
                     syncId="marketData"
@@ -236,3 +298,5 @@ export function MarketHistoryPanel({
     </Card>
   );
 }
+
+    
