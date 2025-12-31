@@ -231,8 +231,7 @@ export function MarketHistoryPanel({
                         yAxisId="left" 
                         shape={<Candlestick />} 
                         barSize={10} 
-                    >
-                    </Bar>
+                    />
 
                     {/* Average price line */}
                     <Line 
@@ -255,7 +254,7 @@ export function MarketHistoryPanel({
                     />
                     <Line 
                         yAxisId="left"
-                        type="monotone" _
+                        type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
                         strokeWidth={1.5} 
