@@ -62,40 +62,35 @@ export function calculateAnalysis(
     let feasibilityReason = "Анализ не дал результатов.";
 
 
-    if (inputs.positionCapital && inputs.positionCapital > 0 && averageDailyVolume > 0 && buyLadder.length > 0) {
+    if (averageDailyVolume > 0 && buyLadder.length > 0) {
+        // Upper bound is always the price for immediate execution
+        finalMax = bestBuyPrice + tickSize;
+
+        // Calculate lower bound based on capital and execution time
         const buyExecutionDays = inputs.executionDays / 2;
-        
-        // Volume that is likely to be traded during our buy window
         const targetExecutionVolume = averageDailyVolume * buyExecutionDays;
 
-        // Find the price level where the cumulative volume is just under our target execution volume
-        // We want to find the price at which we can place our order to be executed within the desired time
-        let strategicBuyPrice = 0;
-        
-        // Find the first order where cumulative volume exceeds our target.
-        // We want to place our order AT or just above this price to get ahead of some volume but still be competitive.
+        // Find the price level where we need to place our order.
+        // We look for the first order where the cumulative volume *before* it exceeds our target.
+        // Placing our order at this price level means we'll be executed after this volume.
         const targetOrder = buyLadder.find(order => order.cumulativeVolume >= targetExecutionVolume);
 
         if (targetOrder) {
-            // Place our order 1 tick above this level to get ahead of it.
-            strategicBuyPrice = targetOrder.price + tickSize;
+            // We set our price at this level to wait in line.
+            finalMin = targetOrder.price + tickSize;
         } else {
-            // If the entire book volume is less than our target,
-            // we place the order at the very top of the buy book to be first in line.
-             strategicBuyPrice = bestBuyPrice + tickSize;
+            // If the entire book volume is less than our target execution volume,
+            // it means we can likely get filled at the top of the book within our timeframe.
+            // So, the strategic price is the same as the immediate price.
+            finalMin = bestBuyPrice + tickSize;
         }
-
-        // The recommended price is this strategic price.
-        // The range is from this strategic price up to the best possible price.
-        finalMin = Math.max(0.01, strategicBuyPrice); // Don't recommend a price of 0
-        finalMax = bestBuyPrice + tickSize;
         
-        feasibilityReason = `Диапазон покупки основан на вашем капитале (${inputs.positionCapital.toLocaleString('ru-RU')} ISK) и желаемом сроке исполнения (${inputs.executionDays} дней). Нижняя граница (~${finalMin.toFixed(2)} ISK) - это цена, по которой ваш ордер должен исполниться в течение ~${buyExecutionDays.toFixed(0)} дней, исходя из среднесуточного объема. Верхняя граница (~${finalMax.toFixed(2)} ISK) - это цена для немедленного исполнения.`;
+        feasibilityReason = `Диапазон покупки основан на желаемом сроке исполнения (${inputs.executionDays} дней, ~${buyExecutionDays.toFixed(0)} на покупку), что соответствует целевому объему ~${targetExecutionVolume.toLocaleString('ru-RU', {maximumFractionDigits: 0})} ед. Нижняя граница (${finalMin.toFixed(2)} ISK) - это стратегическая цена для исполнения в срок. Верхняя граница (${finalMax.toFixed(2)} ISK) - цена для немедленного исполнения.`;
     }
     
-    // Ensure min is not greater than max
+    // Ensure min is not greater than max, which can happen if logic places min above max
     if (finalMin > finalMax) {
-        [finalMin, finalMax] = [finalMax, finalMin]; // Swap them
+      finalMin = finalMax;
     }
 
     // --- End of new buy price logic ---
