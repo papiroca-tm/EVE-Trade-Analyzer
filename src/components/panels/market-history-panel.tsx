@@ -20,6 +20,7 @@ export function MarketHistoryPanel({
   const chartData = useMemo(() => {
     if (!history || history.length === 0) return [];
     
+    // Calculate SMA on the full history before slicing
     const chronologicalHistory = [...history].reverse();
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
@@ -43,6 +44,7 @@ export function MarketHistoryPanel({
       'SMA 30': sma30[index],
     }));
     
+    // Slice only after all calculations are done
     return fullChartData.slice(-timeHorizonDays);
 
   }, [history, timeHorizonDays]);
@@ -150,7 +152,7 @@ export function MarketHistoryPanel({
                 >
                     <Tooltip content={<CustomTooltip />} />
                     <XAxis dataKey="date" hide/>
-                    <YAxis domain={yDomainPrice} hide/>
+                    <YAxis hide domain={yDomainPrice} />
                     
                     {recommendationLines && (
                       <>
