@@ -114,14 +114,18 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[26rem] p-0">
-                      <Command>
+                      <Command filter={(value, search) => {
+                        const region = regions.find(r => r.region_id.toString() === value);
+                        if (region && region.name.toLowerCase().includes(search.toLowerCase())) return 1;
+                        return 0;
+                      }}>
                         <CommandInput placeholder="Search region..." />
                         <CommandEmpty>No region found.</CommandEmpty>
                         <CommandList>
                         <CommandGroup>
                           {regions.map((region) => (
                             <CommandItem
-                              value={region.name}
+                              value={region.region_id.toString()}
                               key={region.region_id}
                               onSelect={() => {
                                 form.setValue("regionId", region.region_id)
@@ -174,14 +178,18 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[26rem] p-0">
-                      <Command>
+                      <Command filter={(value, search) => {
+                        const item = itemTypes.find(i => i.type_id.toString() === value);
+                        if (item && item.name.toLowerCase().includes(search.toLowerCase())) return 1;
+                        return 0;
+                      }}>
                         <CommandInput placeholder="Search item..." />
                         <CommandEmpty>No item found.</CommandEmpty>
                          <CommandList>
                         <CommandGroup>
                           {itemTypes.map((item) => (
                             <CommandItem
-                              value={item.name}
+                              value={item.type_id.toString()}
                               key={item.type_id}
                               onSelect={() => {
                                 form.setValue("typeId", item.type_id)
