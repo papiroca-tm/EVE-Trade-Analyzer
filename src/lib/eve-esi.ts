@@ -139,30 +139,48 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
 }
 
 export async function getInitialItemTypes(): Promise<ItemType[]> {
-    const response = await fetchEsi(`/universe/types/?page=1`, true);
-    const typeIds: number[] = await response.json();
-    
-    const initialIdsToFetch = 20;
-    const cappedTypeIds = typeIds.slice(0, initialIdsToFetch);
+    const items: ItemType[] = [];
+    let page = 1;
+    const requiredItems = 20;
 
-    const itemDetailsPromises = cappedTypeIds.map(async (id) => {
+    while (items.length < requiredItems && page < 20) { // Add page limit to prevent infinite loops
         try {
-            const response = await fetchEsi(`/universe/types/${id}/`, true);
-            const data = await response.json();
-            if (data.published && data.market_group_id) {
-                return { type_id: id, name: data.name };
-            }
-            return null;
-        } catch {
-            return null;
-        }
-    });
-    
-    const settledDetails = await Promise.allSettled(itemDetailsPromises);
-    
-    const successfulItems = settledDetails
-        .filter((result): result is PromiseFulfilledResult<ItemType | null> => result.status === 'fulfilled' && result.value !== null)
-        .map(result => result.value as ItemType);
+            const typeIdsResponse = await fetchEsi(`/universe/types/?page=${page}`, true);
+            const typeIds: number[] = await typeIdsResponse.json();
 
-    return successfulItems.sort((a, b) => a.name.localeCompare(b.name));
+            if (typeIds.length === 0) {
+                break; // No more pages
+            }
+
+            const itemDetailsPromises = typeIds.map(async (id) => {
+                try {
+                    const response = await fetchEsi(`/universe/types/${id}/`, true);
+                    const data = await response.json();
+                    if (data.published && data.market_group_id) {
+                        return { type_id: id, name: data.name };
+                    }
+                    return null;
+                } catch {
+                    return null;
+                }
+            });
+
+            const settledDetails = await Promise.allSettled(itemDetailsPromises);
+
+            for (const result of settledDetails) {
+                if (result.status === 'fulfilled' && result.value) {
+                    items.push(result.value);
+                    if (items.length >= requiredItems) {
+                        break;
+                    }
+                }
+            }
+            page++;
+        } catch (error) {
+            console.error(`Error fetching or processing page ${page} of item types:`, error);
+            break; // Stop if there's a major error on a page
+        }
+    }
+
+    return items.slice(0, requiredItems).sort((a, b) => a.name.localeCompare(b.name));
 }
