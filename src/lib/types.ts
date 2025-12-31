@@ -34,6 +34,7 @@ export interface UserInputs {
 export type Feasibility = 'low' | 'medium' | 'high' | 'very high';
 
 export interface Recommendation {
+  recommendedBuyPrice: number;
   buyPriceRange: { min: number; max: number };
   sellPriceRange: { min: number; max: number };
   netMarginPercent: number;

@@ -2,7 +2,7 @@
 import type { AnalysisResult, Feasibility } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp } from 'lucide-react';
+import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign } from 'lucide-react';
 
 const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: string, value: string, unit?: string }) => (
     <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-2">
@@ -19,16 +19,14 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
     </div>
 );
 
-const PriceRangeCard = ({ title, range, icon }: { title: string, range: { min: number; max: number }, icon: React.ReactNode }) => (
+const PriceCard = ({ title, price, icon }: { title: string, price: number, icon: React.ReactNode }) => (
     <div className="flex flex-col gap-1 rounded-lg bg-muted/50 p-2">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             {icon}
             <span>{title}</span>
         </div>
         <div className="flex items-baseline justify-center gap-2">
-            <span className="text-base font-bold text-foreground font-mono">{range.min.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            <span className="text-muted-foreground text-xs">до</span>
-            <span className="text-base font-bold text-foreground font-mono">{range.max.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-base font-bold text-foreground font-mono">{price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
          <p className="text-center text-xs text-muted-foreground">ISK</p>
     </div>
@@ -72,8 +70,8 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
         {rec ? (
           <div className="space-y-3">
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <PriceRangeCard title="Рекомендуемый диапазон покупки" range={rec.buyPriceRange} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
-                <PriceRangeCard title="Рекомендуемый диапазон продажи" range={rec.sellPriceRange} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+                <PriceCard title="Рекомендуемая цена покупки" price={rec.recommendedBuyPrice} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
+                <PriceCard title="Ориентир цены продажи" price={rec.sellPriceRange.min} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
              </div>
 
              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -90,7 +88,10 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
              
              <Card className="bg-muted/30">
                 <CardHeader className="p-2">
-                     <CardTitle className="text-base">Потенциальная прибыль</CardTitle>
+                    <div className='flex items-center gap-2'>
+                        <CircleDollarSign className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-base">Потенциальная прибыль</CardTitle>
+                    </div>
                 </CardHeader>
                 <CardContent className="p-2 pt-0">
                     <p className="text-2xl font-bold text-primary font-mono text-center">

@@ -54,17 +54,14 @@ export function calculateAnalysis(
 
     let recommendations: Recommendation[] = [];
 
-    // --- New Algorithm Implementation ---
     if (history.length > 0 && averagePrice > 0) {
         
-        // Step 1: Определяем волатильность
-        const min_price = history.reduce((min, h) => Math.min(min, h.lowest), Infinity);
-        const max_price = history.reduce((max, h) => Math.max(max, h.highest), 0);
-        const volatility = max_price - min_price;
-        const price_floor = min_price + inputs.volatilityFactor * volatility;
+        const min_price_hist = history.reduce((min, h) => Math.min(min, h.lowest), Infinity);
+        const max_price_hist = history.reduce((max, h) => Math.max(max, h.highest), 0);
+        const volatility = max_price_hist - min_price_hist;
+        const price_floor = min_price_hist + inputs.volatilityFactor * volatility;
 
-        // Step 2: Расчёт максимальной цены покупки
-        const AssumedSellPrice = averagePrice; // Используем среднюю историческую цену как более стабильный ориентир
+        const AssumedSellPrice = averagePrice; 
         const broker_buy_fee_rate = inputs.brokerBuyFeePercent / 100;
         const broker_sell_fee_rate = inputs.brokerSellFeePercent / 100;
         const tax_rate = inputs.salesTaxPercent / 100;
@@ -72,25 +69,15 @@ export function calculateAnalysis(
         
         const MaxBuyPrice = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) / ((1 + broker_buy_fee_rate) * (1 + target_profit_rate));
 
-        // Step 3 (now just info): Check against floor
-        let recommended_buy = MaxBuyPrice;
-        
-        // Step 4: Коррекция по текущему стакану
-        const tick_size = 0.01;
-        if (buyOrders.length > 0) {
-            const best_current_buy = buyOrders.reduce((max, o) => Math.max(max, o.price), 0);
-            recommended_buy = Math.max(recommended_buy, best_current_buy + tick_size);
-        }
+        const recommendedBuyPrice = MaxBuyPrice;
 
-        // --- End of New Algorithm Core Logic ---
-
-        // We check if the calculated buy price is positive. The check against sell price is removed
-        // as it was causing issues and AssumedSellPrice is now based on average, not best sell.
-        if (recommended_buy > 0) {
+        if (recommendedBuyPrice > 0) {
             
-            const buyPriceRange = { min: price_floor, max: recommended_buy };
-            // The sell price range is now based on the average and historical max, as that's our target
-            const sellPriceRange = { min: AssumedSellPrice, max: max_price };
+            const buyPriceRange = { 
+                min: Math.min(price_floor, recommendedBuyPrice),
+                max: Math.max(price_floor, recommendedBuyPrice)
+            };
+            const sellPriceRange = { min: AssumedSellPrice, max: max_price_hist };
 
             const executableVolume = {
                 low: Math.floor(averageDailyVolume * 0.1 * inputs.executionDays),
@@ -102,35 +89,39 @@ export function calculateAnalysis(
                 max: inputs.executionDays,
             };
 
-            let feasibilityReason = `Оценка выполнимости основана на историческом объеме, глубине стакана и близости к текущим ценам.`;
-            if (recommended_buy < price_floor) {
+            let feasibilityReason = `Оценка выполнимости основана на историческом объеме и волатильности.`;
+            if (recommendedBuyPrice < price_floor) {
                 feasibilityReason += ` Внимание: Рекомендованная цена для достижения маржи ниже исторического уровня поддержки (${price_floor.toFixed(2)} ISK). Покупка по этой цене может быть затруднена.`;
             }
+            if (bestBuyPrice > 0 && recommendedBuyPrice < bestBuyPrice) {
+                 const diffPercent = ((bestBuyPrice - recommendedBuyPrice) / bestBuyPrice) * 100;
+                 feasibilityReason += ` Рекомендованная цена на ${diffPercent.toFixed(1)}% ниже текущего лучшего ордера на покупку. Исполнение может занять время.`
+            }
 
-            // Feasibility logic
+
             let score = 0;
             if (averageDailyVolume > 1000) score++;
             if (totalBuyOrderVolume > executableVolume.high) score++;
             if (totalSellOrderVolume > executableVolume.high) score++;
-            if (Math.abs(recommended_buy - midPrice) / midPrice < 0.1) score++;
-            if (recommended_buy >= price_floor) score++; // bonus point for being above floor
+            if (Math.abs(recommendedBuyPrice - midPrice) / midPrice < 0.25) score++; 
+            if (recommendedBuyPrice >= price_floor) score++; 
             
             const feasibilityLevels: Feasibility[] = ['low', 'low', 'medium', 'high', 'very high', 'very high'];
             const feasibility = feasibilityLevels[score];
 
-            const netProfitPerItem = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) - (recommended_buy * (1 + broker_buy_fee_rate));
-            const netMarginPercent = (recommended_buy * (1 + broker_buy_fee_rate)) > 0 
-                ? (netProfitPerItem / (recommended_buy * (1 + broker_buy_fee_rate))) * 100 
+            const netProfitPerItem = (AssumedSellPrice * (1 - tax_rate - broker_sell_fee_rate)) - (recommendedBuyPrice * (1 + broker_buy_fee_rate));
+            const netMarginPercent = (recommendedBuyPrice * (1 + broker_buy_fee_rate)) > 0 
+                ? (netProfitPerItem / (recommendedBuyPrice * (1 + broker_buy_fee_rate))) * 100 
                 : 0;
             
-            // Step 5: Ограничение по капиталу
             const capital = inputs.positionCapital ?? 100000000;
-            const quantity = recommended_buy > 0 ? Math.floor(capital / recommended_buy) : 0;
+            const quantity = recommendedBuyPrice > 0 ? Math.floor(capital / recommendedBuyPrice) : 0;
             const potentialProfit = netProfitPerItem * quantity;
 
             if (quantity >= 1) {
                 recommendations.push({
-                    buyPriceRange,
+                    recommendedBuyPrice: recommendedBuyPrice,
+                    buyPriceRange: buyPriceRange, // Still pass it for now, UI will be changed
                     sellPriceRange,
                     netMarginPercent,
                     potentialProfit,
@@ -147,7 +138,6 @@ export function calculateAnalysis(
     }
 
 
-    // --- Volatility (calculated for display) ---
     const averagePriceHistory = history.length > 0 ? historicalPrices.reduce((sum, p) => sum + p, 0) / historicalPrices.length : 0;
     const variance = history.length > 0 ? history.reduce((sum, h) => sum + Math.pow(h.average - averagePriceHistory, 2), 0) / history.length : 0;
     const stdDev = Math.sqrt(variance);
