@@ -36,31 +36,20 @@ const generateRandomCandlestickData = (count: number) => {
 
 // Custom shape for the candlestick
 const Candle = (props: any) => {
-  const { x, y, width, height, payload, yAxis } = props;
-  
-  if (!yAxis || typeof yAxis.scale !== 'function' || !payload) {
-    return null;
-  }
-
-  const { high, low, open, close } = payload;
+  const { x, y, width, height, low, high, open, close } = props;
   const isBullish = close >= open;
+  
+  const bodyHeight = Math.abs(y - props.yAxis.getScreenY(open));
 
-  const wickHighY = yAxis.scale(high);
-  const wickLowY = yAxis.scale(low);
-  
-  const bodyTopY = yAxis.scale(Math.max(open, close));
-  const bodyBottomY = yAxis.scale(Math.min(open, close));
-  const bodyHeight = Math.max(1, Math.abs(bodyTopY - bodyBottomY));
-  
-  const fillColor = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-  const strokeColor = fillColor;
+  const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+  const stroke = fill;
 
   return (
     <g>
       {/* Wick */}
-      <line x1={x + width / 2} y1={wickLowY} x2={x + width / 2} y2={wickHighY} stroke={strokeColor} strokeWidth="1" />
+      <line x1={x + width / 2} y1={props.yAxis.getScreenY(low)} x2={x + width / 2} y2={props.yAxis.getScreenY(high)} stroke={stroke} strokeWidth={1} />
       {/* Body */}
-      <rect x={x} y={bodyTopY} width={width} height={bodyHeight} fill={fillColor} />
+      <rect x={x} y={isBullish ? y : y - bodyHeight} width={width} height={bodyHeight} fill={fill} />
     </g>
   );
 };
@@ -74,11 +63,10 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
     const chartData = randomData.map((item, index) => {
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            high: item.high,
-            low: item.low,
-            open: item.open,
-            close: item.close,
-            body: [item.open, item.close], // For recharts bar
+            ...item,
+            // recharts <Bar> will use the higher value of the range for positioning (y prop).
+            // For bullish (green) candles, close is higher. For bearish (red), open is higher.
+            body: [item.open, item.close]
         }
     });
 
