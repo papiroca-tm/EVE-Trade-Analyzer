@@ -86,7 +86,7 @@ export function OrderBookPanel({ buyOrders, sellOrders, averageDailyVolume }: { 
             <BookOpen className="h-6 w-6 text-primary" />
             <CardTitle>Активные ордера</CardTitle>
         </div>
-        <CardDescription>Снимок топ-100 текущих ордеров. Лучшие предложения подсвечены.</CardDescription>
+        <CardDescription>Снимок топ-100 текущих ордеров. Лучшие предложения и уровни поддержки/сопротивления подсвечены.</CardDescription>
       </CardHeader>
       <CardContent className="flex gap-4">
         <OrderTable orders={sortedBuyOrders} type="buy" averageDailyVolume={averageDailyVolume} />
