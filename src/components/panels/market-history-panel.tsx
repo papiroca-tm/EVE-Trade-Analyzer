@@ -30,8 +30,6 @@ export function MarketHistoryPanel({
   }, [recommendations]);
 
   const chartData = useMemo(() => {
-    if (!history || history.length === 0) return [];
-    
     const chronologicalHistory = [...history].reverse();
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
