@@ -40,6 +40,7 @@ export default function Home() {
                     sellOrders={state.data?.sellOrders ?? []}
                     priceAnalysis={state.data?.priceAnalysis}
                     averageDailyVolume={state.data?.volumeAnalysis.averageDailyVolume ?? 0}
+                    inputs={state.data?.inputs}
                 />
             </div>
         </div>
