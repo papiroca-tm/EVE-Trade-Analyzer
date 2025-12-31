@@ -90,7 +90,6 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   useEffect(() => {
     async function performSearch() {
       if (debouncedItemSearch.length < 3) {
-        // When search is cleared or too short, revert to the initial list plus the currently selected item
         const currentItem = initialData.itemTypes.find(item => item.type_id === form.getValues('typeId'));
         const baseOptions = new Map<number, ItemType>();
         if(currentItem) baseOptions.set(currentItem.type_id, currentItem);
@@ -115,17 +114,20 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
         const currentItem = itemOptions.find(item => item.type_id === form.getValues('typeId'));
         const newOptions = new Map<number, ItemType>();
         
-        // Add current selected item to ensure it's not removed from the list
         if (currentItem) {
             newOptions.set(currentItem.type_id, currentItem);
         }
         
-        // Add search results
         results.forEach(item => newOptions.set(item.type_id, item));
         
         setItemOptions(Array.from(newOptions.values()).sort((a,b) => a.name.localeCompare(b.name)));
       } catch (error) {
         console.error("Failed to search for item types:", error);
+        toast({
+            variant: "destructive",
+            title: "Ошибка поиска",
+            description: error instanceof Error ? error.message : "Не удалось выполнить поиск.",
+        });
       } finally {
         setIsSearchingItems(false);
       }
