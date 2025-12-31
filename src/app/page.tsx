@@ -20,26 +20,26 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm md:px-3">
         <div className="flex items-center gap-2">
-          <Icons.logo className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <Icons.logo className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
             EVE Market Navigator
           </h1>
         </div>
       </header>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 lg:flex-row">
-        <div className="flex w-full flex-col gap-4 lg:w-2/5 lg:flex-row">
+      <main className="flex flex-1 flex-col gap-2 p-2 md:gap-4 md:p-4 lg:flex-row">
+        <div className="flex w-full flex-col gap-2 lg:w-2/5 lg:flex-row">
             <div className="w-full lg:w-1/2">
-            <div className="sticky top-20">
+            <div className="sticky top-16">
                 <InputForm formAction={formAction} />
             </div>
             </div>
             <div className="w-full lg:w-1/2">
-                <div className="sticky top-20">
+                <div className="sticky top-16">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Стакан</CardTitle>
+                        <CardHeader className="p-3">
+                            <CardTitle className="text-lg">Стакан</CardTitle>
                         </CardHeader>
                     </Card>
                 </div>

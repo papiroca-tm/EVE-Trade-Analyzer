@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -138,10 +137,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-             <div className="flex flex-col space-y-1 col-span-2">
-                <span className="text-[0.70rem] uppercase text-muted-foreground">
+        <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+             <div className="flex flex-col space-y-0 col-span-2">
+                <span className="text-[0.65rem] uppercase text-muted-foreground">
                     Дата
                 </span>
                 <span className="font-bold text-muted-foreground">
@@ -149,7 +148,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 МАКС.
               </span>
               <span className="font-bold">
@@ -157,7 +156,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               </span>
             </div>
              <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 МИН.
               </span>
               <span className="font-bold">
@@ -165,7 +164,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               </span>
             </div>
              <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 СРЕДНЯЯ
               </span>
               <span className="font-bold">
@@ -173,7 +172,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               </span>
             </div>
              <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 ОБЪЕМ
               </span>
               <span className="font-bold">
@@ -219,7 +218,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-            <CandlestickChartIcon className="h-6 w-6 text-primary" />
+            <CandlestickChartIcon className="h-5 w-5 text-primary" />
             <CardTitle>График цен (нестандартные свечи)</CardTitle>
         </div>
         <CardDescription>
@@ -227,11 +226,11 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-96 w-full">
+        <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={data}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
               <XAxis dataKey="date" tickLine={false} axisLine={false} hide={true} />

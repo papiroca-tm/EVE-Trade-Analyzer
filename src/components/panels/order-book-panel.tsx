@@ -1,4 +1,3 @@
-
 'use client';
 import type { MarketOrderItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -40,32 +39,32 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
 
     return (
         <div className='w-1/2'>
-            <h3 className={cn('mb-2 text-lg font-semibold', type === 'buy' ? 'text-green-400' : 'text-red-400')}>
+            <h3 className={cn('mb-1 text-base font-semibold', type === 'buy' ? 'text-green-400' : 'text-red-400')}>
                 {type === 'buy' ? 'Ордера на покупку' : 'Ордера на продажу'}
             </h3>
             <div className="border rounded-md">
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-muted/50">
-                            <TableHead className={cn('py-2', type === 'buy' ? 'text-green-400' : 'text-red-400')}>Цена</TableHead>
-                            <TableHead className="text-right py-2">Объем</TableHead>
+                            <TableHead className={cn('py-1 px-2 h-8', type === 'buy' ? 'text-green-400' : 'text-red-400')}>Цена</TableHead>
+                            <TableHead className="text-right py-1 px-2 h-8">Объем</TableHead>
                         </TableRow>
                     </TableHeader>
                 </Table>
-                <ScrollArea className="h-64">
+                <ScrollArea className="h-48">
                     <Table>
                         <TableBody>
                         {processedOrders.length > 0 ? (
                             processedOrders.slice(0, 100).map((order) => (
                             <TableRow key={order.order_id} className={cn(order.isWall && 'bg-accent/40 text-accent-foreground font-bold')}>
-                                <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                                <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
+                                <TableCell className="py-0.5 px-2 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                                <TableCell className="py-0.5 px-2 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
                             </TableRow>
                             ))
                         ) : (
                             <TableRow>
                             <TableCell colSpan={2} className="h-24 text-center">
-                                Нет ордеров на {type === 'buy' ? 'покупку' : 'продажу'}.
+                                Нет ордеров.
                             </TableCell>
                             </TableRow>
                         )}
@@ -84,12 +83,12 @@ export function OrderBookPanel({ buyOrders, sellOrders, averageDailyVolume }: { 
     <Card className="lg:col-span-2">
       <CardHeader>
         <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
+            <BookOpen className="h-5 w-5 text-primary" />
             <CardTitle>Активные ордера</CardTitle>
         </div>
-        <CardDescription>Снимок топ-100 текущих ордеров. Уровни поддержки/сопротивления подсвечены.</CardDescription>
+        <CardDescription>Снимок топ-100 ордеров. Уровни поддержки/сопротивления подсвечены.</CardDescription>
       </CardHeader>
-      <CardContent className="flex gap-4">
+      <CardContent className="flex gap-2">
         <OrderTable orders={buyOrders} type="buy" averageDailyVolume={averageDailyVolume} />
         <OrderTable orders={sellOrders} type="sell" averageDailyVolume={averageDailyVolume} />
       </CardContent>

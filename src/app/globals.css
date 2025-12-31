@@ -83,7 +83,7 @@ body {
     @apply border-border;
   }
   html {
-    @apply text-sm;
+    @apply text-xs;
   }
   body {
     @apply bg-background text-foreground;

@@ -1,4 +1,3 @@
-
 'use client';
 import type { MarketHistoryItem, Recommendation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -64,8 +63,7 @@ export function MarketHistoryPanel({
     if (allPriceValues.length > 0) {
       const minPrice = Math.min(...allPriceValues);
       const maxPrice = Math.max(...allPriceValues);
-      const range = maxPrice - minPrice;
-      const padding = range * 0.1;
+      const padding = (maxPrice - minPrice) * 0.1;
 
       priceDomain = [
         Math.max(0, minPrice - padding),
@@ -83,10 +81,10 @@ export function MarketHistoryPanel({
       const data = payload[0].payload;
 
       return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <div className="flex flex-col space-y-1 col-span-2">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+        <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+            <div className="flex flex-col space-y-0 col-span-2">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 Дата
               </span>
               <span className="font-bold text-muted-foreground">
@@ -95,7 +93,7 @@ export function MarketHistoryPanel({
             </div>
             
             {data.average && <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 Средняя
               </span>
               <span className="font-bold">
@@ -104,7 +102,7 @@ export function MarketHistoryPanel({
             </div>}
 
              {data.high && <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 Макс.
               </span>
               <span className="font-bold">
@@ -112,7 +110,7 @@ export function MarketHistoryPanel({
               </span>
             </div>}
             {data.low && <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 Мин.
               </span>
               <span className="font-bold">
@@ -121,7 +119,7 @@ export function MarketHistoryPanel({
             </div>}
 
             {data.Объем && <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 Объем
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--accent))' }}>
@@ -130,7 +128,7 @@ export function MarketHistoryPanel({
             </div>}
 
             {data['SMA 7'] && <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 SMA 7
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--chart-4))' }}>
@@ -138,7 +136,7 @@ export function MarketHistoryPanel({
               </span>
             </div>}
             {data['SMA 30'] && <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
+              <span className="text-[0.65rem] uppercase text-muted-foreground">
                 SMA 30
               </span>
               <span className="font-bold" style={{ color: 'hsl(var(--chart-5))' }}>
@@ -157,7 +155,7 @@ export function MarketHistoryPanel({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" />
+            <TrendingUp className="h-5 w-5 text-primary" />
             <CardTitle>Динамика рынка</CardTitle>
         </div>
         <CardDescription>
@@ -165,12 +163,12 @@ export function MarketHistoryPanel({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[30rem] w-full">
+        <div className="h-[24rem] w-full">
             <ResponsiveContainer width="100%" height="75%">
                 <ComposedChart
                     data={chartData} 
                     syncId="marketData"
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                 >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                     <Tooltip content={<CustomTooltip />} />
@@ -182,7 +180,7 @@ export function MarketHistoryPanel({
                         tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
                         tickLine={false}
                         axisLine={false}
-                        width={80}
+                        width={60}
                         hide={true}
                     />
                     <Line 
@@ -190,7 +188,7 @@ export function MarketHistoryPanel({
                         type="monotone" 
                         dataKey="Цена" 
                         stroke="hsl(var(--primary))" 
-                        strokeWidth={2} 
+                        strokeWidth={1.5} 
                         dot={false}
                     />
                     <Line 
@@ -198,7 +196,7 @@ export function MarketHistoryPanel({
                         type="monotone" 
                         dataKey="SMA 7" 
                         stroke="hsl(var(--chart-4))" 
-                        strokeWidth={1.5} 
+                        strokeWidth={1} 
                         strokeDasharray="3 3"
                         dot={false}
                         connectNulls
@@ -208,15 +206,15 @@ export function MarketHistoryPanel({
                         type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
-                        strokeWidth={1.5} 
+                        strokeWidth={1} 
                         strokeDasharray="8 4"
                         dot={false}
                         connectNulls
                     />
                     {recommendationLines && (
                       <>
-                        <ReferenceLine yAxisId="left" y={recommendationLines.buy} label={{ value: "Реком. покупка", position: 'insideTopLeft', fill: 'hsl(var(--chart-2))' }} stroke="hsl(var(--chart-2))" strokeDasharray="3 3" />
-                        <ReferenceLine yAxisId="left" y={recommendationLines.sell} label={{ value: "Реком. продажа", position: 'insideBottomLeft', fill: 'hsl(var(--destructive))' }} stroke="hsl(var(--destructive))" strokeDasharray="3 3" />
+                        <ReferenceLine yAxisId="left" y={recommendationLines.buy} label={{ value: "Реком. покупка", position: 'insideTopLeft', fill: 'hsl(var(--chart-2))', fontSize: 10 }} stroke="hsl(var(--chart-2))" strokeDasharray="3 3" strokeWidth={1} />
+                        <ReferenceLine yAxisId="left" y={recommendationLines.sell} label={{ value: "Реком. продажа", position: 'insideBottomLeft', fill: 'hsl(var(--destructive))', fontSize: 10 }} stroke="hsl(var(--destructive))" strokeDasharray="3 3" strokeWidth={1} />
                       </>
                     )}
                 </ComposedChart>
@@ -226,7 +224,7 @@ export function MarketHistoryPanel({
                 <BarChart 
                     data={chartData}
                     syncId="marketData"
-                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                 >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                     <XAxis dataKey="date" tickLine={false} axisLine={false} hide={true}/>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -86,17 +85,17 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Параметры рынка</CardTitle>
-        <CardDescription>Введите параметры для анализа. По умолчанию установлены значения для Tritanium в The Forge.</CardDescription>
+      <CardHeader className="p-3">
+        <CardTitle className="text-lg">Параметры рынка</CardTitle>
+        <CardDescription className="text-xs">Введите параметры для анализа. По умолчанию: Tritanium в The Forge.</CardDescription>
       </CardHeader>
       <Form {...form}>
         <form action={formAction}>
-          <CardContent className="flex flex-col gap-y-4">
+          <CardContent className="flex flex-col gap-y-2 p-3">
             {loadingInitialData ? (
                 <>
-                    <div className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
-                    <div className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-10 w-full" /></div>
+                    <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
+                    <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
                 </>
             ) : (
              <>
@@ -126,7 +125,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[26rem] p-0">
+                    <PopoverContent className="w-[18rem] p-0">
                       <Command>
                         <CommandInput 
                           placeholder="Поиск региона..."
@@ -185,7 +184,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[26rem] p-0">
+                    <PopoverContent className="w-[18rem] p-0">
                       <Command>
                         <CommandInput 
                           placeholder="Поиск предмета..."
@@ -288,7 +287,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                     <FormControl>
                         <Input type="number" {...field} />
                     </FormControl>
-                    <FormDescription>Количество дней для анализа исторических данных (макс. 365).</FormDescription>
+                    <FormDescription>Кол-во дней для анализа (макс. 365).</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
@@ -298,11 +297,11 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 name="optionalTargetVolume"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Опционально: Целевой объем</FormLabel>
+                    <FormLabel>Целевой объем (опц.)</FormLabel>
                     <FormControl>
                         <Input type="number" placeholder="например, 1000000" {...field} />
                     </FormControl>
-                    <FormDescription>Если установлено, будет оценено время для покупки/продажи этого объема.</FormDescription>
+                    <FormDescription>Оценка времени на покупку/продажу.</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
@@ -312,7 +311,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
             <input type="hidden" {...form.register('typeId')} />
 
           </CardContent>
-          <CardFooter>
+          <CardFooter className="p-3">
              <SubmitButton />
           </CardFooter>
         </form>
