@@ -17,30 +17,35 @@ export function calculateAnalysis(
 
   const recommendations: Recommendation[] = [];
 
-  // Вы абсолютно правы. Мы должны сравнивать только лучший ордер на покупку с лучшим ордером на продажу.
-  const bestBuyOrder = buyOrders[0];
-  const bestSellOrder = sellOrders[0];
+  // Логика для маржинальной торговли: разместить ордер на покупку и дождаться его исполнения,
+  // затем разместить ордер на продажу и дождаться его исполнения.
+  const highestBuyOrder = buyOrders[0];
+  const lowestSellOrder = sellOrders[0];
 
-  if (bestBuyOrder && bestSellOrder && bestBuyOrder.price < bestSellOrder.price) {
-    // Эта логика для маржинальной торговли: разместить ордер на покупку и дождаться его исполнения,
-    // затем разместить ордер на продажу и дождаться его исполнения.
-    // Цена "покупки" - это цена, по которой мы ставим наш ордер на покупку (равна bestBuyOrder.price)
-    // Цена "продажи" - это цена, по которой мы ставим наш ордер на продажу (равна bestSellOrder.price)
-    const netProfit = calculateNetProfit(bestBuyOrder.price, bestSellOrder.price, inputs);
-    const netMargin = (netProfit / bestBuyOrder.price) * 100;
+  if (highestBuyOrder && lowestSellOrder) {
+    // Рекомендуемая цена для НАШЕГО ордера на покупку: чуть выше самой высокой существующей цены покупки.
+    const recommendedBuyPrice = highestBuyOrder.price + 0.01;
+    // Рекомендуемая цена для НАШЕГО ордера на продажу: чуть ниже самой низкой существующей цены продажи.
+    const recommendedSellPrice = lowestSellOrder.price - 0.01;
 
-    if (netMargin >= inputs.desiredNetMarginPercent) {
-        // "Исполняемый объем" в данном случае - это скорее оценка ликвидности.
-        // Возьмем меньший из объемов на вершине стакана.
-        const executableVolume = Math.min(bestBuyOrder.volume_remain, bestSellOrder.volume_remain);
-        recommendations.push({
-            buyPrice: bestBuyOrder.price,
-            sellPrice: bestSellOrder.price,
-            netMarginPercent: netMargin,
-            profitPerItem: netProfit,
-            potentialProfit: netProfit * executableVolume,
-            executableVolume: executableVolume,
-        });
+    if (recommendedBuyPrice < recommendedSellPrice) {
+        const netProfit = calculateNetProfit(recommendedBuyPrice, recommendedSellPrice, inputs);
+        const netMargin = (netProfit / recommendedBuyPrice) * 100;
+
+        if (netMargin >= inputs.desiredNetMarginPercent) {
+            // "Исполняемый объем" - это оценка ликвидности. 
+            // Возьмем меньший из объемов на вершине стакана, так как это наиболее релевантные ордера, которые мы "перебиваем".
+            const executableVolume = Math.min(highestBuyOrder.volume_remain, lowestSellOrder.volume_remain);
+            
+            recommendations.push({
+                buyPrice: recommendedBuyPrice,
+                sellPrice: recommendedSellPrice,
+                netMarginPercent: netMargin,
+                profitPerItem: netProfit,
+                potentialProfit: netProfit * executableVolume,
+                executableVolume: executableVolume,
+            });
+        }
     }
   }
 
@@ -79,7 +84,7 @@ export function calculateAnalysis(
     orders,
     buyOrders,
     sellOrders,
-    recommendations: recommendations, // Возвращаем только одну, но правильную рекомендацию
+    recommendations,
     volumeAnalysis: {
       averageDailyVolume,
       estimatedExecutionTimeDays,
@@ -92,4 +97,3 @@ export function calculateAnalysis(
     }
   };
 }
-
