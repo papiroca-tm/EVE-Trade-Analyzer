@@ -59,7 +59,13 @@ const dataIntegrityAnalysisFlow = ai.defineFlow(
       return output!;
     } catch (error: any) {
       console.error('Error in dataIntegrityAnalysisFlow:', error);
-      throw new Error(`Анализ целостности данных не удался: ${error.message}`);
+      // Вместо того чтобы выбрасывать ошибку, возвращаем объект ошибки,
+      // который может быть обработан на стороне клиента.
+      return {
+        analysisReport: `Произошла ошибка при анализе данных AI: ${error.message || 'Неизвестная ошибка'}`,
+        dataReliabilityScore: 0,
+        warnings: ['Анализ целостности данных AI не удался.'],
+      };
     }
   }
 );
