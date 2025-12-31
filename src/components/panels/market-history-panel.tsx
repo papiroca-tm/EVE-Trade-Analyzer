@@ -8,11 +8,11 @@ import { useMemo } from 'react';
 
 // Custom shape for the candlestick
 const Candlestick = (props: any) => {
-  const { x, y, width, height, low, high, average, previousAverage, ...rest } = props;
-  const yAxis = (rest as any).yAxis;
+  const { x, width, low, high, average, previousAverage } = props;
+  const yAxis = props.yAxis;
 
   // If core props are missing, or we can't get the y-axis scale function, don't render.
-  if ([x, y, width, height, low, high, average, previousAverage].some(p => p === undefined || p === null) || !yAxis?.scale) {
+  if ([x, width, low, high, average, previousAverage].some(p => p === undefined || p === null) || !yAxis?.scale) {
       return null;
   }
 
@@ -229,10 +229,10 @@ export function MarketHistoryPanel({
                     {/* Candlesticks */}
                     <Bar 
                         yAxisId="left" 
-                        dataKey="average" 
                         shape={<Candlestick />} 
                         barSize={10} 
-                    />
+                    >
+                    </Bar>
 
                     {/* Average price line */}
                     <Line 
