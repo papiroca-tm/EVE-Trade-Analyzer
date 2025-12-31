@@ -36,35 +36,33 @@ const OrderTable = ({
 
   return (
     <div className="flex-1">
-      <ScrollArea className="h-[200px]">
-        <Table>
-          <TableBody>
-            {sortedOrders.length > 0 ? (
-              sortedOrders.map((order) => (
-                <TableRow key={order.order_id} className="border-b-0">
-                  <TableCell
-                    className={cn(
-                      'py-0.5 px-2 text-right font-mono',
-                      isSell ? 'text-red-400' : 'text-green-400'
-                    )}
-                  >
-                    {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
-                  </TableCell>
-                  <TableCell className="py-0.5 px-2 text-right font-mono">
-                    {order.volume_remain.toLocaleString('ru-RU')}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-                <TableRow className="border-b-0">
-                  <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">
-                    -
-                  </TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </ScrollArea>
+      <Table>
+        <TableBody>
+          {sortedOrders.length > 0 ? (
+            sortedOrders.map((order) => (
+              <TableRow key={order.order_id} className="border-b-0">
+                <TableCell
+                  className={cn(
+                    'py-0.5 px-2 text-right font-mono',
+                    isSell ? 'text-red-400' : 'text-green-400'
+                  )}
+                >
+                  {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                </TableCell>
+                <TableCell className="py-0.5 px-2 text-right font-mono">
+                  {order.volume_remain.toLocaleString('ru-RU')}
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+              <TableRow className="border-b-0">
+                <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">
+                  -
+                </TableCell>
+              </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 };
@@ -97,11 +95,13 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis }: { buy
         <CardTitle className="text-lg">Стакан</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="flex flex-col">
-          <OrderTable orders={sellOrders} type="sell" />
-          <SpreadTable priceAnalysis={priceAnalysis} />
-          <OrderTable orders={buyOrders} type="buy" />
-        </div>
+        <ScrollArea className="h-[calc(100vh-13rem)]">
+          <div className="flex flex-col">
+            <OrderTable orders={sellOrders} type="sell" />
+            <SpreadTable priceAnalysis={priceAnalysis} />
+            <OrderTable orders={buyOrders} type="buy" />
+          </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
