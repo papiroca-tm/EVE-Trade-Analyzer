@@ -6,7 +6,8 @@ import type { AnalysisState } from '@/lib/types';
 import { InputForm } from '@/components/input-form';
 import { ResultsDisplay } from '@/components/results-display';
 import { Icons } from '@/components/icons';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { OrderBookDisplay } from '@/components/order-book-display';
+
 
 const initialState: AnalysisState = {
   status: 'idle',
@@ -30,22 +31,18 @@ export default function Home() {
       </header>
       <main className="grid flex-1 grid-cols-10 gap-2 p-2 md:gap-4 md:p-4">
         <div className="col-span-3">
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <div className="col-span-1">
-                    <div className="sticky top-16 flex flex-col gap-2">
-                        <InputForm formAction={formAction} />
-                    </div>
-                </div>
-                <div className="col-span-1">
-                    <div className="sticky top-16 flex flex-col gap-2">
-                        <Card>
-                        <CardHeader className="p-3">
-                            <CardTitle className="text-lg">Стакан</CardTitle>
-                        </CardHeader>
-                        </Card>
-                    </div>
-                </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="col-span-1">
+              <div className="sticky top-16 flex flex-col gap-2">
+                <InputForm formAction={formAction} />
+              </div>
             </div>
+            <div className="col-span-1">
+              <div className="sticky top-16 flex flex-col gap-2">
+                <OrderBookDisplay />
+              </div>
+            </div>
+          </div>
         </div>
         <div className="col-span-7">
           <ResultsDisplay state={state} />
