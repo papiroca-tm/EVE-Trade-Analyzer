@@ -134,6 +134,60 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
   return transformedData;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-sm">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+             <div className="flex flex-col space-y-1 col-span-2">
+                <span className="text-[0.70rem] uppercase text-muted-foreground">
+                    Дата
+                </span>
+                <span className="font-bold text-muted-foreground">
+                    {label}
+                </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                МАКС.
+              </span>
+              <span className="font-bold">
+                {data.original_high.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+             <div className="flex flex-col">
+              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                МИН.
+              </span>
+              <span className="font-bold">
+                {data.original_low.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+             <div className="flex flex-col">
+              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                СРЕДНЯЯ
+              </span>
+              <span className="font-bold">
+                {data.average.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+             <div className="flex flex-col">
+              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                ОБЪЕМ
+              </span>
+              <span className="font-bold">
+                {data.volume.toLocaleString('ru-RU')}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  
+    return null;
+};
+
 
 export function CandlestickChartPanel({ history, timeHorizonDays }: { history: MarketHistoryItem[], timeHorizonDays: number }) {
   
@@ -191,24 +245,8 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                 width={80}
               />
               <Tooltip 
-                 formatter={(value, name, props) => {
-                    // Correctly access the full data point from the payload array
-                    const dataPoint = props.payload;
-                    if (name === 'body' && dataPoint) {
-                       return [
-                        `МАКС.: ${Number(dataPoint.original_high).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `МИН.: ${Number(dataPoint.original_low).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `СРЕДНЯЯ: ${Number(dataPoint.average).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `ОБЪЕМ: ${Number(dataPoint.volume).toLocaleString('ru-RU')}`,
-                       ]
-                    }
-                    return null;
-                 }}
-                 labelFormatter={(label) => `Дата: ${label}`}
-                 contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    borderColor: 'hsl(var(--border))',
-                 }}
+                 cursor={{ fill: 'hsl(var(--muted) / 0.3)'}}
+                 content={<CustomTooltip />}
               />
               <Bar dataKey="body" shape={<Candle />} />
             </ComposedChart>
