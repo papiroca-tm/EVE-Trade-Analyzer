@@ -13,12 +13,13 @@ async function fetchEsi(path: string, cache: boolean = false): Promise<Response>
         const response = await fetch(url, options);
 
         if (!response.ok) {
+            // ESI returns 404 for not found (search, empty history, no orders)
+            // This is not a critical error, so we can return the response to be handled by the caller
+            if (response.status === 404) {
+                return response;
+            }
             const errorBody = await response.text();
             console.error(`ESI Error for ${url}: ${response.status} ${errorBody}`);
-            // Do not throw for 404 on search, as it means "not found"
-            if (response.status === 404 && path.startsWith('/search/')) {
-                return response; 
-            }
             throw new Error(`Failed to fetch from ESI at ${url}: ${response.statusText}`);
         }
         return response;
@@ -31,6 +32,9 @@ async function fetchEsi(path: string, cache: boolean = false): Promise<Response>
 
 export async function fetchMarketHistory(regionId: number, typeId: number): Promise<MarketHistoryItem[]> {
   const response = await fetchEsi(`/markets/${regionId}/history/?type_id=${typeId}`);
+  if (response.status === 404) {
+    return [];
+  }
   const data: MarketHistoryItem[] = await response.json();
   return data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
@@ -46,6 +50,10 @@ async function fetchAllPages(path: string): Promise<any[]> {
         const url = `${path}${separator}page=${page}`;
         const response = await fetchEsi(url);
         
+        if (response.status === 404) {
+            break; // Not found on page 1 means no items at all.
+        }
+
         try {
             const data = await response.json();
 
@@ -71,7 +79,8 @@ async function fetchAllPages(path: string): Promise<any[]> {
 
 
 export async function fetchMarketOrders(regionId: number, typeId: number): Promise<MarketOrderItem[]> {
-  return fetchAllPages(`/markets/${regionId}/orders/?order_type=all&type_id=${typeId}`);
+  const response = await fetchAllPages(`/markets/${regionId}/orders/?order_type=all&type_id=${typeId}`);
+  return response;
 }
 
 export async function getRegions(): Promise<Region[]> {
@@ -111,7 +120,6 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
     
     const searchResponse = await fetchEsi(`/search/?categories=inventory_type&search=${encodeURIComponent(query)}&strict=false`);
     
-    // ESI search returns 404 if nothing is found.
     if (searchResponse.status === 404) {
         return [];
     }
@@ -121,7 +129,6 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
 
     if (typeIds.length === 0) return [];
     
-    // ESI search can return many results, limit what we fetch details for.
     const maxIdsToFetch = 50; 
     const cappedTypeIds = typeIds.slice(0, maxIdsToFetch);
     
@@ -129,7 +136,6 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
         try {
             const response = await fetchEsi(`/universe/types/${id}/`, true);
             const data = await response.json();
-            // Check if the item is published (meaning it's a usable item in the game)
             if (data.published) {
                 return { type_id: id, name: data.name };
             }
@@ -149,11 +155,9 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
     return successfulItems.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Gets a sample of marketable items to populate the list initially.
 export async function getInitialItemTypes(): Promise<ItemType[]> {
     try {
-        // We fetch one of the main market groups for minerals.
-        const marketGroupResponse = await fetchEsi(`/markets/groups/1857/`, true);
+        const marketGroupResponse = await fetchEsi(`/markets/groups/1857/`, true); // Minerals
         const marketGroupData = await marketGroupResponse.json();
         const typeIds: number[] = marketGroupData.types || [];
         
@@ -183,7 +187,6 @@ export async function getInitialItemTypes(): Promise<ItemType[]> {
         return items.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
         console.error("Failed to get initial item types from market group, falling back.", error);
-        // Fallback in case the market group ID changes or is unavailable
         return [
             { type_id: 34, name: 'Tritanium' },
             { type_id: 35, name: 'Pyerite' },
@@ -191,3 +194,5 @@ export async function getInitialItemTypes(): Promise<ItemType[]> {
         ];
     }
 }
+
+    
