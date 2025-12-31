@@ -17,37 +17,61 @@ export function calculateAnalysis(
 
   const recommendations: Recommendation[] = [];
 
-  // Логика для маржинальной торговли: разместить ордер на покупку и дождаться его исполнения,
-  // затем разместить ордер на продажу и дождаться его исполнения.
-  const highestBuyOrder = buyOrders[0];
-  const lowestSellOrder = sellOrders[0];
+  // Новая логика: ищем "стенки" и выгодные коридоры, а не просто перебиваем крайние ордера.
+  // Мы будем рассматривать несколько лучших ордеров на покупку и продажу.
+  const buySlice = buyOrders.slice(0, 15);
+  const sellSlice = sellOrders.slice(0, 15);
 
-  if (highestBuyOrder && lowestSellOrder) {
-    // Рекомендуемая цена для НАШЕГО ордера на покупку: чуть выше самой высокой существующей цены покупки.
-    const recommendedBuyPrice = highestBuyOrder.price + 0.01;
-    // Рекомендуемая цена для НАШЕГО ордера на продажу: чуть ниже самой низкой существующей цены продажи.
-    const recommendedSellPrice = lowestSellOrder.price - 0.01;
+  // Перебираем потенциальные цены покупки (основанные на существующих ордерах на покупку)
+  for (const potentialBuyOrder of buySlice) {
+    // Наша цена покупки будет чуть выше, чтобы быть конкурентными
+    const myBuyPrice = potentialBuyOrder.price + 0.01;
+    
+    // Перебираем потенциальные цены продажи
+    for (const potentialSellOrder of sellSlice) {
+      // Наша цена продажи будет чуть ниже
+      const mySellPrice = potentialSellOrder.price - 0.01;
 
-    if (recommendedBuyPrice < recommendedSellPrice) {
-        const netProfit = calculateNetProfit(recommendedBuyPrice, recommendedSellPrice, inputs);
-        const netMargin = (netProfit / recommendedBuyPrice) * 100;
+      // Цена покупки не может быть выше или равна цене продажи
+      if (myBuyPrice >= mySellPrice) {
+        continue;
+      }
 
-        if (netMargin >= inputs.desiredNetMarginPercent) {
-            // "Исполняемый объем" - это оценка ликвидности. 
-            // Возьмем меньший из объемов на вершине стакана, так как это наиболее релевантные ордера, которые мы "перебиваем".
-            const executableVolume = Math.min(highestBuyOrder.volume_remain, lowestSellOrder.volume_remain);
-            
+      const netProfit = calculateNetProfit(myBuyPrice, mySellPrice, inputs);
+      const netMargin = (netProfit / myBuyPrice) * 100;
+      
+      // Проверяем, соответствует ли маржа желаемой
+      if (netMargin >= inputs.desiredNetMarginPercent) {
+        
+        // Оцениваем объем, который реально исполнить по этим ценам.
+        // Это объем ордеров, которые находятся "между" нашими ценами.
+        const volumeBetween = 
+            buyOrders.filter(o => o.price >= myBuyPrice).reduce((sum, o) => sum + o.volume_remain, 0) +
+            sellOrders.filter(o => o.price <= mySellPrice).reduce((sum, o) => sum + o.volume_remain, 0);
+        
+        const executableVolume = Math.min(
+            potentialBuyOrder.volume_remain, 
+            potentialSellOrder.volume_remain,
+            volumeBetween
+        );
+
+        if (executableVolume > 0) {
             recommendations.push({
-                buyPrice: recommendedBuyPrice,
-                sellPrice: recommendedSellPrice,
+                buyPrice: myBuyPrice,
+                sellPrice: mySellPrice,
                 netMarginPercent: netMargin,
                 profitPerItem: netProfit,
                 potentialProfit: netProfit * executableVolume,
                 executableVolume: executableVolume,
             });
         }
+      }
     }
   }
+
+  // Удаляем дубликаты и сортируем по потенциальной прибыли
+  const uniqueRecommendations = Array.from(new Map(recommendations.map(item => [`${item.buyPrice}-${item.sellPrice}`, item])).values());
+  uniqueRecommendations.sort((a, b) => b.potentialProfit - a.potentialProfit);
 
 
   const totalVolume = history.reduce((sum, item) => sum + item.volume, 0);
@@ -84,7 +108,7 @@ export function calculateAnalysis(
     orders,
     buyOrders,
     sellOrders,
-    recommendations,
+    recommendations: uniqueRecommendations.slice(0, 50), // Возвращаем топ-50 лучших возможностей
     volumeAnalysis: {
       averageDailyVolume,
       estimatedExecutionTimeDays,
