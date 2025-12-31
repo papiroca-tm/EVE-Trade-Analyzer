@@ -1,3 +1,4 @@
+
 'use client';
 import type { MarketHistoryItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,21 +9,19 @@ import { useMemo } from 'react';
 
 export function MarketHistoryPanel({ 
     history,
+    timeHorizonDays,
 }: { 
     history: MarketHistoryItem[],
+    timeHorizonDays: number,
 }) {
     
   const chartData = useMemo(() => {
     if (!history || history.length === 0) return [];
     
-    const data = history.map(item => ({
-      date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-      fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
-      Цена: item.average,
-      Объем: item.volume,
-    })).reverse(); // Reverse to have dates in chronological order for SMA calculation
+    // Reverse once to get chronological order for calculations
+    const chronologicalHistory = [...history].reverse();
 
-    const calculateSMA = (data: typeof history, period: number) => {
+    const calculateSMA = (data: MarketHistoryItem[], period: number) => {
         return data.map((_item, index, arr) => {
             if (index < period - 1) return null; // Not enough data for SMA
             const slice = arr.slice(index - period + 1, index + 1);
@@ -31,29 +30,34 @@ export function MarketHistoryPanel({
         });
     };
 
-    const sma7 = calculateSMA(history.slice().reverse(), 7);
-    const sma30 = calculateSMA(history.slice().reverse(), 30);
-    
-    return data.map((p, index) => ({
-      ...p,
+    const sma7 = calculateSMA(chronologicalHistory, 7);
+    const sma30 = calculateSMA(chronologicalHistory, 30);
+
+    const fullChartData = chronologicalHistory.map((item, index) => ({
+      date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+      fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
+      Цена: item.average,
+      Объем: item.volume,
       'SMA 7': sma7[index],
       'SMA 30': sma30[index],
     }));
+    
+    // Slice the data for display *after* calculations are done
+    return fullChartData.slice(-timeHorizonDays);
 
-  }, [history]);
+  }, [history, timeHorizonDays]);
 
   const yDomainPrice = useMemo(() => {
-      if (!history || history.length === 0) return [0, 0];
-      const prices = history.map(p => p.average);
+      if (!chartData || chartData.length === 0) return [0, 0];
+      const prices = chartData.map(p => p.Цена);
       const min = Math.min(...prices);
       const max = Math.max(...prices);
       const range = max - min;
       
-      // Ensure padding is not zero if all prices are the same
       const padding = range === 0 ? max * 0.1 : range * 0.1;
       
       return [min - padding, max + padding];
-  }, [history]);
+  }, [chartData]);
   
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -123,7 +127,7 @@ export function MarketHistoryPanel({
             <CardTitle>Динамика рынка</CardTitle>
         </div>
         <CardDescription>
-            Цена, объем торгов и скользящие средние (SMA) за последние {history.length} дней.
+            Цена, объем торгов и скользящие средние (SMA) за последние {chartData.length} дней.
         </CardDescription>
       </CardHeader>
       <CardContent>

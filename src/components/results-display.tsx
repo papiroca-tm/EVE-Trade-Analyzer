@@ -1,3 +1,4 @@
+
 'use client';
 import type { AnalysisState } from '@/lib/types';
 import { useEffect } from 'react';
@@ -61,7 +62,8 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
             )}
             <div className="lg:col-span-2">
               <MarketHistoryPanel 
-                history={state.data.history.slice(0, state.data.inputs.timeHorizonDays)}
+                history={state.data.history}
+                timeHorizonDays={state.data.inputs.timeHorizonDays}
               />
             </div>
             <div className="lg:col-span-2">
