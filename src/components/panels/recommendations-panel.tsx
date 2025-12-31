@@ -1,6 +1,6 @@
 
 'use client';
-import type { AnalysisResult, Feasibility } from '@/lib/types';
+import type { AnalysisResult, Feasibility, PriceRange } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign } from 'lucide-react';
@@ -21,7 +21,7 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
     </div>
 );
 
-const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon, colorClass }: { title: string, average: number, longTerm: number, midTerm: number, shortTerm: number, icon: React.ReactNode, colorClass: string }) => {
+const PriceCard = ({ title, priceRange, icon, colorClass }: { title: string, priceRange: PriceRange, icon: React.ReactNode, colorClass: string }) => {
     const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
     return (
@@ -33,7 +33,7 @@ const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon, colorCl
             
             <div className='text-center my-2'>
                 <p className={`text-3xl font-bold font-mono ${colorClass}`}>
-                    {formatPrice(average)}
+                    {formatPrice(priceRange.average)}
                 </p>
                 <p className="text-xs text-muted-foreground">ISK (обобщенная)</p>
             </div>
@@ -43,8 +43,8 @@ const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon, colorCl
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-muted-foreground">Долгосрок.</span>
-                                <span className="text-sm font-bold text-foreground">{formatPrice(longTerm)}</span>
+                                <span className="text-xs font-sans text-red-500">Долгосрок.</span>
+                                <span className="text-sm font-bold text-foreground">{formatPrice(priceRange.longTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -57,8 +57,8 @@ const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon, colorCl
                     <Tooltip>
                         <TooltipTrigger asChild>
                              <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-muted-foreground">Среднесрок.</span>
-                                <span className="text-sm font-bold text-foreground">{formatPrice(midTerm)}</span>
+                                <span className="text-xs font-sans text-yellow-500">Среднесрок.</span>
+                                <span className="text-sm font-bold text-foreground">{formatPrice(priceRange.midTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -71,8 +71,8 @@ const PriceCard = ({ title, average, longTerm, midTerm, shortTerm, icon, colorCl
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-muted-foreground">Краткосрок.</span>
-                                <span className="text-sm font-bold text-foreground">{formatPrice(shortTerm)}</span>
+                                <span className="text-xs font-sans text-green-500">Краткосрок.</span>
+                                <span className="text-sm font-bold text-foreground">{formatPrice(priceRange.shortTerm)}</span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -104,6 +104,8 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
 
   const rec = recommendations && recommendations.length > 0 ? recommendations[0] : null;
 
+  const emptyPriceRange: PriceRange = { longTerm: 0, midTerm: 0, shortTerm: 0, average: 0 };
+
   return (
     <Card>
       <CardHeader>
@@ -126,19 +128,13 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <PriceCard 
                     title="Рекомендуемая цена покупки" 
-                    average={rec.buyPriceRange.average}
-                    longTerm={rec.buyPriceRange.longTerm} 
-                    midTerm={rec.buyPriceRange.midTerm}
-                    shortTerm={rec.buyPriceRange.shortTerm}
+                    priceRange={rec.buyPriceRange}
                     icon={<ArrowDown className="h-4 w-4 text-green-400" />}
                     colorClass="text-primary"
                 />
                  <PriceCard 
                     title="Ориентир цены продажи" 
-                    average={rec.sellPriceRange.average}
-                    longTerm={rec.sellPriceRange.longTerm} 
-                    midTerm={rec.sellPriceRange.midTerm}
-                    shortTerm={rec.sellPriceRange.shortTerm}
+                    priceRange={rec.sellPriceRange}
                     icon={<ArrowUp className="h-4 w-4 text-red-400" />}
                     colorClass="text-destructive"
                 />
@@ -180,13 +176,13 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <PriceCard 
                     title="Рекомендуемая цена покупки" 
-                    average={0} longTerm={0} midTerm={0} shortTerm={0} 
+                    priceRange={emptyPriceRange} 
                     icon={<ArrowDown className="h-4 w-4 text-green-400" />}
                     colorClass="text-primary"
                 />
                  <PriceCard 
                     title="Ориентир цены продажи" 
-                    average={0} longTerm={0} midTerm={0} shortTerm={0} 
+                    priceRange={emptyPriceRange}
                     icon={<ArrowUp className="h-4 w-4 text-red-400" />}
                     colorClass="text-destructive"
                 />
@@ -228,3 +224,5 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
+
+    
