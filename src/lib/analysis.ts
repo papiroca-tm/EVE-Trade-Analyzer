@@ -50,6 +50,8 @@ export function calculateAnalysis(
     const averageDailyVolume = history.length > 0 ? totalVolume / history.length : 0;
     const totalBuyOrderVolume = buyLadder.length > 0 ? buyLadder[buyLadder.length - 1].cumulativeVolume : 0;
     const totalSellOrderVolume = sellLadder.length > 0 ? sellLadder[sellLadder.length - 1].cumulativeVolume : 0;
+    const averagePrice = historicalPrices.length > 0 ? historicalPrices.reduce((a,b) => a+b, 0) / historicalPrices.length : 0;
+
 
     // --- Core Logic: Find Feasible Price Ranges ---
     const desiredMarginFactor = 1 + (inputs.desiredNetMarginPercent / 100);
@@ -157,12 +159,14 @@ export function calculateAnalysis(
         averageDailyVolume,
         totalBuyOrderVolume,
         totalSellOrderVolume,
+        totalVolume,
       },
       priceAnalysis: {
         bestBuyPrice,
         bestSellPrice,
         midPrice,
-        volatility
+        volatility,
+        averagePrice,
       }
     };
 }

@@ -52,12 +52,14 @@ export interface AnalysisResult {
     averageDailyVolume: number;
     totalBuyOrderVolume: number;
     totalSellOrderVolume: number;
+    totalVolume: number;
   };
   priceAnalysis: {
     bestBuyPrice: number;
     bestSellPrice: number;
     midPrice: number;
     volatility: number;
+    averagePrice: number;
   };
 }
 
@@ -79,5 +81,3 @@ export interface ItemType {
     type_id: number;
     name: string;
 }
-
-    

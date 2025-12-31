@@ -108,5 +108,3 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
         return { regions: [], itemTypes: [{ type_id: 34, name: 'Tritanium' }] };
     }
 }
-
-    

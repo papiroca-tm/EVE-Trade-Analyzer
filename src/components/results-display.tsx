@@ -57,7 +57,11 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
             {state.warnings && state.warnings.length > 0 && (
               <WarningsPanel warnings={state.warnings} />
             )}
-            <MarketHistoryPanel history={state.data.history.slice(0, state.data.inputs.timeHorizonDays)} />
+            <MarketHistoryPanel 
+              history={state.data.history.slice(0, state.data.inputs.timeHorizonDays)}
+              averagePrice={state.data.priceAnalysis.averagePrice}
+              totalVolume={state.data.volumeAnalysis.totalVolume}
+            />
             <OrderBookPanel 
               buyOrders={state.data.buyOrders} 
               sellOrders={state.data.sellOrders} 
