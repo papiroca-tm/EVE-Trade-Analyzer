@@ -11,8 +11,6 @@ import {
   TableBody,
   TableCell,
   TableRow,
-  TableHeader,
-  TableHead,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -72,10 +70,10 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
                             background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
                         }}
                     >
-                        <TableCell className={cn('py-0.5 px-2 text-right font-mono text-red-400', order.isWall && 'font-bold')}>
+                        <TableCell className={cn('py-0.5 px-2 text-right font-mono text-red-400', order.isWall && 'font-bold text-destructive-foreground')}>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className={cn("py-0.5 px-2 text-right font-mono", order.isWall && 'font-bold')}>
+                        <TableCell className={cn("py-0.5 px-2 text-right font-mono", order.isWall && 'font-bold text-destructive-foreground')}>
                             {order.volume_remain.toLocaleString('ru-RU')}
                         </TableCell>
                     </TableRow>
@@ -135,10 +133,10 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
                             background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
                         }}
                     >
-                        <TableCell className={cn('py-0.5 px-2 text-right font-mono text-green-400', order.isWall && 'font-bold')}>
+                        <TableCell className={cn('py-0.5 px-2 text-right font-mono text-green-400', order.isWall && 'font-bold text-accent-foreground')}>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className={cn("py-0.5 px-2 text-right font-mono", order.isWall && 'font-bold')}>
+                        <TableCell className={cn("py-0.5 px-2 text-right font-mono", order.isWall && 'font-bold text-accent-foreground')}>
                             {order.volume_remain.toLocaleString('ru-RU')}
                         </TableCell>
                     </TableRow>
@@ -170,14 +168,23 @@ const SpreadRow = ({ priceAnalysis, inputs, spreadRef }: { priceAnalysis?: Price
 
     return (
         <TableRow ref={spreadRef} className="border-y hover:bg-muted/50">
-            <TableCell className="p-1 text-center font-mono text-xs">
-                {marginPercent !== null 
-                    ? <span className={cn(marginPercent > 0 ? "text-green-400" : "text-red-400")}>{marginPercent.toFixed(2)}%</span>
-                    : '-'
-                }
-            </TableCell>
-            <TableCell className="p-1 text-center font-mono text-xs text-muted-foreground">
-                {spread !== null ? spread.toLocaleString('ru-RU', { minimumFractionDigits: 2 }) + ' ISK' : '-'}
+            <TableCell colSpan={2} className="p-1 text-center font-mono text-xs">
+                <div className='flex justify-around items-center'>
+                    <div className='text-muted-foreground'>
+                        Маржа:
+                        {marginPercent !== null 
+                            ? <span className={cn('ml-1', marginPercent > 0 ? "text-green-400" : "text-red-400")}>{marginPercent.toFixed(2)}%</span>
+                            : <span className='ml-1'>-</span>
+                        }
+                    </div>
+                    <div className='text-muted-foreground'>
+                        Спред:
+                        {spread !== null 
+                            ? <span className='ml-1 text-foreground'>{spread.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ISK</span> 
+                            : <span className='ml-1'>-</span>
+                        }
+                    </div>
+                </div>
             </TableCell>
         </TableRow>
     )
@@ -223,12 +230,6 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
       <CardContent className="p-0">
         <ScrollArea className="h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
           <Table>
-            <TableHeader className='sticky top-0 bg-background z-10'>
-                <TableRow className='hover:bg-muted/50'>
-                    <TableHead className='py-1 px-2 w-1/2 text-center'>Маржа % / Цена</TableHead>
-                    <TableHead className='py-1 px-2 w-1/2 text-center'>Спред ISK / Объем</TableHead>
-                </TableRow>
-            </TableHeader>
             <TableBody>
               <SellOrdersRows orders={sellOrders} averageDailyVolume={averageDailyVolume} />
               <SpreadRow priceAnalysis={priceAnalysis} inputs={inputs} spreadRef={spreadRef} />
