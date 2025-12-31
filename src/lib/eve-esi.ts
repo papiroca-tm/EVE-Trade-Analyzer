@@ -3,14 +3,20 @@ import type { MarketHistoryItem, MarketOrderItem, Region, ItemType } from './typ
 
 const ESI_BASE_URL = 'https://esi.evetech.net/latest';
 
+// Fetch with a 24-hour cache policy.
 async function fetchWithCache(url: string) {
-    return fetch(url, { next: { revalidate: 86400 } }); // Cache for 24 hours
+    return fetch(url, { next: { revalidate: 86400 } }); 
+}
+
+// Fetch without caching for live market data.
+async function fetchWithoutCache(url: string) {
+    return fetch(url, { cache: 'no-store' });
 }
 
 
 export async function fetchMarketHistory(regionId: number, typeId: number): Promise<MarketHistoryItem[]> {
   const url = `${ESI_BASE_URL}/markets/${regionId}/history/?type_id=${typeId}`;
-  const response = await fetch(url, { cache: 'no-store' }); // Don't cache this
+  const response = await fetchWithoutCache(url);
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -28,7 +34,7 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
 
   while (page <= totalPages) {
     const url = `${ESI_BASE_URL}/markets/${regionId}/orders/?order_type=all&type_id=${typeId}&page=${page}`;
-    const response = await fetch(url, { cache: 'no-store' }); // Don't cache this
+    const response = await fetchWithoutCache(url);
 
     if (!response.ok) {
        const errorBody = await response.text();
@@ -46,43 +52,13 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
     if (xPagesHeader) {
       totalPages = parseInt(xPagesHeader, 10);
     } else {
-        break; // No more pages
+        break;
     }
     
     page++;
   }
   
   return allOrders;
-}
-
-async function fetchAllPages<T>(url: string): Promise<T[]> {
-    let allItems: T[] = [];
-    let page = 1;
-    let totalPages = 1;
-  
-    while (page <= totalPages) {
-      const pageUrl = `${url}?page=${page}`;
-      const response = await fetchWithCache(pageUrl);
-  
-      if (!response.ok) {
-        throw new Error(`Failed to fetch paged data from ${url}: ${response.statusText}`);
-      }
-  
-      const data: T[] = await response.json();
-      if (data.length === 0) break;
-  
-      allItems = allItems.concat(data);
-  
-      const xPagesHeader = response.headers.get('x-pages');
-      if (xPagesHeader) {
-        totalPages = parseInt(xPagesHeader, 10);
-      } else {
-        break; 
-      }
-      
-      page++;
-    }
-    return allItems;
 }
 
 export async function getRegions(): Promise<Region[]> {
@@ -113,22 +89,41 @@ export async function getRegions(): Promise<Region[]> {
 
 
 export async function getItemTypes(): Promise<ItemType[]> {
-    const marketTypeIdsUrl = `${ESI_BASE_URL}/markets/types/`;
-    const ids = await fetchAllPages<number>(marketTypeIdsUrl);
+    const marketGroupsUrl = `${ESI_BASE_URL}/markets/groups/`;
+    const marketGroupsResponse = await fetchWithCache(marketGroupsUrl);
+    if (!marketGroupsResponse.ok) throw new Error("Failed to fetch market group IDs");
+    const marketGroupIds: number[] = await marketGroupsResponse.json();
+    
+    let allTypeIds: number[] = [];
 
-    // ESI has a limit on how many concurrent requests are good, let's batch
-    const batchSize = 100;
+    for (const groupId of marketGroupIds) {
+        try {
+            const groupUrl = `${ESI_BASE_URL}/markets/groups/${groupId}/`;
+            const groupResponse = await fetchWithCache(groupUrl);
+            if (!groupResponse.ok) continue;
+            const groupData = await groupResponse.json();
+            if (groupData.types) {
+                allTypeIds.push(...groupData.types);
+            }
+        } catch(e) {
+             console.error(`Failed to fetch market group details for ID ${groupId}`, e);
+        }
+    }
+    
+    const uniqueTypeIds = [...new Set(allTypeIds)];
+
+    const batchSize = 200;
     let allTypeDetails: (ItemType | null)[] = [];
 
-    for (let i = 0; i < ids.length; i += batchSize) {
-        const batchIds = ids.slice(i, i + batchSize);
+    for (let i = 0; i < uniqueTypeIds.length; i += batchSize) {
+        const batchIds = uniqueTypeIds.slice(i, i + batchSize);
         const batchPromises = batchIds.map(async id => {
              try {
                 const url = `${ESI_BASE_URL}/universe/types/${id}/`;
                 const response = await fetchWithCache(url);
                 if (!response.ok) return null;
                 const data = await response.json();
-                if (!data.published || !data.market_group_id) return null;
+                if (!data.published) return null;
                 return { type_id: id, name: data.name };
             } catch (e) {
                 console.error(`Failed to fetch item details for ID ${id}`, e);
@@ -137,9 +132,10 @@ export async function getItemTypes(): Promise<ItemType[]> {
         });
         const batchResults = await Promise.all(batchPromises);
         allTypeDetails = allTypeDetails.concat(batchResults);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to be polite to the API
     }
     
     return allTypeDetails
-        .filter((t): t is ItemType => t !== null)
+        .filter((t): t is ItemType => t !== null && !!t.name)
         .sort((a,b) => a.name.localeCompare(b.name));
 }
