@@ -30,12 +30,12 @@ export default function Home() {
       </header>
       <main className="flex flex-1 flex-col gap-2 p-2 md:gap-4 md:p-4 lg:flex-row">
         <div className="flex w-full flex-col gap-2 lg:w-2/5 lg:flex-row">
-            <div className="w-full lg:w-1/2">
+            <div className="w-full lg:w-2/3">
             <div className="sticky top-16">
                 <InputForm formAction={formAction} />
             </div>
             </div>
-            <div className="w-full lg:w-1/2">
+            <div className="w-full lg:w-1/3">
                 <div className="sticky top-16">
                     <Card>
                         <CardHeader className="p-3">
