@@ -22,7 +22,14 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
         description: state.error,
       });
     }
-  }, [state.status, state.error, toast]);
+    if (state.status === 'success' && state.data?.history && state.data.history.length > 0) {
+      const latestHistoryItem = state.data.history[state.data.history.length - 1];
+      toast({
+        title: 'Отладка: Последняя дата из API',
+        description: `Самая свежая запись в истории рынка: ${latestHistoryItem.date}`,
+      });
+    }
+  }, [state, toast]);
 
   switch (state.status) {
     case 'idle':
