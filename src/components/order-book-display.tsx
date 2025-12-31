@@ -27,20 +27,6 @@ const OrderTable = ({
   const isSell = type === 'sell';
   return (
     <div className="flex-1">
-      <Table>
-        <TableHeader>
-          <TableRow
-            className={cn(
-              'hover:bg-transparent border-b-0',
-              isSell ? 'text-red-400' : 'text-green-400'
-            )}
-          >
-            <TableHead className="py-1 px-2 h-8 text-right">Цена</TableHead>
-            <TableHead className="py-1 px-2 h-8 text-right">Объем</TableHead>
-            <TableHead className="py-1 px-2 h-8 text-right">Сумма</TableHead>
-          </TableRow>
-        </TableHeader>
-      </Table>
       <ScrollArea className="h-[200px]">
         <Table>
           <TableBody>
