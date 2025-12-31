@@ -65,7 +65,7 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
       timeHorizonDays: 90,
       executionDays: 14,
       volatilityFactor: 1.0,
-      positionCapital: "",
+      positionCapital: "1000000000",
     },
   });
 
