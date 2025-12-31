@@ -55,18 +55,24 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
                 <RecommendationsPanel data={state.data} />
             </div>
             {state.warnings && state.warnings.length > 0 && (
-              <WarningsPanel warnings={state.warnings} />
+               <div className="lg:col-span-2">
+                <WarningsPanel warnings={state.warnings} />
+               </div>
             )}
-            <MarketHistoryPanel 
-              history={state.data.history.slice(0, state.data.inputs.timeHorizonDays)}
-              averagePrice={state.data.priceAnalysis.averagePrice}
-              totalVolume={state.data.volumeAnalysis.totalVolume}
-            />
-            <OrderBookPanel 
-              buyOrders={state.data.buyOrders} 
-              sellOrders={state.data.sellOrders} 
-              averageDailyVolume={state.data.volumeAnalysis.averageDailyVolume}
-            />
+            <div className="lg:col-span-2">
+              <MarketHistoryPanel 
+                history={state.data.history.slice(0, state.data.inputs.timeHorizonDays)}
+                averagePrice={state.data.priceAnalysis.averagePrice}
+                totalVolume={state.data.volumeAnalysis.totalVolume}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <OrderBookPanel 
+                buyOrders={state.data.buyOrders} 
+                sellOrders={state.data.sellOrders} 
+                averageDailyVolume={state.data.volumeAnalysis.averageDailyVolume}
+              />
+            </div>
         </div>
       );
     default:
