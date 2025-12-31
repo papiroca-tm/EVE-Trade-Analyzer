@@ -16,7 +16,11 @@ async function fetchEsi(path: string, cache: boolean = false): Promise<Response>
             // ESI returns 404 for not found (search, empty history, no orders)
             // This is not a critical error, so we can return the response to be handled by the caller
             if (response.status === 404) {
-                return response;
+                // Return a new response with an empty JSON array to avoid cascading errors
+                return new Response(JSON.stringify([]), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                });
             }
             const errorBody = await response.text();
             console.error(`ESI Error for ${url}: ${response.status} ${errorBody}`);
@@ -32,9 +36,6 @@ async function fetchEsi(path: string, cache: boolean = false): Promise<Response>
 
 export async function fetchMarketHistory(regionId: number, typeId: number): Promise<MarketHistoryItem[]> {
   const response = await fetchEsi(`/markets/${regionId}/history/?type_id=${typeId}`);
-  if (response.status === 404) {
-    return [];
-  }
   const data: MarketHistoryItem[] = await response.json();
   return data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
@@ -50,10 +51,6 @@ async function fetchAllPages(path: string): Promise<any[]> {
         const url = `${path}${separator}page=${page}`;
         const response = await fetchEsi(url);
         
-        if (response.status === 404) {
-            break; // Not found on page 1 means no items at all.
-        }
-
         try {
             const data = await response.json();
 
@@ -120,10 +117,6 @@ export async function searchItemTypes(query: string): Promise<ItemType[]> {
     
     const searchResponse = await fetchEsi(`/search/?categories=inventory_type&search=${encodeURIComponent(query)}&strict=false`);
     
-    if (searchResponse.status === 404) {
-        return [];
-    }
-
     const searchResult = await searchResponse.json();
     const typeIds: number[] = searchResult.inventory_type || [];
 
@@ -194,5 +187,3 @@ export async function getInitialItemTypes(): Promise<ItemType[]> {
         ];
     }
 }
-
-    

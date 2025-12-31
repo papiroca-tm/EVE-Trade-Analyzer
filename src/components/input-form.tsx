@@ -86,24 +86,21 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   }, []);
   
   useEffect(() => {
-    if (debouncedItemSearch.length < 3) {
-      setIsSearchingItems(false);
-      return;
-    }
-
     const search = async () => {
+      if (debouncedItemSearch.length < 3) {
+        setIsSearchingItems(false);
+        return;
+      }
       setIsSearchingItems(true);
       try {
         const results = await searchItemTypes(debouncedItemSearch);
-        setItemOptions(prevOptions => {
-          const newOptions = new Map(prevOptions.map(item => [item.type_id, item]));
-          results.forEach(item => {
-            if (!newOptions.has(item.type_id)) {
-              newOptions.set(item.type_id, item);
-            }
-          });
-          return Array.from(newOptions.values());
-        });
+        // Keep the currently selected item in the list if it's not in the results
+        const currentItem = itemOptions.find(item => item.type_id === form.getValues('typeId'));
+        const newOptions = new Map(results.map(item => [item.type_id, item]));
+        if(currentItem && !newOptions.has(currentItem.type_id)){
+          newOptions.set(currentItem.type_id, currentItem);
+        }
+        setItemOptions(Array.from(newOptions.values()));
       } catch (error) {
         console.error("Failed to search for item types:", error);
       } finally {
@@ -112,6 +109,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     };
 
     search();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedItemSearch]);
 
   const selectedItem = useMemo(() => itemOptions.find(item => item.type_id === form.watch('typeId')), [itemOptions, form.watch('typeId')]);
@@ -357,6 +355,3 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     </Card>
   );
 }
-
-    
-    
