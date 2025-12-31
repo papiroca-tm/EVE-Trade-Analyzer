@@ -43,32 +43,36 @@ const OrderTable = ({ orders, type, averageDailyVolume }: { orders: MarketOrderI
             <h3 className={cn('mb-2 text-lg font-semibold', type === 'buy' ? 'text-green-400' : 'text-red-400')}>
                 {type === 'buy' ? 'Ордера на покупку' : 'Ордера на продажу'}
             </h3>
-            <ScrollArea className="h-64 border rounded-md">
-            <Table>
-                <TableHeader>
-                <TableRow className="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm hover:bg-muted/95">
-                    <TableHead className={cn('py-2', type === 'buy' ? 'text-green-400' : 'text-red-400')}>Цена</TableHead>
-                    <TableHead className="text-right py-2">Объем</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {processedOrders.length > 0 ? (
-                    processedOrders.slice(0, 100).map((order) => (
-                    <TableRow key={order.order_id} className={cn(order.isWall && 'bg-accent/40 text-accent-foreground font-bold')}>
-                        <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
-                    </TableRow>
-                    ))
-                ) : (
-                    <TableRow>
-                    <TableCell colSpan={2} className="h-24 text-center">
-                        Нет ордеров на {type === 'buy' ? 'покупку' : 'продажу'}.
-                    </TableCell>
-                    </TableRow>
-                )}
-                </TableBody>
-            </Table>
-            </ScrollArea>
+            <div className="border rounded-md">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="hover:bg-muted/50">
+                            <TableHead className={cn('py-2', type === 'buy' ? 'text-green-400' : 'text-red-400')}>Цена</TableHead>
+                            <TableHead className="text-right py-2">Объем</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                </Table>
+                <ScrollArea className="h-64">
+                    <Table>
+                        <TableBody>
+                        {processedOrders.length > 0 ? (
+                            processedOrders.slice(0, 100).map((order) => (
+                            <TableRow key={order.order_id} className={cn(order.isWall && 'bg-accent/40 text-accent-foreground font-bold')}>
+                                <TableCell className="py-1 px-4 font-mono">{order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                                <TableCell className="py-1 px-4 text-right font-mono">{order.volume_remain.toLocaleString('ru-RU')}</TableCell>
+                            </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                            <TableCell colSpan={2} className="h-24 text-center">
+                                Нет ордеров на {type === 'buy' ? 'покупку' : 'продажу'}.
+                            </TableCell>
+                            </TableRow>
+                        )}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </div>
         </div>
     );
 };
