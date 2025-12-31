@@ -33,7 +33,6 @@ export function MarketHistoryPanel({
     const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
-        // We need `period` amount of data *before* the current slice to calculate the first SMA point correctly.
         const fullPeriodData = chronologicalHistory.slice(Math.max(0, chronologicalHistory.indexOf(data[0]) - period + 1));
         
         return data.map((_item, index, arr) => {
@@ -60,31 +59,13 @@ export function MarketHistoryPanel({
       'Объем': item.volume,
       'SMA 7': sma7[index],
       'SMA 30': sma30[index],
-      'recBuy': recommendationLines?.buy,
-      'recSell': recommendationLines?.sell,
+      recBuy: recommendationLines?.buy,
+      recSell: recommendationLines?.sell,
     }));
     
     return fullChartData;
 
   }, [history, timeHorizonDays, recommendationLines]);
-  
-  const yDomainPrice = useMemo(() => {
-      if (!chartData || chartData.length === 0) return [0, 'auto'];
-      const prices = chartData.map(p => p.Цена).filter(p => p !== null && p !== undefined) as number[];
-      if (recommendationLines) {
-        prices.push(recommendationLines.buy);
-        prices.push(recommendationLines.sell);
-      }
-      if (prices.length === 0) return [0, 'auto'];
-      
-      const min = Math.min(...prices);
-      const max = Math.max(...prices);
-      const range = max - min;
-      
-      const padding = range === 0 ? max * 0.1 : range * 0.1;
-      
-      return [Math.max(0, min - padding), max + padding];
-  }, [chartData, recommendationLines]);
   
   
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -164,10 +145,9 @@ export function MarketHistoryPanel({
                 >
                     <Tooltip content={<CustomTooltip />} />
                     <XAxis dataKey="date" hide/>
-                    <YAxis hide domain={yDomainPrice} yAxisId="0" />
+                    <YAxis hide domain={['dataMin', 'dataMax']} />
                     
                     <Line 
-                        yAxisId="0"
                         type="monotone" 
                         dataKey="Цена" 
                         stroke="hsl(var(--primary))" 
@@ -175,7 +155,6 @@ export function MarketHistoryPanel({
                         dot={false}
                     />
                     <Line 
-                        yAxisId="0"
                         type="monotone" 
                         dataKey="SMA 7" 
                         stroke="hsl(var(--chart-4))" 
@@ -185,7 +164,6 @@ export function MarketHistoryPanel({
                         connectNulls
                     />
                     <Line 
-                        yAxisId="0"
                         type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
@@ -197,26 +175,24 @@ export function MarketHistoryPanel({
                     {recommendationLines && (
                       <>
                         <Line
-                          yAxisId="0"
                           type="monotone"
                           dataKey="recBuy"
+                          name="Рекомендация покупки"
                           stroke="#888888"
                           strokeWidth={1.5}
                           strokeDasharray="3 3"
                           dot={false}
                           connectNulls
-                          name="Рекомендация покупки"
                         />
                         <Line
-                          yAxisId="0"
                           type="monotone"
                           dataKey="recSell"
+                          name="Рекомендация продажи"
                           stroke="#888888"
                           strokeWidth={1.5}
                           strokeDasharray="3 3"
                           dot={false}
                           connectNulls
-                          name="Рекомендация продажи"
                         />
                       </>
                     )}
