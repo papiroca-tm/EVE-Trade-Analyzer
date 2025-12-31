@@ -145,9 +145,10 @@ export function MarketHistoryPanel({
                 >
                     <Tooltip content={<CustomTooltip />} />
                     <XAxis dataKey="date" hide/>
-                    <YAxis hide domain={['dataMin', 'dataMax']} />
+                    <YAxis yAxisId="0" domain={['dataMin', 'dataMax']} tick={false} axisLine={false} width={0} />
                     
                     <Line 
+                        yAxisId="0"
                         type="monotone" 
                         dataKey="Цена" 
                         stroke="hsl(var(--primary))" 
@@ -155,6 +156,7 @@ export function MarketHistoryPanel({
                         dot={false}
                     />
                     <Line 
+                        yAxisId="0"
                         type="monotone" 
                         dataKey="SMA 7" 
                         stroke="hsl(var(--chart-4))" 
@@ -164,6 +166,7 @@ export function MarketHistoryPanel({
                         connectNulls
                     />
                     <Line 
+                        yAxisId="0"
                         type="monotone" 
                         dataKey="SMA 30" 
                         stroke="hsl(var(--chart-5))" 
@@ -175,6 +178,7 @@ export function MarketHistoryPanel({
                     {recommendationLines && (
                       <>
                         <Line
+                          yAxisId="0"
                           type="monotone"
                           dataKey="recBuy"
                           name="Рекомендация покупки"
@@ -185,6 +189,7 @@ export function MarketHistoryPanel({
                           connectNulls
                         />
                         <Line
+                          yAxisId="0"
                           type="monotone"
                           dataKey="recSell"
                           name="Рекомендация продажи"
