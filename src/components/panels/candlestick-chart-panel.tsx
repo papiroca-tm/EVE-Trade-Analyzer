@@ -58,17 +58,20 @@ const Candle = (props: any) => {
 
 
 /**
- * Transforms historical EVE Online market data into a synthetic OHLC format for candlestick charts
- * according to the specified algorithm.
+ * Transforms historical EVE Online market data into a synthetic OHLC format where the body represents the price range
+ * and the wicks represent the trading volume.
  * @param history - An array of market history items, sorted chronologically.
  * @returns An array of data points formatted for a candlestick chart.
  */
 function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
   if (!history || history.length === 0) return [];
 
-  // Step 1: Preparation - Find V_max over the entire period.
+  // Step 1: Preparation - Find V_max over the entire period for volume normalization.
   const V_max = history.reduce((max, item) => Math.max(max, item.volume), 0);
-  if (V_max === 0) return []; // No volume, can't draw bodies.
+  
+  // Find max price range to normalize volume extension
+  const max_range = history.reduce((max, item) => Math.max(max, item.highest - item.lowest), 0);
+
 
   const transformedData = history.map((item, index) => {
     // Step 2: Process each day
@@ -77,17 +80,18 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
     const avg_t = item.average;
     const volume_t = item.volume;
 
-    // --- ALGORITHM CORRECTION ---
-    // 1. Determine the maximum possible body height centered on avg_t
-    const max_body_height_t = 2 * Math.min(avg_t - low_t, high_t - avg_t);
-    
-    // Ensure max_body_height is non-negative
-    const safe_max_body_height = Math.max(0, max_body_height_t);
-
-    // 2. Use this corrected max height to scale the volume ratio
+    // --- Volume-based wick calculation ---
+    // Normalize volume
     const volume_ratio_t = V_max > 0 ? volume_t / V_max : 0;
-    const body_height_t = volume_ratio_t * safe_max_body_height;
+    
+    // The extension is proportional to volume and capped by a fraction of max daily range to keep it reasonable
+    const volume_extension = volume_ratio_t * (max_range > 0 ? max_range * 0.25 : avg_t * 0.05);
 
+    // New wicks are based on volume
+    const new_high = high_t + volume_extension;
+    const new_low = Math.max(0, low_t - volume_extension);
+
+    // --- Price-range body and color direction ---
     let direction: 'bullish' | 'bearish' | 'neutral' = 'neutral';
     if (index > 0) {
         const avg_t_minus_1 = history[index - 1].average;
@@ -98,31 +102,31 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
         }
     }
 
-    // --- COLOR FIX ---
-    // Determine open and close based on direction to ensure correct color
-    const center = avg_t;
-    const half_body = body_height_t / 2;
     let open_t: number;
     let close_t: number;
-
+    
+    // Body is now the actual price range. Color depends on direction.
     if (direction === 'bullish') {
-      open_t = center - half_body;
-      close_t = center + half_body;
-    } else { // bearish or neutral
-      open_t = center + half_body;
-      close_t = center - half_body;
+        open_t = low_t;
+        close_t = high_t;
+    } else { // Bearish or Neutral
+        open_t = high_t;
+        close_t = low_t;
     }
-
+    
     // Final assembly for the day
     return {
       date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
       open: open_t,
-      high: high_t,
-      low: low_t,
+      high: new_high, // Extended high for wick
+      low: new_low,   // Extended low for wick
       close: close_t,
-      // The `body` dataKey is what recharts uses to calculate y and height for the custom shape.
-      // It needs to represent the full range of the wick (high to low).
-      body: [low_t, high_t] 
+      // Pass original values for tooltip
+      original_high: high_t,
+      original_low: low_t,
+      volume: volume_t,
+      // The `body` dataKey is what recharts uses for y/height. It must span the full wick range.
+      body: [new_low, new_high] 
     };
   });
 
@@ -161,10 +165,10 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
       <CardHeader>
         <div className="flex items-center gap-2">
             <CandlestickChartIcon className="h-6 w-6 text-primary" />
-            <CardTitle>График цен (Синтетические свечи)</CardTitle>
+            <CardTitle>График цен (Объем в тенях)</CardTitle>
         </div>
         <CardDescription>
-            Дневной диапазон цен (фитиль), относительный объем (тело) и направление ср. цены (цвет).
+            Тело свечи - реальный диапазон цен дня. Тени (фитили) - относительный объем торгов. Цвет - направление ср. цены.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -190,10 +194,9 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                     const { payload } = props;
                     if (name === 'body' && payload) {
                        return [
-                        `Open: ${Number(payload.open).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `High: ${Number(payload.high).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `Low: ${Number(payload.low).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
-                        `Close: ${Number(payload.close).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `High (цена): ${Number(payload.original_high).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `Low (цена): ${Number(payload.original_low).toLocaleString('ru-RU', {minimumFractionDigits: 2})}`,
+                        `Объем: ${Number(payload.volume).toLocaleString('ru-RU')}`,
                        ]
                     }
                     return null;
