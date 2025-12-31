@@ -39,7 +39,11 @@ export default function Home() {
             </div>
             <div className="col-span-1">
               <div className="sticky top-16 flex flex-col gap-2">
-                <OrderBookDisplay />
+                <OrderBookDisplay 
+                  buyOrders={state.data?.buyOrders ?? []}
+                  sellOrders={state.data?.sellOrders ?? []}
+                  priceAnalysis={state.data?.priceAnalysis}
+                />
               </div>
             </div>
           </div>

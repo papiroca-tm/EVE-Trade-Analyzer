@@ -42,6 +42,14 @@ export interface Recommendation {
   feasibilityReason: string;
 }
 
+export interface PriceAnalysis {
+    bestBuyPrice: number;
+    bestSellPrice: number;
+    midPrice: number;
+    volatility: number;
+    averagePrice: number;
+}
+
 export interface AnalysisResult {
   inputs: UserInputs;
   history: MarketHistoryItem[];
@@ -54,13 +62,7 @@ export interface AnalysisResult {
     totalSellOrderVolume: number;
     totalVolume: number;
   };
-  priceAnalysis: {
-    bestBuyPrice: number;
-    bestSellPrice: number;
-    midPrice: number;
-    volatility: number;
-    averagePrice: number;
-  };
+  priceAnalysis: PriceAnalysis;
 }
 
 export type AnalysisStatus = 'idle' | 'loading' | 'success' | 'error';
