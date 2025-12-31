@@ -55,33 +55,64 @@ export function calculateAnalysis(
 
     const tickSize = 0.01;
 
-    // Find the buy-side support wall price
+    // --- Start of new buy price logic ---
+
+    // Find the buy-side support wall price (used as a fallback)
     const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
     let cumulativeVolumeForWall = 0;
     let supportWallBuyPrice = 0;
-    const sortedBuyOrders = [...buyOrders].sort((a, b) => b.price - a.price);
-    for (const order of sortedBuyOrders) {
-        cumulativeVolumeForWall += order.volume_remain;
+    for (const order of buyLadder) { // buyLadder is already sorted high to low
+        cumulativeVolumeForWall += order.volume;
         if (cumulativeVolumeForWall >= wallThreshold) {
             supportWallBuyPrice = order.price;
             break;
         }
     }
-    // If no wall is found, use the best buy price as a fallback for the lower bound.
-    if (supportWallBuyPrice === 0 && sortedBuyOrders.length > 0) {
-        supportWallBuyPrice = bestBuyPrice;
+    if (supportWallBuyPrice === 0 && buyLadder.length > 0) {
+        supportWallBuyPrice = buyLadder[buyLadder.length - 1].price; // Fallback to lowest buy price
     }
+
+    let minBuyPrice = supportWallBuyPrice + tickSize;
+    let maxBuyPrice = bestBuyPrice + tickSize;
+
+    // New logic based on capital and execution time
+    if (inputs.positionCapital && inputs.positionCapital > 0 && averageDailyVolume > 0) {
+        const buyExecutionDays = inputs.executionDays / 2;
+        
+        // Volume that is likely to be traded during our buy window
+        const targetExecutionVolume = averageDailyVolume * buyExecutionDays;
+
+        // Find the price level where the cumulative volume is just under our target execution volume
+        let strategicBuyPrice = 0;
+        // Find the first order where cumulative volume exceeds our target.
+        // We want to place our order just below this price.
+        const targetOrder = buyLadder.find(order => order.cumulativeVolume >= targetExecutionVolume);
+
+        if (targetOrder) {
+            // Place our order 1 tick below this level to wait for it to be cleared.
+            strategicBuyPrice = targetOrder.price - tickSize;
+        } else if (buyLadder.length > 0) {
+            // If the entire book volume is less than our target,
+            // we place the order at the very bottom of the buy book.
+             strategicBuyPrice = buyLadder[buyLadder.length - 1].price - tickSize;
+        }
+        
+        // The new recommended price is this strategic price.
+        // We can use it as the upper bound of our range.
+        if (strategicBuyPrice > 0) {
+            maxBuyPrice = strategicBuyPrice;
+        }
+    }
+    
+    // Final check to make sure min is not greater than max
+    const finalMin = Math.min(minBuyPrice, maxBuyPrice);
+    const finalMax = Math.max(minBuyPrice, maxBuyPrice);
+
+    // --- End of new buy price logic ---
 
 
     const recommendations: Recommendation[] = [];
     
-    const lowerBound = supportWallBuyPrice > 0 ? supportWallBuyPrice + tickSize : 0;
-    const upperBound = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
-
-    // Ensure min is not greater than max
-    const finalMin = Math.min(lowerBound, upperBound);
-    const finalMax = Math.max(lowerBound, upperBound);
-
     if (finalMax > 0) {
         const recommendation: Recommendation = {
           buyPriceRange: { 
@@ -89,7 +120,6 @@ export function calculateAnalysis(
               max: finalMax,
           },
           // All other fields are placeholders for now
-          recommendedBuyPrice: 0,
           sellPriceRange: { min: 0, max: 0 },
           netMarginPercent: 0,
           potentialProfit: 0,
@@ -100,6 +130,7 @@ export function calculateAnalysis(
         };
         recommendations.push(recommendation);
     }
+
 
     return {
       inputs,
