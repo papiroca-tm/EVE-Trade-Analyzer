@@ -54,50 +54,54 @@ export function calculateAnalysis(
     const volatilityPercent = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
 
     const tickSize = 0.01;
-
-    // --- Start of new buy price logic ---
-
-    let finalMin = 0;
-    let finalMax = 0;
+    
+    let recommendedBuyPrice = 0;
     let feasibilityReason = "Анализ не дал результатов.";
 
+    if (averageDailyVolume > 0 && buyOrders.length > 0) {
+        const sortedBuyOrders = [...buyOrders].sort((a, b) => b.price - a.price);
 
-    if (averageDailyVolume > 0 && buyLadder.length > 0) {
-        finalMax = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
+        // Find the "wall"
+        const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
+        let cumulativeVolumeForWall = 0;
+        let wallOrderPrice = 0;
+        for (const order of sortedBuyOrders) {
+            cumulativeVolumeForWall += order.volume_remain;
+            if (cumulativeVolumeForWall >= wallThreshold) {
+                wallOrderPrice = order.price;
+                break;
+            }
+        }
+        // If no wall found, start from the bottom of the book
+        if (wallOrderPrice === 0 && sortedBuyOrders.length > 0) {
+             wallOrderPrice = sortedBuyOrders[sortedBuyOrders.length - 1].price;
+        }
 
-        const buyExecutionDays = inputs.executionDays / 2;
-        const volumePerDay = averageDailyVolume * buyExecutionDays;
+        const ordersToConsider = sortedBuyOrders.filter(o => o.price >= wallOrderPrice);
 
-        const averagePriceForVolumeCalc = bestBuyPrice > 0 ? bestBuyPrice : (averagePriceHistory > 0 ? averagePriceHistory : 1);
-        const volumeForCapital = inputs.positionCapital ? inputs.positionCapital / averagePriceForVolumeCalc : Infinity;
-        
-        // We target the smaller of the two volumes: what's needed for the timeframe, vs what the capital allows
-        const targetExecutionVolume = Math.min(volumePerDay, volumeForCapital);
+        const buyExecutionTimeDays = inputs.executionDays / 2;
+        const marketExecutionPower = (averageDailyVolume / 2) * buyExecutionTimeDays;
 
-        // Find the price level where we need to place our order.
-        // We look for the first order where the cumulative volume *before* it exceeds our target.
-        // Placing our order at this price level means we'll be executed after this volume.
-        const targetOrder = buyLadder.find(order => order.cumulativeVolume >= targetExecutionVolume);
-
-        if (targetOrder) {
-            // We set our price at this level to wait in line.
-            finalMin = targetOrder.price + tickSize;
-        } else {
-            // If the entire book volume is less than our target execution volume,
-            // it means we can likely get filled at the top of the book within our timeframe.
-            // So, the strategic price is the same as the immediate price.
-            finalMin = finalMax;
+        let foundPrice = false;
+        // Search from the wall upwards
+        for (let i = ordersToConsider.length - 1; i >= 0; i--) {
+            const order = ordersToConsider[i];
+            const volumeAhead = getVolumeAhead(buyLadder, order.price, 'buy');
+            
+            if (volumeAhead < marketExecutionPower) {
+                recommendedBuyPrice = order.price + tickSize;
+                feasibilityReason = `Рекомендованная цена ${recommendedBuyPrice.toFixed(2)} ISK найдена путем поиска наиболее выгодной цены (начиная от 'стены' на уровне ${wallOrderPrice.toFixed(2)} ISK), где объем ордеров впереди (${volumeAhead.toLocaleString('ru-RU')} ед.) меньше, чем ожидаемая 'сила' рынка (~${marketExecutionPower.toLocaleString('ru-RU')} ед.) за половину срока сделки.`;
+                foundPrice = true;
+                break;
+            }
         }
         
-        feasibilityReason = `Диапазон покупки основан на желаемом сроке исполнения (${inputs.executionDays} дней, ~${buyExecutionDays.toFixed(0)} на покупку), что соответствует целевому объему ~${targetExecutionVolume.toLocaleString('ru-RU', {maximumFractionDigits: 0})} ед. Нижняя граница (${finalMin.toFixed(2)} ISK) - это стратегическая цена для исполнения в срок. Верхняя граница (${finalMax.toFixed(2)} ISK) - цена для немедленного исполнения.`;
+        // Fallback: if no suitable price found (e.g., market is too thick), recommend the best price.
+        if (!foundPrice) {
+            recommendedBuyPrice = bestBuyPrice > 0 ? bestBuyPrice + tickSize : 0;
+            feasibilityReason = "Рынок слишком 'плотный'. Не удалось найти стратегическую цену с исполнением в срок. Рекомендуется немедленное исполнение по лучшей цене.";
+        }
     }
-    
-    // Ensure min is not greater than max, which can happen if logic places min above max
-    if (finalMin > finalMax) {
-      finalMin = finalMax;
-    }
-
-    // --- End of new buy price logic ---
 
 
     const recommendations: Recommendation[] = [];
@@ -105,8 +109,8 @@ export function calculateAnalysis(
     // We always create a recommendation now, even if it's not profitable, to show the calculated range.
     const recommendation: Recommendation = {
       buyPriceRange: { 
-          min: finalMin, 
-          max: finalMax,
+          min: recommendedBuyPrice, 
+          max: recommendedBuyPrice,
       },
       sellPriceRange: { min: 0, max: 0 },
       netMarginPercent: 0,
