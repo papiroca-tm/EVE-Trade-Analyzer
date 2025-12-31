@@ -4,7 +4,6 @@
 import { z } from 'zod';
 import { analyzeDataIntegrity } from '@/ai/flows/data-integrity-analysis';
 import { fetchMarketHistory, fetchMarketOrders, getRegions, searchItemTypes } from './eve-esi';
-import { calculateAnalysis } from './analysis';
 import type { AnalysisState, MarketHistoryItem, MarketOrderItem, AnalysisResult, Region, ItemType } from './types';
 
 const formSchema = z.object({
