@@ -13,23 +13,48 @@ export function MarketHistoryPanel({
 }) {
     
   const chartData = useMemo(() => {
-    return history.map(item => ({
+    if (!history || history.length === 0) return [];
+    
+    const data = history.map((item, index) => ({
       date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
       fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
       Цена: item.average,
       Объем: item.volume,
+      index: history.length - 1 - index, // For trend calculation, index starts from 0 for oldest date
     })).reverse();
+
+    if (data.length < 2) return data;
+
+    // Linear regression for trend line
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    const n = data.length;
+    data.forEach(p => {
+        sumX += p.index;
+        sumY += p.Цена;
+        sumXY += p.index * p.Цена;
+        sumX2 += p.index * p.index;
+    });
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    return data.map(p => ({
+        ...p,
+        'Линия тренда': slope * p.index + intercept,
+    }));
   }, [history]);
 
   const yDomainPrice = useMemo(() => {
-      if (chartData.length === 0) return [0, 0];
+      if (!chartData || chartData.length === 0) return [0, 0];
       const prices = chartData.map(p => p.Цена);
       const min = Math.min(...prices);
       const max = Math.max(...prices);
-      const padding = (max - min) * 0.1;
+      const range = max - min;
+      
       // Ensure padding is not zero if all prices are the same
-      const finalPadding = padding === 0 ? max * 0.1 : padding;
-      return [min - finalPadding, max + finalPadding];
+      const padding = range === 0 ? max * 0.1 : range * 0.1;
+      
+      return [min - padding, max + padding];
   }, [chartData]);
   
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -107,6 +132,14 @@ export function MarketHistoryPanel({
                         dataKey="Цена" 
                         stroke="hsl(var(--primary))" 
                         strokeWidth={2} 
+                        dot={false}
+                    />
+                    <Line 
+                        type="monotone" 
+                        dataKey="Линия тренда" 
+                        stroke="hsl(var(--foreground))" 
+                        strokeWidth={1} 
+                        strokeDasharray="5 5"
                         dot={false}
                     />
                 </LineChart>
