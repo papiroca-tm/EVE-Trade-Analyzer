@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -22,13 +21,13 @@ import { useDebounce } from '@/hooks/use-debounce';
 
 
 const formSchema = z.object({
-  regionId: z.coerce.number().int().positive("Region must be selected."),
-  typeId: z.coerce.number().int().positive("Item must be selected."),
-  brokerBuyFeePercent: z.coerce.number().min(0).max(100, "Must be between 0-100"),
-  brokerSellFeePercent: z.coerce.number().min(0).max(100, "Must be between 0-100"),
-  salesTaxPercent: z.coerce.number().min(0).max(100, "Must be between 0-100"),
-  desiredNetMarginPercent: z.coerce.number().min(0, "Must be positive").max(1000, "Margin too high"),
-  timeHorizonDays: z.coerce.number().int().positive().min(1, "Must be at least 1 day").max(365, "Max 365 days"),
+  regionId: z.coerce.number().int().positive("Необходимо выбрать регион."),
+  typeId: z.coerce.number().int().positive("Необходимо выбрать предмет."),
+  brokerBuyFeePercent: z.coerce.number().min(0).max(100, "Должно быть между 0-100"),
+  brokerSellFeePercent: z.coerce.number().min(0).max(100, "Должно быть между 0-100"),
+  salesTaxPercent: z.coerce.number().min(0).max(100, "Должно быть между 0-100"),
+  desiredNetMarginPercent: z.coerce.number().min(0, "Должно быть положительным").max(1000, "Слишком большая маржа"),
+  timeHorizonDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(365, "Максимум 365 дней"),
   optionalTargetVolume: z.string().optional(),
 });
 
@@ -39,7 +38,7 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending} className="w-full">
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-      Analyze Market
+      Анализировать рынок
     </Button>
   );
 }
@@ -118,8 +117,8 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Market Parameters</CardTitle>
-        <CardDescription>Enter your analysis parameters. Defaults are set for Tritanium in The Forge.</CardDescription>
+        <CardTitle>Параметры рынка</CardTitle>
+        <CardDescription>Введите параметры для анализа. По умолчанию установлены значения для Tritanium в The Forge.</CardDescription>
       </CardHeader>
       <Form {...form}>
         <form action={formAction}>
@@ -136,7 +135,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               name="regionId"
               render={({ field }) => (
                 <FormItem className="flex flex-col sm:col-span-2">
-                  <FormLabel>Region</FormLabel>
+                  <FormLabel>Регион</FormLabel>
                    <Popover open={openRegionPopover} onOpenChange={setOpenRegionPopover}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -152,7 +151,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                             ? regions.find(
                                 (region) => region.region_id === field.value
                               )?.name
-                            : "Select region"}
+                            : "Выберите регион"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -160,10 +159,10 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                     <PopoverContent className="w-[26rem] p-0">
                       <Command>
                         <CommandInput 
-                          placeholder="Search region..."
+                          placeholder="Поиск региона..."
                          />
                         <CommandList>
-                        <CommandEmpty>No region found.</CommandEmpty>
+                        <CommandEmpty>Регион не найден.</CommandEmpty>
                         <CommandGroup>
                           {regions.map((region) => (
                             <CommandItem
@@ -199,7 +198,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               name="typeId"
               render={({ field }) => (
                 <FormItem className="flex flex-col sm:col-span-2">
-                  <FormLabel>Item Type</FormLabel>
+                  <FormLabel>Тип предмета</FormLabel>
                    <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -211,7 +210,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                           {selectedItem?.name ?? "Select item"}
+                           {selectedItem?.name ?? "Выберите предмет"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -219,14 +218,14 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                     <PopoverContent className="w-[26rem] p-0">
                       <Command>
                         <CommandInput 
-                          placeholder="Search item (3+ chars)..."
+                          placeholder="Поиск предмета (3+ симв)..."
                           value={itemSearch}
                           onValueChange={setItemSearch}
                         />
                         <CommandList>
-                          {isSearchingItems && <CommandItem disabled className='flex items-center justify-center gap-2'><Loader2 className="h-4 w-4 animate-spin" />Searching...</CommandItem>}
+                          {isSearchingItems && <CommandItem disabled className='flex items-center justify-center gap-2'><Loader2 className="h-4 w-4 animate-spin" />Поиск...</CommandItem>}
                           <CommandEmpty>
-                            {!isSearchingItems && 'No item found.'}
+                            {!isSearchingItems && 'Предмет не найден.'}
                           </CommandEmpty>
                           <CommandGroup>
                             {itemOptions.map((item) => (
@@ -266,7 +265,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               name="brokerBuyFeePercent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Broker Buy Fee %</FormLabel>
+                  <FormLabel>Комиссия брокера (покупка) %</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.1" {...field} />
                   </FormControl>
@@ -279,7 +278,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               name="brokerSellFeePercent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Broker Sell Fee %</FormLabel>
+                  <FormLabel>Комиссия брокера (продажа) %</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.1" {...field} />
                   </FormControl>
@@ -292,7 +291,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               name="salesTaxPercent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sales Tax %</FormLabel>
+                  <FormLabel>Налог с продаж %</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.1" {...field} />
                   </FormControl>
@@ -305,7 +304,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
               name="desiredNetMarginPercent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Desired Net Margin %</FormLabel>
+                  <FormLabel>Желаемая чистая маржа %</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.1" {...field} />
                   </FormControl>
@@ -318,11 +317,11 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 name="timeHorizonDays"
                 render={({ field }) => (
                     <FormItem className="sm:col-span-2">
-                    <FormLabel>Time Horizon (Days)</FormLabel>
+                    <FormLabel>Временной горизонт (дни)</FormLabel>
                     <FormControl>
                         <Input type="number" {...field} />
                     </FormControl>
-                    <FormDescription>How many days of historical data to analyze (max 365).</FormDescription>
+                    <FormDescription>Количество дней для анализа исторических данных (макс. 365).</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
@@ -332,11 +331,11 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
                 name="optionalTargetVolume"
                 render={({ field }) => (
                     <FormItem className="sm:col-span-2">
-                    <FormLabel>Optional: Target Volume</FormLabel>
+                    <FormLabel>Опционально: Целевой объем</FormLabel>
                     <FormControl>
-                        <Input type="number" placeholder="e.g., 1000000" {...field} />
+                        <Input type="number" placeholder="например, 1000000" {...field} />
                     </FormControl>
-                    <FormDescription>If set, estimates time to buy/sell this volume.</FormDescription>
+                    <FormDescription>Если установлено, будет оценено время для покупки/продажи этого объема.</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}

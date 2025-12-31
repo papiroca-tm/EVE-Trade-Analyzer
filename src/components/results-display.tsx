@@ -17,7 +17,7 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
     if (state.status === 'error' && state.error) {
       toast({
         variant: 'destructive',
-        title: 'Analysis Failed',
+        title: 'Анализ не удался',
         description: state.error,
       });
     }
@@ -29,8 +29,8 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
         <div className="flex h-full items-center justify-center rounded-lg border border-dashed bg-card/50 p-8 text-center">
             <div>
                 <Bot className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h2 className="mt-4 text-xl font-semibold">Ready for Analysis</h2>
-                <p className="mt-2 text-muted-foreground">Enter your parameters and click "Analyze Market" to begin.</p>
+                <h2 className="mt-4 text-xl font-semibold">Готов к анализу</h2>
+                <p className="mt-2 text-muted-foreground">Введите параметры и нажмите "Анализировать рынок", чтобы начать.</p>
             </div>
         </div>
       );
@@ -40,9 +40,9 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
       return (
          <Alert variant="destructive" className="h-full">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>Ошибка</AlertTitle>
             <AlertDescription>
-                <p>The analysis could not be completed.</p>
+                <p>Не удалось завершить анализ.</p>
                 <p className="mt-2 font-mono text-xs">{state.error}</p>
             </AlertDescription>
         </Alert>

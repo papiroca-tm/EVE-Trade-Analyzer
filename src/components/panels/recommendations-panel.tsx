@@ -25,43 +25,49 @@ const StatCard = ({ icon, title, value, unit }: { icon: React.ReactNode, title: 
 export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
   const { priceAnalysis, volumeAnalysis, recommendations } = data;
 
+  const feasibilityMap = {
+    high: 'Высокая',
+    medium: 'Средняя',
+    low: 'Низкая',
+  };
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
             <Lightbulb className="h-6 w-6 text-accent" />
-            <CardTitle>Analysis & Recommendations</CardTitle>
+            <CardTitle>Анализ и рекомендации</CardTitle>
         </div>
-        <CardDescription>Key metrics and profitable trade opportunities based on your parameters.</CardDescription>
+        <CardDescription>Ключевые метрики и выгодные торговые возможности на основе ваших параметров.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard icon={<Percent size={20}/>} title="Volatility" value={priceAnalysis.volatility.toFixed(2)} unit="%"/>
-            <StatCard icon={<TrendingUp size={20}/>} title="Avg. Daily Vol" value={Math.floor(volumeAnalysis.averageDailyVolume).toLocaleString()} />
+            <StatCard icon={<Percent size={20}/>} title="Волатильность" value={priceAnalysis.volatility.toFixed(2)} unit="%"/>
+            <StatCard icon={<TrendingUp size={20}/>} title="Сред. дневной объем" value={Math.floor(volumeAnalysis.averageDailyVolume).toLocaleString('ru-RU')} />
             {volumeAnalysis.estimatedExecutionTimeDays && (
-                 <StatCard icon={<Clock size={20}/>} title="Est. Exec. Time" value={volumeAnalysis.estimatedExecutionTimeDays.toFixed(1)} unit="days"/>
+                 <StatCard icon={<Clock size={20}/>} title="Прим. время исп." value={volumeAnalysis.estimatedExecutionTimeDays.toFixed(1)} unit="дней"/>
             )}
             <div className="flex items-center justify-center rounded-lg bg-muted/50 p-4">
                 <div>
-                    <p className="text-sm text-muted-foreground text-center">Volume Feasibility</p>
+                    <p className="text-sm text-muted-foreground text-center">Выполнимость объема</p>
                     <Badge variant={volumeAnalysis.feasibility === 'high' ? 'default' : volumeAnalysis.feasibility === 'medium' ? 'secondary' : 'destructive'} className="mt-2 w-full justify-center text-lg capitalize">
-                       {volumeAnalysis.feasibility}
+                       {feasibilityMap[volumeAnalysis.feasibility]}
                     </Badge>
                 </div>
             </div>
         </div>
 
         <div>
-            <h3 className="mb-2 text-lg font-semibold">Top Opportunities</h3>
+            <h3 className="mb-2 text-lg font-semibold">Лучшие возможности</h3>
             <ScrollArea className="h-64 w-full rounded-md border">
               <Table>
                 <TableHeader className="sticky top-0 bg-muted/50">
                   <TableRow>
-                    <TableHead>Buy Price</TableHead>
-                    <TableHead>Sell Price</TableHead>
-                    <TableHead className="text-right">Margin</TableHead>
-                    <TableHead className="text-right">Volume</TableHead>
-                    <TableHead className="text-right">Potential Profit</TableHead>
+                    <TableHead>Цена покупки</TableHead>
+                    <TableHead>Цена продажи</TableHead>
+                    <TableHead className="text-right">Маржа</TableHead>
+                    <TableHead className="text-right">Объем</TableHead>
+                    <TableHead className="text-right">Потенц. прибыль</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -71,14 +77,14 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                         <TableCell className="font-mono text-green-400">{rec.buyPrice.toFixed(2)}</TableCell>
                         <TableCell className="font-mono text-red-400">{rec.sellPrice.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-mono text-accent">{rec.netMarginPercent.toFixed(2)}%</TableCell>
-                        <TableCell className="text-right font-mono">{rec.executableVolume.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-mono">{rec.executableVolume.toLocaleString('ru-RU')}</TableCell>
                         <TableCell className="text-right font-mono text-primary">{rec.potentialProfit.toFixed(2)}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                        No profitable opportunities found with the given margin.
+                        Прибыльных возможностей с заданной маржой не найдено.
                       </TableCell>
                     </TableRow>
                   )}

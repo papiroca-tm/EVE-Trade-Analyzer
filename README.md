@@ -1,22 +1,22 @@
-# EVE Market Navigator
+# EVE Market Navigator (Навигатор по рынку EVE)
 
-This is a Firebase-based analytical decision-support web application for the EVE Online market.
+Это веб-приложение для аналитической поддержки принятия решений на рынке EVE Online, созданное с использованием Firebase.
 
-## Features
+## Возможности
 
-- **Market Analysis**: Fetches and analyzes historical market data and active orders from the EVE Online ESI.
-- **Margin Calculation**: Calculates potential net margin based on user-defined fees, taxes, and desired profit.
-- **Recommendations**: Provides feasible buy/sell price ranges and estimated executable volume.
-- **Data Integrity**: Uses a GenAI-powered tool to analyze data for discrepancies and assess reliability.
+- **Анализ рынка**: Сбор и анализ исторических рыночных данных и активных ордеров из EVE Online ESI.
+- **Расчет маржи**: Расчет потенциальной чистой прибыли на основе комиссий, налогов и желаемой доходности, заданных пользователем.
+- **Рекомендации**: Предоставление выполнимых диапазонов цен для покупки/продажи и оценка исполнимого объема.
+- **Целостность данных**: Использование инструмента на базе GenAI для анализа данных на предмет расхождений и оценки их надежности.
 
-## Getting Started
+## Начало работы
 
-The application is built with Next.js and deployed on Firebase.
+Приложение создано на Next.js и развертывается на Firebase.
 
-To start the development server:
+Чтобы запустить сервер для разработки:
 
 ```bash
 npm run dev
 ```
 
-This will run the Next.js app on `http://localhost:9002`.
+Это запустит приложение Next.js на `http://localhost:9002`.

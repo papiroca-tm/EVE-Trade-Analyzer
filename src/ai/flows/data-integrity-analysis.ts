@@ -1,27 +1,27 @@
 'use server';
 
 /**
- * @fileOverview This flow analyzes EVE Online market data for discrepancies and potential data reliability issues using generative AI.
+ * @fileOverview Этот flow анализирует рыночные данные EVE Online на предмет расхождений и потенциальных проблем с надежностью данных с помощью генеративного AI.
  *
- * - analyzeDataIntegrity - A function that analyzes the integrity of market data.
- * - DataIntegrityInput - The input type for the analyzeDataIntegrity function.
- * - DataIntegrityOutput - The return type for the analyzeDataIntegrity function.
+ * - analyzeDataIntegrity - функция, которая анализирует целостность рыночных данных.
+ * - DataIntegrityInput - входной тип для функции analyzeDataIntegrity.
+ * - DataIntegrityOutput - возвращаемый тип для функции analyzeDataIntegrity.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const DataIntegrityInputSchema = z.object({
-  marketHistoryData: z.string().describe('Raw market history data as a JSON string.'),
-  marketOrderData: z.string().describe('Raw market order data as a JSON string.'),
-  timeHorizonDays: z.number().describe('The time horizon in days for the analysis.'),
+  marketHistoryData: z.string().describe('Необработанные данные истории рынка в виде строки JSON.'),
+  marketOrderData: z.string().describe('Необработанные данные рыночных ордеров в виде строки JSON.'),
+  timeHorizonDays: z.number().describe('Временной горизонт в днях для анализа.'),
 });
 export type DataIntegrityInput = z.infer<typeof DataIntegrityInputSchema>;
 
 const DataIntegrityOutputSchema = z.object({
-  analysisReport: z.string().describe('A detailed analysis report of the data integrity, potential discrepancies, and reliability issues.'),
-  dataReliabilityScore: z.number().describe('A numerical score representing the overall reliability of the data (0-100).'),
-  warnings: z.array(z.string()).describe('A list of warnings regarding potential data issues.'),
+  analysisReport: z.string().describe('Подробный отчет по анализу целостности данных, потенциальных расхождений и проблем с надежностью.'),
+  dataReliabilityScore: z.number().describe('Числовая оценка общей надежности данных (0-100).'),
+  warnings: z.array(z.string()).describe('Список предупреждений о потенциальных проблемах с данными.'),
 });
 export type DataIntegrityOutput = z.infer<typeof DataIntegrityOutputSchema>;
 
@@ -33,17 +33,17 @@ const dataIntegrityAnalysisPrompt = ai.definePrompt({
   name: 'dataIntegrityAnalysisPrompt',
   input: {schema: DataIntegrityInputSchema},
   output: {schema: DataIntegrityOutputSchema},
-  prompt: `You are an expert data analyst specializing in EVE Online market data.
+  prompt: `Вы — эксперт-аналитик данных, специализирующийся на рыночных данных EVE Online. Ваша задача — сгенерировать ответ на русском языке.
 
-You will analyze the provided market history data and market order data to identify any discrepancies, inconsistencies, or potential data reliability issues.
+Вы проанализируете предоставленные данные истории рынка и данные рыночных ордеров, чтобы выявить любые расхождения, несоответствия или потенциальные проблемы с надежностью данных.
 
-Consider the time horizon when evaluating the data. Determine if the amount of data is statistically reliable for making trading decisions.
+Учитывайте временной горизонт при оценке данных. Определите, является ли объем данных статистически надежным для принятия торговых решений.
 
-Provide a detailed analysis report, a data reliability score (0-100), and a list of warnings regarding any potential data issues.
+Предоставьте подробный аналитический отчет на русском языке, оценку надежности данных (0-100) и список предупреждений на русском языке о любых потенциальных проблемах с данными.
 
-Market History Data: {{{marketHistoryData}}}
-Market Order Data: {{{marketOrderData}}}
-Time Horizon (Days): {{{timeHorizonDays}}}
+Данные истории рынка: {{{marketHistoryData}}}
+Данные рыночных ордеров: {{{marketOrderData}}}
+Временной горизонт (дни): {{{timeHorizonDays}}}
 `,
 });
 
@@ -59,7 +59,7 @@ const dataIntegrityAnalysisFlow = ai.defineFlow(
       return output!;
     } catch (error: any) {
       console.error('Error in dataIntegrityAnalysisFlow:', error);
-      throw new Error(`Data integrity analysis failed: ${error.message}`);
+      throw new Error(`Анализ целостности данных не удался: ${error.message}`);
     }
   }
 );

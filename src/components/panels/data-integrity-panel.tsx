@@ -12,22 +12,22 @@ export function DataIntegrityPanel({ data }: { data: DataIntegrityOutput }) {
       <CardHeader>
         <div className="flex items-center gap-2">
             <Bot className="h-6 w-6 text-primary" />
-            <CardTitle>AI Data Integrity Analysis</CardTitle>
+            <CardTitle>AI-анализ целостности данных</CardTitle>
         </div>
-        <CardDescription>Generative AI assessment of data reliability.</CardDescription>
+        <CardDescription>Оценка надежности данных с помощью генеративного AI.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
           <div className="mb-2 flex justify-between text-sm font-medium">
-            <span>Data Reliability Score</span>
+            <span>Оценка надежности данных</span>
             <span>{data.dataReliabilityScore}/100</span>
           </div>
-          <Progress value={data.dataReliabilityScore} aria-label={`Data reliability score: ${data.dataReliabilityScore} out of 100`} />
+          <Progress value={data.dataReliabilityScore} aria-label={`Оценка надежности данных: ${data.dataReliabilityScore} из 100`} />
         </div>
 
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="report">
-            <AccordionTrigger>View Full Analysis Report</AccordionTrigger>
+            <AccordionTrigger>Посмотреть полный отчет</AccordionTrigger>
             <AccordionContent>
                 <ScrollArea className="h-40">
                     <p className="whitespace-pre-wrap text-sm text-muted-foreground">{data.analysisReport}</p>
@@ -39,7 +39,7 @@ export function DataIntegrityPanel({ data }: { data: DataIntegrityOutput }) {
                 <AccordionTrigger>
                     <span className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-destructive" />
-                        Warnings ({data.warnings.length})
+                        Предупреждения ({data.warnings.length})
                     </span>
                 </AccordionTrigger>
                 <AccordionContent>

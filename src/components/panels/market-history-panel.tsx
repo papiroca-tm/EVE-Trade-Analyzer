@@ -12,7 +12,7 @@ export function MarketHistoryPanel({ history }: { history: MarketHistoryItem[] }
       <CardHeader>
         <div className="flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-primary" />
-            <CardTitle>Market History</CardTitle>
+            <CardTitle>История рынка</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -20,9 +20,9 @@ export function MarketHistoryPanel({ history }: { history: MarketHistoryItem[] }
           <Table>
             <TableHeader className="sticky top-0 bg-card">
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Avg Price</TableHead>
-                <TableHead className="text-right">Volume</TableHead>
+                <TableHead>Дата</TableHead>
+                <TableHead className="text-right">Сред. цена</TableHead>
+                <TableHead className="text-right">Объем</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -30,14 +30,14 @@ export function MarketHistoryPanel({ history }: { history: MarketHistoryItem[] }
                 history.map((item) => (
                   <TableRow key={item.date}>
                     <TableCell>{item.date}</TableCell>
-                    <TableCell className="text-right font-mono">{item.average.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right font-mono">{item.volume.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-mono">{item.average.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right font-mono">{item.volume.toLocaleString('ru-RU')}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell colSpan={3} className="h-24 text-center">
-                    No historical data available.
+                    Исторические данные отсутствуют.
                   </TableCell>
                 </TableRow>
               )}

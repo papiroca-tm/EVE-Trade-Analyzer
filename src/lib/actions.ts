@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -8,8 +7,8 @@ import { fetchMarketHistory, fetchMarketOrders, getRegions, getInitialItemTypes 
 import type { AnalysisState, AnalysisResult, Region, ItemType } from './types';
 
 const formSchema = z.object({
-  regionId: z.coerce.number().int().positive("Region ID must be a positive number."),
-  typeId: z.coerce.number().int().positive("Type ID must be a positive number."),
+  regionId: z.coerce.number().int().positive("ID региона должен быть положительным числом."),
+  typeId: z.coerce.number().int().positive("ID типа должен быть положительным числом."),
   brokerBuyFeePercent: z.coerce.number().min(0).max(100),
   brokerSellFeePercent: z.coerce.number().min(0).max(100),
   salesTaxPercent: z.coerce.number().min(0).max(100),
@@ -38,7 +37,7 @@ export async function getMarketAnalysis(
     return {
       status: 'error',
       data: null,
-      error: "Invalid form data. Please check your inputs.",
+      error: "Неверные данные формы. Пожалуйста, проверьте введенные значения.",
       warnings: validatedFields.error.issues.map(i => i.message),
     };
   }
@@ -52,9 +51,9 @@ export async function getMarketAnalysis(
     ]);
 
     const warnings: string[] = [];
-    if (history.length === 0) warnings.push("No market history found for this item in the selected region.");
-    if (orders.length === 0) warnings.push("No active orders found for this item in the selected region.");
-    if (history.length < inputs.timeHorizonDays) warnings.push("Historical data is shorter than the selected time horizon.");
+    if (history.length === 0) warnings.push("История рынка для этого предмета в выбранном регионе не найдена.");
+    if (orders.length === 0) warnings.push("Активные ордера для этого предмета в выбранном регионе не найдены.");
+    if (history.length < inputs.timeHorizonDays) warnings.push("Исторические данные охватывают меньший период, чем выбранный временной горизонт.");
 
     const analysis = calculateAnalysis(history, orders, inputs);
     
@@ -83,7 +82,7 @@ export async function getMarketAnalysis(
     return {
       status: 'error',
       data: null,
-      error: error instanceof Error ? error.message : "An unknown error occurred during analysis.",
+      error: error instanceof Error ? error.message : "Произошла неизвестная ошибка во время анализа.",
       warnings: [],
     };
   }
@@ -105,6 +104,7 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
         return { regions, itemTypes: Array.from(finalItems.values()) };
     } catch (error) {
         console.error("Failed to get initial data", error);
+        // Fallback to avoid complete UI crash
         return { regions: [], itemTypes: [{ type_id: 34, name: 'Tritanium' }] };
     }
 }

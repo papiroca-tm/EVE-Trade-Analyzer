@@ -16,12 +16,21 @@ export function calculateAnalysis(
 
   const recommendations: Recommendation[] = [];
 
-  for (const sellOrder of sellOrders) {
-    for (const buyOrder of buyOrders) {
+  // Limit iterations to avoid performance issues with huge order books
+  const sellOrderCap = Math.min(sellOrders.length, 500);
+  const buyOrderCap = Math.min(buyOrders.length, 500);
+
+  for (let i = 0; i < sellOrderCap; i++) {
+    const sellOrder = sellOrders[i];
+    for (let j = 0; j < buyOrderCap; j++) {
+      const buyOrder = buyOrders[j];
+
       if (buyOrder.price >= sellOrder.price) continue;
 
       const netProfit = calculateNetProfit(buyOrder.price, sellOrder.price, inputs);
-      const netMargin = netProfit / buyOrder.price * 100;
+      if (netProfit <= 0) continue; // Early exit if there's no gross profit
+
+      const netMargin = (netProfit / buyOrder.price) * 100;
       
       if (netMargin >= inputs.desiredNetMarginPercent) {
         const executableVolume = Math.min(buyOrder.volume_remain, sellOrder.volume_remain);
@@ -39,14 +48,23 @@ export function calculateAnalysis(
 
   const topRecommendations = recommendations
     .sort((a,b) => b.potentialProfit - a.potentialProfit)
-    .slice(0, 20);
+    .slice(0, 100); // Increased to show more options
 
   const totalVolume = history.reduce((sum, item) => sum + item.volume, 0);
   const averageDailyVolume = history.length > 0 ? totalVolume / history.length : 0;
   
   let feasibility: 'low' | 'medium' | 'high' = 'low';
-  if (averageDailyVolume > 10000) feasibility = 'medium';
-  if (averageDailyVolume > 100000) feasibility = 'high';
+  if (inputs.optionalTargetVolume) {
+      if (averageDailyVolume > inputs.optionalTargetVolume * 0.5) {
+          feasibility = 'high';
+      } else if (averageDailyVolume > inputs.optionalTargetVolume * 0.1) {
+          feasibility = 'medium';
+      }
+  } else {
+      if (averageDailyVolume > 500000) feasibility = 'high';
+      else if (averageDailyVolume > 50000) feasibility = 'medium';
+  }
+
 
   const estimatedExecutionTimeDays = inputs.optionalTargetVolume && averageDailyVolume > 0
     ? inputs.optionalTargetVolume / averageDailyVolume
