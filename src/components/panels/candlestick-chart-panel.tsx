@@ -85,7 +85,7 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
     const volume_ratio_t = V_max > 0 ? volume_t / V_max : 0;
     
     // The extension is proportional to volume and capped by a fraction of max daily range to keep it reasonable
-    const volume_extension = volume_ratio_t * (max_range > 0 ? max_range * 0.25 : avg_t * 0.05);
+    const volume_extension = volume_ratio_t * (max_range > 0 ? max_range * 0.75 : avg_t * 0.15);
 
     // New wicks are based on volume
     const new_high = high_t + volume_extension;
