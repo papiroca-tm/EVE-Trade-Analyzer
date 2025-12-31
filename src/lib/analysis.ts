@@ -146,13 +146,16 @@ export async function calculateAnalysis(
         const actualNetMarginPercent = cost > 0 ? ((revenue - cost) / cost) * 100 : 0;
         
         // --- Executable Volume & Profit (based on MID-TERM strategic prices) ---
-        const capital = inputs.positionCapital ?? Infinity;
-        const maxVolumeByCapital = midTermBuyPrice > 0 ? Math.floor(capital / midTermBuyPrice) : 0;
+        const capital = inputs.positionCapital ?? 0;
+        const targetVolume = shortTermBuyPrice > 0 && capital > 0 
+            ? Math.floor(capital / shortTermBuyPrice)
+            : 0;
 
         const sellDepthAtTarget = getVolumeAhead(sellLadder, midTermSellPrice, 'sell');
         const executableSellVolume = Math.max(0, (averageDailyVolume / 2) * (inputs.executionDays / 2) - sellDepthAtTarget);
         
-        const finalExecutableVolume = Math.min(maxVolumeByCapital, executableSellVolume);
+        const finalExecutableVolume = Math.min(targetVolume, executableSellVolume);
+
         const potentialProfit = finalExecutableVolume * (midTermSellPrice - midTermBuyPrice) - (finalExecutableVolume * midTermBuyPrice * (inputs.brokerBuyFeePercent / 100)) - (finalExecutableVolume * midTermSellPrice * (inputs.brokerSellFeePercent / 100 + inputs.salesTaxPercent / 100));
 
         const recommendation: Recommendation = {
@@ -170,6 +173,7 @@ export async function calculateAnalysis(
           },
           netMarginPercent: actualNetMarginPercent,
           potentialProfit: potentialProfit > 0 ? potentialProfit : 0,
+          targetVolume: targetVolume,
           executableVolume: { low: 0, high: Math.floor(finalExecutableVolume) },
           estimatedExecutionDays: { min: 1, max: inputs.executionDays },
           feasibility: 'medium', // Placeholder

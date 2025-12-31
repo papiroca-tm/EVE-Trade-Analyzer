@@ -3,7 +3,7 @@
 import type { AnalysisResult, Feasibility, PriceRange } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign } from 'lucide-react';
+import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign, Target } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const StatCard = ({ icon, title, value, unit, tooltipText }: { icon: React.ReactNode, title: string, value: string, unit?: string, tooltipText?: string }) => (
@@ -90,7 +90,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                                     <Info className="h-3 w-3 text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
+                                     <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки' ({isBuy ? 'покупка' : 'продажа'}). Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -184,7 +184,11 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     unit="%"
                     tooltipText="Эта маржа рассчитана на основе разницы между тактической (краткосрочной) ценой покупки и тактической (краткосрочной) ценой продажи, за вычетом всех комиссий и налогов."
                 />
-                <StatCard icon={<TrendingUp size={16}/>} title="Выполн. объем" value={`${rec.executableVolume.low.toLocaleString('ru-RU')} - ${rec.executableVolume.high.toLocaleString('ru-RU')}`} />
+                <StatCard 
+                    icon={<Target size={16}/>} 
+                    title="Целевой объем" 
+                    value={rec.targetVolume.toLocaleString('ru-RU')} 
+                />
                 <StatCard icon={<Clock size={16}/>} title="Время исполн." value={`${rec.estimatedExecutionDays.min}-${rec.estimatedExecutionDays.max}`} unit="дней"/>
                 <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
                     <p className="text-xs text-muted-foreground">Выполнимость</p>
@@ -240,7 +244,11 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     unit="%"
                     tooltipText="Эта маржа рассчитана на основе разницы между тактической (краткосрочной) ценой покупки и тактической (краткосрочной) ценой продажи, за вычетом всех комиссий и налогов."
                 />
-                <StatCard icon={<TrendingUp size={16}/>} title="Выполн. объем" value={"0 - 0"} />
+                <StatCard 
+                    icon={<Target size={16}/>} 
+                    title="Целевой объем" 
+                    value={"0"} 
+                />
                 <StatCard icon={<Clock size={16}/>} title="Время исполн." value={"0-0"} unit="дней"/>
                 <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
                     <p className="text-xs text-muted-foreground">Выполнимость</p>

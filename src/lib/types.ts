@@ -45,6 +45,7 @@ export interface Recommendation {
   sellPriceRange: PriceRange;
   netMarginPercent: number;
   potentialProfit: number;
+  targetVolume: number;
   executableVolume: { low: number; high: number };
   estimatedExecutionDays: { min: number; max: number };
   feasibility: Feasibility;
