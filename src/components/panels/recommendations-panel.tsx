@@ -50,7 +50,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                  <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <p className={`inline-flex items-center gap-1 text-3xl font-bold font-mono ${colorClass}`}>
+                            <p className={`inline-flex cursor-help items-center gap-1 text-3xl font-bold font-mono ${colorClass}`}>
                                 {formatPrice(priceRange.average)}
                                 <Info className="h-4 w-4 text-muted-foreground/70" />
                             </p>
@@ -64,47 +64,56 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
             </div>
 
             <div className="grid grid-cols-1 gap-1 text-center font-mono">
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="flex cursor-help items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-muted-foreground">Долгосрок.</span>
-                                <span className="text-sm font-bold text-red-500">{formatPrice(priceRange.longTerm)}</span>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>Исторический {isBuy ? 'минимум' : 'максимум'} цены за выбранный период. Самая оптимистичная, но труднодостижимая цена.</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs font-sans text-muted-foreground">Долгосрок.</span>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Info className="h-3 w-3 text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Исторический {isBuy ? 'минимум' : 'максимум'} цены за выбранный период. Самая оптимистичная, но труднодостижимая цена.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                    <span className="text-sm font-bold text-red-500">{formatPrice(priceRange.longTerm)}</span>
+                </div>
 
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                             <div className="flex cursor-help items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-muted-foreground">Среднесрок.</span>
-                                <span className="text-sm font-bold text-yellow-500">{formatPrice(priceRange.midTerm)}</span>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию.</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="flex cursor-help items-center justify-between rounded-sm bg-background/50 px-2 py-1">
-                                <span className="text-xs font-sans text-muted-foreground">Краткосрок.</span>
-                                <span className="text-sm font-bold text-green-500">{formatPrice(priceRange.shortTerm)}</span>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Тактическая цена для быстрого исполнения (в течение ~1 дня), основанная на текущей структуре стакана ордеров.</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs font-sans text-muted-foreground">Среднесрок.</span>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Info className="h-3 w-3 text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                    <span className="text-sm font-bold text-yellow-500">{formatPrice(priceRange.midTerm)}</span>
+                </div>
+                
+                <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs font-sans text-muted-foreground">Краткосрок.</span>
+                         <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Info className="h-3 w-3 text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Тактическая цена для быстрого исполнения (в течение ~1 дня), основанная на текущей структуре стакана ордеров.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                    <span className="text-sm font-bold text-green-500">{formatPrice(priceRange.shortTerm)}</span>
+                </div>
             </div>
         </div>
     );
@@ -266,4 +275,5 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
   );
 }
 
+    
     
