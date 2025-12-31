@@ -47,17 +47,19 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
   return allOrders;
 }
 
-async function fetchAllPages<T>(url: string): Promise<T[]> {
+async function fetchAllPages<T>(baseUrl: string): Promise<T[]> {
   let allItems: T[] = [];
   let page = 1;
   let totalPages = 1;
 
   while (page <= totalPages) {
-    const pageUrl = `${url}?page=${page}`;
-    const response = await fetch(pageUrl, { cache: 'no-store' });
+    const url = new URL(baseUrl);
+    url.searchParams.set('page', page.toString());
+    
+    const response = await fetch(url.toString(), { cache: 'no-store' });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch paged data from ${url}: ${response.statusText}`);
+      throw new Error(`Failed to fetch paged data from ${baseUrl}: ${response.statusText}`);
     }
 
     const data: T[] = await response.json();
