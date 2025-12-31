@@ -6,6 +6,7 @@ import type { AnalysisState } from '@/lib/types';
 import { InputForm } from '@/components/input-form';
 import { ResultsDisplay } from '@/components/results-display';
 import { Icons } from '@/components/icons';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 const initialState: AnalysisState = {
   status: 'idle',
@@ -28,10 +29,21 @@ export default function Home() {
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 lg:flex-row">
-        <div className="w-full lg:w-[28rem]">
-          <div className="sticky top-20">
-            <InputForm formAction={formAction} />
-          </div>
+        <div className="flex w-full flex-col gap-4 lg:w-[42rem] lg:flex-row">
+            <div className="w-full lg:w-[28rem]">
+            <div className="sticky top-20">
+                <InputForm formAction={formAction} />
+            </div>
+            </div>
+            <div className="w-full lg:flex-1">
+                <div className="sticky top-20">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Стакан</CardTitle>
+                        </CardHeader>
+                    </Card>
+                </div>
+            </div>
         </div>
         <div className="flex-1">
           <ResultsDisplay state={state} />
