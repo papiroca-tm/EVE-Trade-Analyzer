@@ -98,21 +98,22 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
         }
     }
 
-    // Calculate the shift from the center based on avg_t's proximity to low_t or high_t
+    // New approach: Balance between max/min and avg_t for more centered positioning
+    const range = high_t - low_t;
+    const half_body = body_height_t / 2;
     let open_t: number;
     let close_t: number;
-    const half_body = body_height_t / 2;
 
-    if (avg_t <= low_t + (high_t - low_t) / 2) {
-      // If avg_t is closer to low_t, the body starts closer to low_t
+    if (avg_t <= low_t + range / 3) {
+      // If avg_t is closer to low_t, place the body closer to low_t
       open_t = low_t + half_body;
       close_t = low_t + body_height_t;
-    } else if (avg_t >= high_t - (high_t - low_t) / 2) {
-      // If avg_t is closer to high_t, the body starts closer to high_t
+    } else if (avg_t >= high_t - range / 3) {
+      // If avg_t is closer to high_t, place the body closer to high_t
       open_t = high_t - body_height_t;
       close_t = high_t - half_body;
     } else {
-      // If avg_t is roughly in the middle, the body is centered around avg_t
+      // Otherwise, center the body around avg_t
       open_t = avg_t - half_body;
       close_t = avg_t + half_body;
     }
