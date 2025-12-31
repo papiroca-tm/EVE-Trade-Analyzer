@@ -28,13 +28,13 @@ export default function Home() {
           </h1>
         </div>
       </header>
-      <main className="flex flex-1 gap-2 p-2 md:gap-4 md:p-4">
-        <div className="w-1/4 flex-shrink-0">
+      <main className="grid flex-1 grid-cols-5 gap-2 p-2 md:gap-4 md:p-4">
+        <div className="col-span-1">
           <div className="sticky top-16 flex flex-col gap-2">
             <InputForm formAction={formAction} />
           </div>
         </div>
-        <div className="w-1/4 flex-shrink-0">
+        <div className="col-span-1">
           <div className="sticky top-16 flex flex-col gap-2">
             <Card>
               <CardHeader className="p-3">
@@ -43,7 +43,7 @@ export default function Home() {
             </Card>
           </div>
         </div>
-        <div className="flex-1">
+        <div className="col-span-3">
           <ResultsDisplay state={state} />
         </div>
       </main>
