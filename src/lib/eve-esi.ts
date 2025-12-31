@@ -10,12 +10,15 @@ async function fetchEsi(path: string, options: RequestInit = {}): Promise<Respon
     const defaultOptions: RequestInit = path.startsWith('/universe/names/') ? {} : { next: { revalidate: 3600 } };
     const finalOptions: RequestInit = { ...defaultOptions, ...options, cache: path.startsWith('/universe/names/') ? 'no-store' : options.cache };
     
+    console.log(`Fetching ESI: ${url} with options: ${JSON.stringify(finalOptions)}`);
+
     try {
         const response = await fetch(url, finalOptions);
 
         if (!response.ok) {
             if (response.status === 404) {
                  // For 404, return a response with an empty JSON array to prevent crashes.
+                console.warn(`ESI 404 Not Found for ${url}, returning empty array.`);
                 return new Response(JSON.stringify([]), {
                     status: 200,
                     headers: { 'Content-Type': 'application/json' }

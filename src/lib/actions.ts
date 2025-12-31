@@ -108,5 +108,5 @@ export async function getInitialData(): Promise<{ regions: Region[], itemTypes: 
 }
 
 export async function searchItemTypes(query: string): Promise<ItemType[]> {
-    return searchItemTypesEsi(query, 'inventory_type');
+    return searchItemTypesEsi(query);
 }
