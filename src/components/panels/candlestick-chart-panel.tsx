@@ -6,32 +6,32 @@ import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Bar } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
-
 // Custom shape for the candlestick
 const Candle = (props: any) => {
-  const { x, width, low, high, open, close, color, yAxis } = props;
+  const { x, y, width, height, payload, yAxis } = props;
   
-  if (!yAxis || typeof yAxis.scale !== 'function' || high === undefined || low === undefined) {
+  if (!yAxis || typeof yAxis.scale !== 'function' || !payload) {
     return null;
   }
 
+  const { high, low, open, close, color } = payload;
+  
   const wickHighY = yAxis.scale(high);
   const wickLowY = yAxis.scale(low);
   
   const bodyTopY = yAxis.scale(Math.max(open, close));
   const bodyBottomY = yAxis.scale(Math.min(open, close));
-  const bodyHeight = Math.abs(bodyTopY - bodyBottomY);
+  const bodyHeight = Math.max(1, Math.abs(bodyTopY - bodyBottomY));
   
   const fillColor = color;
   const strokeColor = color;
-
 
   return (
     <g>
       {/* Wick */}
       <line x1={x + width / 2} y1={wickLowY} x2={x + width / 2} y2={wickHighY} stroke={strokeColor} strokeWidth="1" />
       {/* Body */}
-      <rect x={x} y={bodyTopY} width={width} height={bodyHeight > 0 ? bodyHeight : 1} fill={fillColor} />
+      <rect x={x} y={bodyTopY} width={width} height={bodyHeight} fill={fillColor} />
     </g>
   );
 };
@@ -65,17 +65,10 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         const prevAverage = index > 0 ? history[index-1].average : average;
         const color = average >= prevAverage ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
 
-        // Set open/close based on bodySize
-        // We make the green candle go up and red candle go down from the midpoint
         let open, close;
-        if (average >= prevAverage) { // Price went up or stayed same
-           open = midPoint - bodySize / 2;
-           close = midPoint + bodySize / 2;
-        } else { // Price went down
-           open = midPoint + bodySize / 2;
-           close = midPoint - bodySize / 2;
-        }
-
+        open = midPoint + bodySize / 2;
+        close = midPoint - bodySize / 2;
+        
 
         return {
             date: new Date(histItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
@@ -84,6 +77,8 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             open: open,
             close: close,
             color: color,
+            // Recharts needs a dataKey for the bar. We can pass the body range.
+            body: [open, close],
         }
     });
 
@@ -128,7 +123,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                 axisLine={false}
               />
               <Tooltip />
-              <Bar dataKey="low" shape={<Candle />} />
+              <Bar dataKey="body" shape={<Candle />} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
