@@ -300,7 +300,7 @@ export function MarketHistoryPanel({
                     <Bar
                         yAxisId="candlestick"
                         dataKey="average"
-                        shape={(props) => <Candlestick {...props} yAxis={(props as any).yAxis} />}
+                        shape={<Candlestick />}
                         barSize={10}
                     />
                 </ComposedChart>
