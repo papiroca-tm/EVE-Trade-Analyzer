@@ -42,10 +42,17 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
             }
         }
 
-        const finalOrders = displaySorted.map(order => ({
-            ...order,
-            isWall: wallOrderId !== undefined && order.order_id === wallOrderId,
-        }));
+        const finalOrders = displaySorted.map(order => {
+            const fillPercent = averageDailyVolume > 0 
+                ? Math.min((order.volume_remain / wallThreshold) * 100, 100)
+                : 0;
+
+            return {
+                ...order,
+                isWall: wallOrderId !== undefined && order.order_id === wallOrderId,
+                fillPercent: fillPercent,
+            };
+        });
         
         return finalOrders;
 
@@ -55,7 +62,13 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
         <>
             {processedOrders.length > 0 ? (
                 processedOrders.map((order) => (
-                    <TableRow key={order.order_id} className={cn("border-b-0", order.isWall && 'bg-accent/40 text-accent-foreground font-bold')}>
+                    <TableRow 
+                        key={order.order_id} 
+                        className={cn("border-b-0", order.isWall && 'text-accent-foreground font-bold')}
+                        style={{
+                            background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
+                        }}
+                    >
                         <TableCell className='py-0.5 px-2 text-right font-mono text-red-400'>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
@@ -93,10 +106,17 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
             }
         }
 
-        const finalOrders = sorted.map(order => ({
-            ...order,
-            isWall: wallOrderId !== undefined && order.order_id === wallOrderId
-        }));
+        const finalOrders = sorted.map(order => {
+             const fillPercent = averageDailyVolume > 0 
+                ? Math.min((order.volume_remain / wallThreshold) * 100, 100)
+                : 0;
+
+            return {
+                ...order,
+                isWall: wallOrderId !== undefined && order.order_id === wallOrderId,
+                fillPercent: fillPercent,
+            }
+        });
 
         return finalOrders;
     }, [orders, averageDailyVolume]);
@@ -105,7 +125,13 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
         <>
             {processedOrders.length > 0 ? (
                 processedOrders.map((order) => (
-                    <TableRow key={order.order_id} className={cn("border-b-0", order.isWall && 'bg-accent/40 text-accent-foreground font-bold')}>
+                    <TableRow 
+                        key={order.order_id} 
+                        className={cn("border-b-0", order.isWall && 'text-accent-foreground font-bold')}
+                        style={{
+                            background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
+                        }}
+                    >
                         <TableCell className='py-0.5 px-2 text-right font-mono text-green-400'>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
