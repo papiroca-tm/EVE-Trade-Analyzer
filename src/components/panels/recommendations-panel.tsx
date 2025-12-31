@@ -90,7 +90,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                                     <Info className="h-3 w-3 text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию.</p>
+                                    <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -107,7 +107,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                                     <Info className="h-3 w-3 text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Тактическая цена для быстрого исполнения (в течение ~1 дня), основанная на текущей структуре стакана ордеров.</p>
+                                    <p>Тактическая цена для быстрого исполнения (в течение ~1 дня), основанная на текущей суточной структуре стакана ордеров.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -276,4 +276,6 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
 }
 
     
+    
+
     
