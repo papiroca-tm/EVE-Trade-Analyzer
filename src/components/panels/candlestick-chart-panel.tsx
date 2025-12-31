@@ -52,33 +52,27 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
     const chartData = history.map((histItem, index) => {
         const { highest, lowest, average, volume } = histItem;
         
-        // Calculate volume percentage
         const volumePercentage = volumeRange > 0 ? (volume - minVolume) / volumeRange : 1;
-
-        // Calculate body size based on volume percentage
         const dayPriceRange = highest - lowest;
         const bodySize = dayPriceRange * volumePercentage;
 
-        // Center the body within the wick
-        const midPoint = (highest + lowest) / 2;
-        
         const prevAverage = index > 0 ? history[index-1].average : average;
         const color = average >= prevAverage ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
 
         let open, close;
-        open = midPoint + bodySize / 2;
-        close = midPoint - bodySize / 2;
         
+        // Center the body around the average price
+        open = average - bodySize / 2;
+        close = average + bodySize / 2;
 
         return {
             date: new Date(histItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            high: highest,
-            low: lowest,
-            open: open,
-            close: close,
+            high: Number(highest.toFixed(4)),
+            low: Number(lowest.toFixed(4)),
+            open: Number(open.toFixed(4)),
+            close: Number(close.toFixed(4)),
             color: color,
-            // Recharts needs a dataKey for the bar. We can pass the body range.
-            body: [open, close],
+            body: [Number(open.toFixed(4)), Number(close.toFixed(4))],
         }
     });
 
@@ -118,7 +112,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
               <YAxis 
                 orientation="right" 
                 domain={yDomain} 
-                tickFormatter={(value) => typeof value === 'number' ? value.toFixed(0) : ''}
+                tickFormatter={(value) => typeof value === 'number' ? value.toFixed(2) : ''}
                 tickLine={false}
                 axisLine={false}
               />
