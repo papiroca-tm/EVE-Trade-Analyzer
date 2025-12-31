@@ -20,22 +20,19 @@ import { useMemo } from 'react';
 const OrderTable = ({
   orders,
   type,
-  rows = 15,
 }: {
   orders: MarketOrderItem[];
   type: 'buy' | 'sell';
-  rows?: number;
 }) => {
   const isSell = type === 'sell';
   
   const sortedOrders = useMemo(() => {
     const sorted = [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
-    // For sell orders, we want the cheapest at the bottom, so we need to reverse the sorted (ascending) array before slicing.
     if (type === 'sell') {
-      return sorted.slice(0, rows).reverse();
+      return sorted.reverse();
     }
-    return sorted.slice(0, rows);
-  }, [orders, type, rows]);
+    return sorted;
+  }, [orders, type]);
 
   return (
     <div className="flex-1">
@@ -59,21 +56,11 @@ const OrderTable = ({
                 </TableRow>
               ))
             ) : (
-              Array.from({ length: rows }).map((_, i) => (
-                <TableRow key={i} className="border-b-0">
-                  <TableCell
-                    className={cn(
-                      'py-0.5 px-2 text-right font-mono',
-                      isSell ? 'text-red-400' : 'text-green-400'
-                    )}
-                  >
-                    -
-                  </TableCell>
-                  <TableCell className="py-0.5 px-2 text-right font-mono">
+                <TableRow className="border-b-0">
+                  <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">
                     -
                   </TableCell>
                 </TableRow>
-              ))
             )}
           </TableBody>
         </Table>
