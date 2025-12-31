@@ -29,12 +29,10 @@ export function MarketHistoryPanel({
     };
   }, [recommendations]);
 
-  const chartData = useMemo(() => {
+  const { chartData, yDomainPrice } = useMemo(() => {
     const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
-        const fullPeriodData = chronologicalHistory.slice(Math.max(0, chronologicalHistory.indexOf(data[0]) - period + 1));
-        
         return data.map((_item, index, arr) => {
             const historySliceIndex = chronologicalHistory.indexOf(arr[index]);
             if (historySliceIndex < period - 1) return null;
@@ -59,13 +57,26 @@ export function MarketHistoryPanel({
       'Объем': item.volume,
       'SMA 7': sma7[index],
       'SMA 30': sma30[index],
-      recBuy: recommendationLines?.buy,
-      recSell: recommendationLines?.sell,
     }));
-    
-    return fullChartData;
 
-  }, [history, timeHorizonDays, recommendationLines]);
+    const allPriceValues = fullChartData.flatMap(d => [d['Цена'], d['SMA 7'], d['SMA 30']]).filter(v => v != null) as number[];
+
+    let domain: [number | string, number | string] = ['auto', 'auto'];
+    if (allPriceValues.length > 0) {
+      const minPrice = Math.min(...allPriceValues);
+      const maxPrice = Math.max(...allPriceValues);
+      const range = maxPrice - minPrice;
+      const padding = range * 0.1;
+
+      domain = [
+        Math.max(0, Math.floor(minPrice - padding)),
+        Math.ceil(maxPrice + padding)
+      ];
+    }
+    
+    return { chartData: fullChartData, yDomainPrice: domain };
+
+  }, [history, timeHorizonDays]);
   
   
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -145,7 +156,7 @@ export function MarketHistoryPanel({
                 >
                     <Tooltip content={<CustomTooltip />} />
                     <XAxis dataKey="date" hide/>
-                    <YAxis yAxisId="0" tick={false} axisLine={false} width={0} />
+                    <YAxis yAxisId="0" domain={yDomainPrice} tick={false} axisLine={false} width={0} />
                     
                     <Line 
                         yAxisId="0"
@@ -175,32 +186,6 @@ export function MarketHistoryPanel({
                         dot={false}
                         connectNulls
                     />
-                    {recommendationLines && (
-                      <>
-                        <Line
-                          yAxisId="0"
-                          type="monotone"
-                          dataKey="recBuy"
-                          name="Рекомендация покупки"
-                          stroke="#888888"
-                          strokeWidth={1.5}
-                          strokeDasharray="5 5"
-                          dot={false}
-                          connectNulls
-                        />
-                        <Line
-                          yAxisId="0"
-                          type="monotone"
-                          dataKey="recSell"
-                          name="Рекомендация продажи"
-                          stroke="#888888"
-                          strokeWidth={1.5}
-                          strokeDasharray="5 5"
-                          dot={false}
-                          connectNulls
-                        />
-                      </>
-                    )}
                 </LineChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
