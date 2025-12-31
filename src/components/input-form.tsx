@@ -88,10 +88,7 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
   useEffect(() => {
     async function performSearch() {
       if (debouncedItemSearch.length < 3) {
-        // If search is cleared, revert to initial items
-        if (debouncedItemSearch.length === 0) {
-            setItemOptions(initialData.itemTypes);
-        }
+        setItemOptions(initialData.itemTypes); // Revert to initial list if search is short
         return;
       }
       
@@ -99,10 +96,16 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
       try {
         const results = await searchItemTypes(debouncedItemSearch);
         const currentItem = itemOptions.find(item => item.type_id === form.getValues('typeId'));
-        const newOptions = new Map(results.map(item => [item.type_id, item]));
-        if (currentItem && !newOptions.has(currentItem.type_id)) {
+        const newOptions = new Map<number, ItemType>();
+        
+        // Add current selected item to ensure it's not removed from the list
+        if (currentItem) {
             newOptions.set(currentItem.type_id, currentItem);
         }
+        
+        // Add search results
+        results.forEach(item => newOptions.set(item.type_id, item));
+        
         setItemOptions(Array.from(newOptions.values()).sort((a,b) => a.name.localeCompare(b.name)));
       } catch (error) {
         console.error("Failed to search for item types:", error);
@@ -114,9 +117,10 @@ export function InputForm({ formAction }: { formAction: (payload: FormData) => v
     performSearch();
   }, [debouncedItemSearch, initialData.itemTypes, form]);
 
+
   const selectedItemName = useMemo(() => {
-    return itemOptions.find(item => item.type_id === form.watch('typeId'))?.name;
-  }, [itemOptions, form.watch('typeId')]);
+    return itemOptions.find(item => item.type_id === form.watch('typeId'))?.name || initialData.itemTypes.find(item => item.type_id === form.watch('typeId'))?.name;
+  }, [itemOptions, initialData.itemTypes, form.watch('typeId')]);
   
 
   return (

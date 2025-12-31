@@ -5,16 +5,17 @@ import type { MarketHistoryItem, MarketOrderItem, Region, ItemType } from './typ
 
 const ESI_BASE_URL = 'https://esi.evetech.net/latest';
 
-async function fetchEsi(path: string, cache: boolean = false): Promise<Response> {
+async function fetchEsi(path: string, options: RequestInit = {}): Promise<Response> {
     const url = `${ESI_BASE_URL}${path}`;
-    const options: RequestInit = cache ? { next: { revalidate: 3600 } } : { cache: 'no-store' };
+    const defaultOptions: RequestInit = path.startsWith('/universe/names/') ? {} : { next: { revalidate: 3600 } };
+    const finalOptions: RequestInit = { ...defaultOptions, ...options, cache: path.startsWith('/universe/names/') ? 'no-store' : options.cache };
     
     try {
-        const response = await fetch(url, options);
+        const response = await fetch(url, finalOptions);
 
         if (!response.ok) {
             if (response.status === 404) {
-                // For 404, return a response with an empty JSON array to prevent crashes.
+                 // For 404, return a response with an empty JSON array to prevent crashes.
                 return new Response(JSON.stringify([]), {
                     status: 200,
                     headers: { 'Content-Type': 'application/json' }
@@ -47,7 +48,7 @@ async function fetchAllPages(path: string): Promise<any[]> {
 
     while (page <= totalPages) {
         const url = `${path}${separator}page=${page}`;
-        const response = await fetchEsi(url);
+        const response = await fetchEsi(url, { cache: 'no-store' });
         
         try {
             const data = await response.json();
@@ -79,15 +80,16 @@ export async function fetchMarketOrders(regionId: number, typeId: number): Promi
 }
 
 export async function getRegions(): Promise<Region[]> {
-    const regionIdsRes = await fetchEsi('/universe/regions/', true);
+    const regionIdsRes = await fetchEsi('/universe/regions/');
     const regionIds: number[] = await regionIdsRes.json();
     
     const regionDetailsPromises = regionIds.map(async id => {
         try {
+            // Filter out wormhole space and other weird regions
             if (id > 11000000) {
                 return null;
             }
-            const response = await fetchEsi(`/universe/regions/${id}/`, true);
+            const response = await fetchEsi(`/universe/regions/${id}/`);
             const data = await response.json();
             return { region_id: id, name: data.name };
         } catch (e) {
@@ -96,16 +98,11 @@ export async function getRegions(): Promise<Region[]> {
         }
     });
 
-    const settledDetails = await Promise.allSettled(regionDetailsPromises);
+    const settledDetails = await Promise.all(regionDetailsPromises);
 
-    const successfulRegions = settledDetails
-        .filter((result): result is PromiseFulfilledResult<Region | null> => result.status === 'fulfilled' && result.value !== null)
-        .map(result => result.value as Region);
+    const successfulRegions = settledDetails.filter((r): r is Region => r !== null);
 
-
-    return successfulRegions
-        .filter((r): r is Region => r !== null)
-        .sort((a,b) => a.name.localeCompare(b.name));
+    return successfulRegions.sort((a,b) => a.name.localeCompare(b.name));
 }
 
 
@@ -119,42 +116,42 @@ export async function searchItemTypes(query: string, category: string = 'invento
 
     if (typeIds.length === 0) return [];
     
-    // ESI search can be broad, let's get names and filter for published items
-    const namesResponse = await fetchEsi(`/universe/names/`, false);
-    if (namesResponse.status !== 200) {
-      const itemDetailsPromises = typeIds.slice(0, 50).map(async (id) => {
+    // ESI has a /universe/names/ endpoint that can resolve multiple IDs at once via POST
+    const namesResponse = await fetchEsi(`/universe/names/`, {
+        method: 'POST',
+        body: JSON.stringify(typeIds.slice(0, 500)), // Capped at 500 for safety
+        headers: { 'Content-Type': 'application/json' },
+    });
+    
+    const itemNames = (await namesResponse.json()) as {id: number, name: string}[];
+
+    const nameMap = new Map(itemNames.map(item => [item.id, item.name]));
+    
+    // We still need to check if items are published (marketable)
+    const itemDetailsPromises = typeIds.slice(0, 100).map(async (id) => {
         try {
-            const response = await fetchEsi(`/universe/types/${id}/`, true);
+            const response = await fetchEsi(`/universe/types/${id}/`);
             const data = await response.json();
             if (data.published) {
-                return { type_id: id, name: data.name };
+                return { type_id: id, name: nameMap.get(id) || data.name };
             }
             return null;
         } catch (error) {
             console.warn(`Could not fetch details for typeId ${id}.`);
             return null;
         }
-      });
-      const settledDetails = await Promise.allSettled(itemDetailsPromises);
-      return settledDetails
-        .filter((r): r is PromiseFulfilledResult<ItemType | null> => r.status === 'fulfilled' && r.value !== null)
-        .map(r => r.value as ItemType)
-        .sort((a,b) => a.name.localeCompare(b.name));
-    }
-    const itemNames = (await namesResponse.json()) as {id: number, name: string}[];
+    });
 
-    const nameMap = new Map(itemNames.map(item => [item.id, item.name]));
+    const settledDetails = await Promise.all(itemDetailsPromises);
     
-    return typeIds
-      .map(id => ({ type_id: id, name: nameMap.get(id) || 'Unknown Item' }))
-      .filter(item => item.name !== 'Unknown Item')
-      .slice(0, 100)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return settledDetails
+        .filter((r): r is ItemType => r !== null)
+        .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getInitialItemTypes(): Promise<ItemType[]> {
     try {
-        const marketGroupResponse = await fetchEsi(`/markets/groups/1857/`, true); // Minerals
+        const marketGroupResponse = await fetchEsi(`/markets/groups/1857/`, { next: { revalidate: 86400 }}); // Minerals, cache for a day
         const marketGroupData = await marketGroupResponse.json();
         const typeIds: number[] = marketGroupData.types || [];
         
@@ -162,11 +159,11 @@ export async function getInitialItemTypes(): Promise<ItemType[]> {
             return [];
         }
         
-        // Let's use the /universe/names endpoint for efficiency
-        const namesResponse = await fetch('/universe/names/', {
+        const namesResponse = await fetchEsi('/universe/names/', {
             method: 'POST',
             body: JSON.stringify(typeIds),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            cache: 'no-store',
         });
         const itemNames: {id: number, name: string}[] = await namesResponse.json();
         const nameMap = new Map(itemNames.map(item => [item.id, item.name]));
