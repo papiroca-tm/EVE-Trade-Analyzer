@@ -43,13 +43,16 @@ const Candle = (props: any) => {
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
+  // This helper function maps a price value to a Y coordinate within the bar's space.
+  // It uses the payload's high/low and the chart's y/height props to do the mapping.
   const yValueToCoordinate = (value: number) => {
-    // This function maps a price value to a Y coordinate within the bar's space.
-    // We assume `y` corresponds to the top of the bar's bounding box and `height` is the total height.
-    // The Y-axis is inverted in SVG (0 is at the top).
-    const yDomain = props.yAxis.domain;
-    const domainRange = yDomain[1] - yDomain[0];
-    const valueRatio = (value - yDomain[0]) / domainRange;
+    const domainRange = payload.high - payload.low;
+    // Handle case where high and low are the same to avoid division by zero
+    if (domainRange === 0) {
+      return y + height / 2;
+    }
+    const valueRatio = (value - payload.low) / domainRange;
+    // The Y-axis is inverted in SVG (0 is at the top), so we subtract from the bottom.
     return y + (1 - valueRatio) * height;
   };
   
@@ -59,7 +62,7 @@ const Candle = (props: any) => {
   const closeY = yValueToCoordinate(close);
 
   const bodyY = Math.min(openY, closeY);
-  const bodyHeight = Math.abs(openY - closeY);
+  const bodyHeight = Math.max(1, Math.abs(openY - closeY)); // Ensure body is at least 1px to be visible
 
   return (
     <g>
