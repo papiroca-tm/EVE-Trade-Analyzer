@@ -19,10 +19,6 @@ import { cn } from '@/lib/utils';
 import type { MarketOrderItem, PriceAnalysis } from '@/lib/types';
 import { useMemo, useRef, useEffect } from 'react';
 
-interface OrderWithWall extends MarketOrderItem {
-    isWall: boolean;
-}
-
 const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem[], averageDailyVolume: number }) => {
     const processedOrders = useMemo(() => {
         if (!orders || orders.length === 0) return [];
@@ -36,19 +32,19 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
         const logicSorted = [...orders].sort((a, b) => a.price - b.price); 
         
         let cumulativeForWallCheck = 0;
-        let wallPrice: number | undefined;
+        let wallOrderId: number | undefined;
 
         for (const order of logicSorted) {
             cumulativeForWallCheck += order.volume_remain;
             if (cumulativeForWallCheck >= wallThreshold) {
-                wallPrice = order.price;
-                break; // Found our wall price level
+                wallOrderId = order.order_id;
+                break; // Found our wall order
             }
         }
 
         const finalOrders = displaySorted.map(order => ({
             ...order,
-            isWall: wallPrice !== undefined && order.price === wallPrice,
+            isWall: wallOrderId !== undefined && order.order_id === wallOrderId,
         }));
         
         return finalOrders;
@@ -81,19 +77,25 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
     const processedOrders = useMemo(() => {
         if (!orders || orders.length === 0) return [];
         
-        const sorted = [...orders].sort((a, b) => b.price - a.price); // Descending for buys
+        // Display order: highest price at top
+        const sorted = [...orders].sort((a, b) => b.price - a.price); 
         
         const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
         let cumulativeVolume = 0;
-        
-        const wallPrice = sorted.find(o => {
-            cumulativeVolume += o.volume_remain;
-            return cumulativeVolume >= wallThreshold;
-        })?.price;
+        let wallOrderId: number | undefined;
+
+        // Find the specific order that crosses the threshold
+        for (const order of sorted) {
+            cumulativeVolume += order.volume_remain;
+            if (cumulativeVolume >= wallThreshold) {
+                wallOrderId = order.order_id;
+                break;
+            }
+        }
 
         const finalOrders = sorted.map(order => ({
             ...order,
-            isWall: wallPrice !== undefined && order.price === wallPrice
+            isWall: wallOrderId !== undefined && order.order_id === wallOrderId
         }));
 
         return finalOrders;
