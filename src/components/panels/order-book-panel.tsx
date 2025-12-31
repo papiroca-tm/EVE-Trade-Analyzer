@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BookOpen } from 'lucide-react';
+import { useMemo } from 'react';
 
 const OrderTable = ({ orders, type }: { orders: MarketOrderItem[], type: 'buy' | 'sell' }) => (
     <div className='w-1/2'>
@@ -42,6 +43,14 @@ const OrderTable = ({ orders, type }: { orders: MarketOrderItem[], type: 'buy' |
 
 
 export function OrderBookPanel({ buyOrders, sellOrders }: { buyOrders: MarketOrderItem[], sellOrders: MarketOrderItem[] }) {
+    const sortedBuyOrders = useMemo(() => 
+        [...buyOrders].sort((a, b) => b.price - a.price),
+    [buyOrders]);
+
+    const sortedSellOrders = useMemo(() =>
+        [...sellOrders].sort((a, b) => a.price - b.price),
+    [sellOrders]);
+
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
@@ -52,8 +61,8 @@ export function OrderBookPanel({ buyOrders, sellOrders }: { buyOrders: MarketOrd
         <CardDescription>Снимок топ-100 текущих ордеров на покупку и продажу.</CardDescription>
       </CardHeader>
       <CardContent className="flex gap-4">
-        <OrderTable orders={buyOrders} type="buy" />
-        <OrderTable orders={sellOrders} type="sell" />
+        <OrderTable orders={sortedBuyOrders} type="buy" />
+        <OrderTable orders={sortedSellOrders} type="sell" />
       </CardContent>
     </Card>
   );
