@@ -56,7 +56,11 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
             </div>
             <DataIntegrityPanel data={state.data.dataIntegrity} />
             <MarketHistoryPanel history={state.data.history.slice(0, state.data.inputs.timeHorizonDays)} />
-            <OrderBookPanel buyOrders={state.data.buyOrders} sellOrders={state.data.sellOrders} />
+            <OrderBookPanel 
+              buyOrders={state.data.buyOrders} 
+              sellOrders={state.data.sellOrders} 
+              averageDailyVolume={state.data.volumeAnalysis.averageDailyVolume}
+            />
         </div>
       );
     default:
