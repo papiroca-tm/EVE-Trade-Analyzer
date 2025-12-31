@@ -50,13 +50,9 @@ export function calculateAnalysis(
     const averageDailyVolume = history.length > 0 ? totalVolume / history.length : 0;
     const totalBuyOrderVolume = buyLadder.length > 0 ? buyLadder[buyLadder.length - 1].cumulativeVolume : 0;
     const totalSellOrderVolume = sellLadder.length > 0 ? sellLadder[sellLadder.length - 1].cumulativeVolume : 0;
-    const averagePrice = historicalPrices.length > 0 ? historicalPrices.reduce((a,b) => a+b, 0) / historicalPrices.length : 0;
-
-    let recommendations: Recommendation[] = [];
-
-    // Существующая логика удалена по запросу пользователя.
-    // Эта секция готова для реализации нового алгоритма.
-
+    
+    // Новая логика: возвращаем пустые рекомендации с нулевыми значениями
+    const recommendations: Recommendation[] = [];
 
     const averagePriceHistory = history.length > 0 ? historicalPrices.reduce((sum, p) => sum + p, 0) / historicalPrices.length : 0;
     const variance = history.length > 0 ? history.reduce((sum, h) => sum + Math.pow(h.average - averagePriceHistory, 2), 0) / history.length : 0;
@@ -68,7 +64,7 @@ export function calculateAnalysis(
       history,
       buyOrders,
       sellOrders,
-      recommendations,
+      recommendations, // This will be empty, causing the message
       volumeAnalysis: {
         averageDailyVolume,
         totalBuyOrderVolume,
@@ -80,7 +76,7 @@ export function calculateAnalysis(
         bestSellPrice,
         midPrice,
         volatility: volatilityPercent,
-        averagePrice,
+        averagePrice: 0,
       }
     };
 }

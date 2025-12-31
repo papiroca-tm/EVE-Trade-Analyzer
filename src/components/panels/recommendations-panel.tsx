@@ -48,7 +48,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
       'very high': 'default'
   };
 
-  const rec = recommendations[0];
+  const rec = recommendations && recommendations.length > 0 ? recommendations[0] : null;
 
   return (
     <Card>
@@ -106,14 +106,43 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
 
           </div>
         ) : (
-            <div className="flex h-32 items-center justify-center rounded-md border-2 border-dashed bg-muted/50 p-4 text-center">
-                <div>
-                    <h3 className="text-base font-semibold text-foreground">Нет прибыльных возможностей</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        Не удалось смоделировать прибыльную операцию. Попробуйте снизить желаемую маржу.
-                    </p>
+          <div className="space-y-3">
+             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <PriceCard title="Рекомендуемая цена покупки" price={0} icon={<ArrowDown className="h-4 w-4 text-green-400" />} />
+                <PriceCard title="Ориентир цены продажи" price={0} icon={<ArrowUp className="h-4 w-4 text-red-400" />} />
+             </div>
+
+             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                <StatCard icon={<Percent size={16}/>} title="Расчетная маржа" value={"0.00"} unit="%"/>
+                <StatCard icon={<TrendingUp size={16}/>} title="Выполн. объем" value={"0 - 0"} />
+                <StatCard icon={<Clock size={16}/>} title="Время исполн." value={"0-0"} unit="дней"/>
+                <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
+                    <p className="text-xs text-muted-foreground">Выполнимость</p>
+                     <Badge variant="secondary" className="mt-1 w-full justify-center capitalize">
+                       Н/Д
+                    </Badge>
                 </div>
-            </div>
+             </div>
+             
+             <Card className="bg-muted/30">
+                <CardHeader className="p-2">
+                    <div className='flex items-center gap-2'>
+                        <CircleDollarSign className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-base">Потенциальная прибыль</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-2 pt-0">
+                    <p className="text-2xl font-bold text-primary font-mono text-center">
+                        0.00 ISK
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground flex items-start gap-1">
+                        <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                        <span>Введите новую логику для расчета рекомендаций.</span>
+                    </p>
+                </CardContent>
+             </Card>
+
+          </div>
         )}
       </CardContent>
     </Card>
