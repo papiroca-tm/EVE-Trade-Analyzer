@@ -177,6 +177,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
               <XAxis dataKey="date" tickLine={false} axisLine={false} />
               <YAxis 
+                hide={true}
                 orientation="right" 
                 domain={yDomain} 
                 tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ''}
