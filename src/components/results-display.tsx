@@ -62,8 +62,6 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
             <div className="lg:col-span-2">
               <MarketHistoryPanel 
                 history={state.data.history.slice(0, state.data.inputs.timeHorizonDays)}
-                averagePrice={state.data.priceAnalysis.averagePrice}
-                totalVolume={state.data.volumeAnalysis.totalVolume}
               />
             </div>
             <div className="lg:col-span-2">
