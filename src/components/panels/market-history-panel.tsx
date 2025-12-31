@@ -33,18 +33,27 @@ export function MarketHistoryPanel({
     const chronologicalHistory = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const calculateSMA = (data: MarketHistoryItem[], period: number) => {
+        // We need `period` amount of data *before* the current slice to calculate the first SMA point correctly.
+        const fullPeriodData = chronologicalHistory.slice(Math.max(0, chronologicalHistory.indexOf(data[0]) - period + 1));
+        
         return data.map((_item, index, arr) => {
-            if (index < period - 1) return null;
-            const slice = arr.slice(index - period + 1, index + 1);
+            const historySliceIndex = chronologicalHistory.indexOf(arr[index]);
+            if (historySliceIndex < period - 1) return null;
+            
+            const slice = chronologicalHistory.slice(historySliceIndex - period + 1, historySliceIndex + 1);
+            if (slice.length < period) return null;
+
             const sum = slice.reduce((acc, val) => acc + val.average, 0);
             return sum / period;
         });
     };
+    
+    const dataForHorizon = chronologicalHistory.slice(-timeHorizonDays);
+    const sma7 = calculateSMA(dataForHorizon, 7);
+    const sma30 = calculateSMA(dataForHorizon, 30);
 
-    const sma7 = calculateSMA(chronologicalHistory, 7);
-    const sma30 = calculateSMA(chronologicalHistory, 30);
 
-    const fullChartData = chronologicalHistory.map((item, index) => ({
+    const fullChartData = dataForHorizon.map((item, index) => ({
       date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
       fullDate: new Date(item.date).toLocaleDateString('ru-RU'),
       'Цена': item.average,
@@ -55,13 +64,17 @@ export function MarketHistoryPanel({
       'Рекомендация продажи': recommendationLines?.sell,
     }));
     
-    return fullChartData.slice(-timeHorizonDays);
+    return fullChartData;
 
   }, [history, timeHorizonDays, recommendationLines]);
   
   const yDomainPrice = useMemo(() => {
       if (!chartData || chartData.length === 0) return [0, 'auto'];
       const prices = chartData.map(p => p.Цена).filter(p => p !== null && p !== undefined) as number[];
+      if (recommendationLines) {
+        prices.push(recommendationLines.buy);
+        prices.push(recommendationLines.sell);
+      }
       if (prices.length === 0) return [0, 'auto'];
       
       const min = Math.min(...prices);
@@ -71,7 +84,7 @@ export function MarketHistoryPanel({
       const padding = range === 0 ? max * 0.1 : range * 0.1;
       
       return [Math.max(0, min - padding), max + padding];
-  }, [chartData]);
+  }, [chartData, recommendationLines]);
   
   
   const CustomTooltip = ({ active, payload, label }: any) => {
