@@ -2,7 +2,7 @@
 import type { MarketHistoryItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { Bar, BarChart, Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 export function MarketHistoryPanel({ 
     history,
@@ -94,7 +94,6 @@ export function MarketHistoryPanel({
                     syncId="marketData"
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <Tooltip content={<CustomTooltip />} />
                     <YAxis domain={yDomainPrice()} hide={true} />
                     <Line type="monotone" dataKey="Цена" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
@@ -102,11 +101,10 @@ export function MarketHistoryPanel({
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height="30%">
                 <BarChart 
-                    data={chartData} _
+                    data={chartData}
                     syncId="marketData"
                     margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <Tooltip content={<CustomTooltip />} />
                      <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
                     <Bar dataKey="Объем" fill="hsl(var(--accent))" fillOpacity={0.4} />
