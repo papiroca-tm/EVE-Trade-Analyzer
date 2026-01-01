@@ -79,7 +79,7 @@ function findStrategicPrice(
         
         if (volumeAhead < marketPower) {
             const strategicPrice = side === 'buy' ? order.price + tickSize : order.price - tickSize;
-            const reason = `Стратегическая цена ${strategicPrice.toFixed(2)} найдена поиском от 'стены' (${searchStartPrice.toFixed(2)} ISK). Объем впереди (${volumeAhead.toLocaleString('ru-RU')} ед.) меньше, чем 'сила' рынка (~${marketPower.toLocaleString('ru-RU')} ед.) за ${executionDays / 2} дней.`;
+            const reason = `Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.`;
             return { price: strategicPrice, reason };
         }
     }
@@ -124,17 +124,17 @@ export async function calculateAnalysis(
     const midTermBuyPrice = Math.max(midTermBuyPriceRaw, longTermBuyPrice);
 
     const { price: shortTermBuyPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2, 'buy'); // Always 1 day horizon for short term
-    const averageBuyPrice = (longTermBuyPrice + midTermBuyPrice + shortTermBuyPrice) / 3;
+    const averageBuyPrice = (midTermBuyPrice + shortTermBuyPrice) / 2;
 
     // --- Sell Price Calculation (Mirrored Logic) ---
     const longTermSellPrice = history.length > 0 ? Math.max(...history.map(h => h.highest)) : 0;
     
-    const { price: midTermSellPriceRaw } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, inputs.executionDays, 'sell');
+    const { price: midTermSellPriceRaw, reason: sellFeasibilityReason } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, inputs.executionDays, 'sell');
     // Ensure mid-term isn't unrealistically high
     const midTermSellPrice = longTermSellPrice > 0 ? Math.min(midTermSellPriceRaw, longTermSellPrice) : midTermSellPriceRaw;
     
     const { price: shortTermSellPrice } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, 2, 'sell'); // Always 1 day horizon
-    const averageSellPrice = (longTermSellPrice + midTermSellPrice + shortTermSellPrice) / 3;
+    const averageSellPrice = (midTermSellPrice + shortTermSellPrice) / 2;
 
 
     const recommendations: Recommendation[] = [];
