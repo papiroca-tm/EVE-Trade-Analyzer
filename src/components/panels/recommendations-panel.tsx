@@ -66,7 +66,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
             <div className="grid grid-cols-1 gap-1 text-center font-mono">
                 <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
                     <div className="flex items-center gap-1">
-                        <span className="text-xs font-sans text-muted-foreground">Долгосрок.</span>
+                        <span className="text-xs font-sans text-muted-foreground">{isBuy ? "Мин. цена за период" : "Макс. цена за период"}</span>
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>
