@@ -7,7 +7,6 @@ import { AlertCircle, Bot } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ResultsSkeleton } from './panels/results-skeleton';
 import { RecommendationsPanel } from './panels/recommendations-panel';
-import { WarningsPanel } from './panels/warnings-panel';
 import { MarketHistoryPanel } from './panels/market-history-panel';
 import { CandlestickChartPanel } from './panels/candlestick-chart-panel';
 
@@ -55,11 +54,6 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
             <div className="lg:col-span-2">
                 <RecommendationsPanel data={state.data} />
             </div>
-            {state.warnings && state.warnings.length > 0 && (
-               <div className="lg:col-span-2">
-                <WarningsPanel warnings={state.warnings} />
-               </div>
-            )}
             <div className="lg:col-span-2">
               <MarketHistoryPanel 
                 history={state.data.history}

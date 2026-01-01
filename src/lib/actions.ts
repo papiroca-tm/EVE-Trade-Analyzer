@@ -41,8 +41,7 @@ export async function getMarketAnalysis(
     return {
       status: 'error',
       data: null,
-      error: "Неверные данные формы. Пожалуйста, проверьте введенные значения.",
-      warnings: validatedFields.error.issues.map(i => i.message),
+      error: validatedFields.error.issues.map(i => i.message).join('; '),
     };
   }
 
@@ -53,23 +52,9 @@ export async function getMarketAnalysis(
       fetchMarketHistory(inputs.regionId, inputs.typeId),
       fetchMarketOrders(inputs.regionId, inputs.typeId),
     ]);
-
-    const baseWarnings: string[] = [];
-    if (history.length === 0) baseWarnings.push("История рынка для этого предмета в выбранном регионе не найдена.");
-    if (orders.length === 0) baseWarnings.push("Активные ордера для этого предмета в выбранном регионе не найдены.");
-    if (history.length < inputs.timeHorizonDays) baseWarnings.push("Исторические данные охватывают меньший период, чем выбранный временной горизонт.");
-
+    
     const analysis = await calculateAnalysis(history, orders, inputs);
-    
-    if (analysis.recommendations.length === 0) {
-      baseWarnings.push("Не удалось смоделировать прибыльную операцию с заданной маржой. Попробуйте снизить желаемую маржу или выбрать другой предмет/регион.");
-    } else {
-      const feasibility = analysis.recommendations[0].feasibility;
-      if(feasibility === 'low' || feasibility === 'medium') {
-        baseWarnings.push(`Низкая выполнимость рекомендации. ${analysis.recommendations[0].feasibilityReason}`);
-      }
-    }
-    
+        
     const result: AnalysisResult = {
         ...analysis,
     };
@@ -78,7 +63,6 @@ export async function getMarketAnalysis(
       status: 'success',
       data: result,
       error: null,
-      warnings: baseWarnings,
     };
 
   } catch (error) {
@@ -87,7 +71,6 @@ export async function getMarketAnalysis(
       status: 'error',
       data: null,
       error: error instanceof Error ? error.message : "Произошла неизвестная ошибка во время анализа.",
-      warnings: [],
     };
   }
 }

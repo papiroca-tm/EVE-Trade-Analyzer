@@ -81,7 +81,6 @@ export interface AnalysisState {
   status: AnalysisStatus;
   data: AnalysisResult | null;
   error: string | null;
-  warnings: string[];
 }
 
 export interface Region {
