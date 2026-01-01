@@ -142,7 +142,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
   const emptyPriceRange: PriceRange = { longTerm: 0, midTerm: 0, shortTerm: 0, average: 0 };
 
   const desiredMarginBgClass = (() => {
-    if (!rec) return '';
+    if (!rec) return 'bg-muted/50';
     if (rec.netMarginPercent >= inputs.desiredNetMarginPercent) {
         return 'bg-green-800/60'; // Green
     }
@@ -173,6 +173,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                 value={inputs.desiredNetMarginPercent.toFixed(2)} 
                 unit="%"
                 className={desiredMarginBgClass}
+                tooltipText="Фон показывает сравнение с расчетной маржой. Зеленый: расчетная >= желаемой. Желтый: немного ниже. Красный: значительно ниже."
             />
         </div>
 
@@ -303,3 +304,5 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
+
+    
