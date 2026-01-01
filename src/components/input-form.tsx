@@ -64,7 +64,7 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
       salesTaxPercent: 3.37,
       desiredNetMarginPercent: 5.0,
       timeHorizonDays: 90,
-      executionDays: 14,
+      executionDays: 3,
       volatilityFactor: 1.0,
       positionCapital: "1000000000",
     },
