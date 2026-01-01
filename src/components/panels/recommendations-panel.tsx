@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign, Target } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
-const StatCard = ({ icon, title, value, unit, tooltipText }: { icon: React.ReactNode, title: string, value: string, unit?: string, tooltipText?: string }) => (
-    <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-2">
+const StatCard = ({ icon, title, value, unit, tooltipText, className }: { icon: React.ReactNode, title: string, value: string, unit?: string, tooltipText?: string, className?: string }) => (
+    <div className={cn("flex items-start gap-2 rounded-lg bg-muted/50 p-2", className)}>
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
             {icon}
         </div>
@@ -140,6 +141,18 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
 
   const emptyPriceRange: PriceRange = { longTerm: 0, midTerm: 0, shortTerm: 0, average: 0 };
 
+  const desiredMarginBgClass = (() => {
+    if (!rec) return '';
+    if (rec.netMarginPercent >= inputs.desiredNetMarginPercent) {
+        return 'bg-green-800/60'; // Green
+    }
+    if (rec.netMarginPercent >= inputs.desiredNetMarginPercent - 2) {
+        return 'bg-yellow-600/60'; // Yellow
+    }
+    return 'bg-red-800/60'; // Red
+  })();
+
+
   return (
     <Card>
       <CardHeader>
@@ -154,7 +167,13 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
             <StatCard icon={<Percent size={16}/>} title="Волатильность" value={priceAnalysis.volatility.toFixed(2)} unit="%"/>
             <StatCard icon={<TrendingUp size={16}/>} title="Сред. дневной объем" value={Math.floor(volumeAnalysis.averageDailyVolume).toLocaleString('ru-RU')} />
             <StatCard icon={<Scale size={16}/>} title="Спред" value={(priceAnalysis.bestSellPrice - priceAnalysis.bestBuyPrice).toLocaleString('ru-RU', {minimumFractionDigits: 2})} unit="ISK"/>
-            <StatCard icon={<Percent size={16}/>} title="Желаемая маржа" value={inputs.desiredNetMarginPercent.toFixed(2)} unit="%"/>
+            <StatCard 
+                icon={<Percent size={16}/>} 
+                title="Желаемая маржа" 
+                value={inputs.desiredNetMarginPercent.toFixed(2)} 
+                unit="%"
+                className={desiredMarginBgClass}
+            />
         </div>
 
         {rec ? (
