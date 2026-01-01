@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -73,7 +74,7 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
     ? initialData.itemTypes.filter(item => item.name.toLowerCase().includes(itemSearch.toLowerCase()))
     : initialData.itemTypes;
 
-  const displayedItems = filteredItems.slice(0, 20);
+  const displayedItems = filteredItems.slice(0, 50);
 
   return (
     <Card>
