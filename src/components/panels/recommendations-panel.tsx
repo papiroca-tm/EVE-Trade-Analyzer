@@ -56,7 +56,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                             </p>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Обобщенная цена, рассчитанная как среднее из трех ориентиров (долго-, средне- и краткосрочного).</p>
+                            <p>Обобщенная цена, рассчитанная как среднее из двух ориентиров (средне- и краткосрочного).</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
