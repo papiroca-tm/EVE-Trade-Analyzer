@@ -99,7 +99,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             <Tooltip content={<CustomTooltip />} />
                             
                             {/* Невидимый Bar для корректной работы Tooltip и ShadowBar */}
-                            <Area dataKey="range" shape={<ShadowBar />} />
+                            <Area dataKey="range" shape={<ShadowBar />} fill="transparent" />
                             
                              <Line 
                                 type="linear" 
