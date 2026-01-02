@@ -107,15 +107,14 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                            <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
+                            <XAxis dataKey="date" tickLine={false} axisLine={false} tick={false} />
                             <YAxis 
                                 orientation="right"
                                 domain={yDomain} 
                                 axisLine={false}
                                 tickLine={false}
-                                tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
-                                width={80}
-                                tick={{ fontSize: 12 }}
+                                tick={false}
+                                width={0}
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
