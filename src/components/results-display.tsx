@@ -8,7 +8,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ResultsSkeleton } from './panels/results-skeleton';
 import { RecommendationsPanel } from './panels/recommendations-panel';
 import { MarketHistoryPanel } from './panels/market-history-panel';
-import { CandlestickChartPanel } from './panels/candlestick-chart-panel';
 
 export function ResultsDisplay({ state }: { state: AnalysisState }) {
   const { toast } = useToast();
@@ -62,10 +61,7 @@ export function ResultsDisplay({ state }: { state: AnalysisState }) {
               />
             </div>
              <div className="lg:col-span-2">
-                <CandlestickChartPanel 
-                  history={state.data.history}
-                  timeHorizonDays={state.data.inputs.timeHorizonDays}
-                />
+                {/* Пустая секция на месте графика свечей */}
             </div>
         </div>
       );
