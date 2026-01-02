@@ -2,103 +2,61 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Customized } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
 /**
- * Преобразует исторические данные в формат для графика свечей.
- * Генерирует случайные данные в диапазоне от 3 до 5.
- * @param history - Массив исторических данных (используется для определения количества свечей).
- * @returns - Массив данных, готовый для графика свечей.
+ * Преобразует исторические данные, оставляя только дату, макс. и мин. цену.
+ * @param history - Массив исторических данных.
+ * @returns - Массив данных для графика.
  */
 const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
+    if (!history) return [];
     return history.slice(-90).map(item => {
-        const open = Math.random() * 2 + 3; // 3.0 to 5.0
-        const close = Math.random() * 2 + 3; // 3.0 to 5.0
-        const high = Math.max(open, close) + Math.random();
-        const low = Math.min(open, close) - Math.random();
-
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            open: open,
-            high: high,
-            low: low,
-            close: close,
+            range: [item.lowest, item.highest], // Используем массив [min, max]
+            low: item.lowest,
         };
     });
 };
 
-const Candlestick = (props: any) => {
-    const { data, yAxis, xAxis } = props;
+// Компонент для отрисовки одной тени (вертикальной линии)
+const WickShape = (props: any) => {
+    const { x, y, width, height, payload } = props;
+    const [low, high] = payload.range;
 
-    if (!data || !yAxis || !xAxis || !xAxis.width || data.length === 0) {
-        return null;
-    }
+    // y - координата нижней точки (для 'low'), height - высота до нее от верха.
+    // Нам нужно найти y-координату для 'high'. Она будет выше.
+    // 'y' соответствует 'low', а 'y' - 'height' соответствует 'high'
+    // Но это не так, recharts передает y и height для всего бара.
+    // y - это y-координата значения dataKey, то есть low. height - это высота от оси до этой точки.
 
-    // Рассчитываем ширину одной свечи на основе общей ширины оси и количества точек
-    const bandWidth = xAxis.width / data.length;
+    // Поскольку мы не можем легко получить две Y-координаты, мы просто используем x, y, и width,
+    // а height игнорируем и рисуем свою линию. Но для этого нам нужна ось Y.
+    // Recharts не передает оси в shape. Поэтому этот подход не сработает.
 
-    return (
-        <g>
-            {data.map((entry: any, index: number) => {
-                const { open, close, high, low } = entry;
+    // Попробуем другой, более простой подход с BarChart и плавающими барами.
+    // Для этого dataKey должен указывать на массив [min, max].
+    
+    // Этот компонент не будет использоваться, но оставлен для демонстрации.
+    // Мы используем встроенную возможность BarChart для "плавающих" баров.
 
-                // Получаем координату X центра свечи по индексу
-                const x = xAxis.scale(index);
-                
-                if (x === undefined || x === null) return null;
-
-                const yOpen = yAxis.scale(open);
-                const yClose = yAxis.scale(close);
-                const yHigh = yAxis.scale(high);
-                const yLow = yAxis.scale(low);
-
-                const isBullish = close >= open;
-                const bodyHeight = Math.max(1, Math.abs(yOpen - yClose)); // Тело должно быть минимум 1px
-                const bodyY = Math.min(yOpen, yClose);
-                
-                const bodyWidth = bandWidth * 0.6;
-                const bodyX = x - bodyWidth / 2;
-                const wickX = x;
-
-                return (
-                    <g key={`candlestick-${index}`}>
-                        {/* Фитиль (тень) */}
-                        <line 
-                            x1={wickX} y1={yHigh} 
-                            x2={wickX} y2={yLow} 
-                            stroke={isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'} 
-                            strokeWidth={1} 
-                        />
-                        {/* Тело свечи */}
-                        <rect 
-                            x={bodyX}
-                            y={bodyY}
-                            width={bodyWidth}
-                            height={bodyHeight}
-                            fill={isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'}
-                        />
-                    </g>
-                );
-            })}
-        </g>
-    );
+    return null;
 };
 
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
-        const { open, high, low, close } = data;
+        const [low, high] = data.range;
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
                 <p className="font-bold text-muted-foreground">{label}</p>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
-                    <span className="text-muted-foreground">Open:</span><span className="font-mono text-right">{open.toFixed(2)}</span>
-                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{high.toFixed(2)}</span>
-                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{low.toFixed(2)}</span>
-                    <span className="text-muted-foreground">Close:</span><span className="font-mono text-right">{close.toFixed(2)}</span>
+                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{high.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{low.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
                 </div>
             </div>
         );
@@ -111,9 +69,10 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
     const data = useMemo(() => transformHistoryToCandlestickData(history), [history]);
 
     const yDomain = useMemo(() => {
-        if (data.length === 0) return [0, 5];
-        const min = Math.min(...data.map(d => d.low));
-        const max = Math.max(...data.map(d => d.high));
+        if (!data || data.length === 0) return [0, 5];
+        const allValues = data.flatMap(d => d.range);
+        const min = Math.min(...allValues);
+        const max = Math.max(...allValues);
         const padding = (max - min) * 0.1;
         return [min - padding, max + padding];
     }, [data]);
@@ -124,21 +83,22 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <CandlestickChartIcon className="h-5 w-5 text-primary" />
-                    <CardTitle>График свечей</CardTitle>
+                    <CardTitle>График теней (Мин/Макс цена)</CardTitle>
                 </div>
                 <CardDescription>
-                   Динамика цены за выбранный период (случайные данные).
+                   Динамика дневного диапазона цен за последние 90 дней.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="h-[24rem] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart
+                        <BarChart
                             data={data}
+                            barCategoryGap="40%"
                             margin={{ top: 5, right: 20, left: 5, bottom: 0 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                            <XAxis dataKey="date" type="category" tickLine={false} axisLine={false} />
+                            <XAxis dataKey="date" tickLine={false} axisLine={false} />
                             <YAxis 
                                 orientation="right"
                                 domain={yDomain} 
@@ -149,13 +109,18 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            {/* Невидимая линия, чтобы Tooltip работал */}
-                            <Line dataKey="close" stroke="transparent" dot={false} activeDot={false} yAxisId={0} />
-                            
-                            {/* Кастомный компонент для отрисовки свечей */}
-                            <Customized component={Candlestick} />
+                            {/* 
+                                Используем "плавающий" Bar. 
+                                Когда в dataKey передается массив, BarChart рисует столбец от первого значения до второго.
+                                Чтобы сделать его похожим на тень, мы задаем очень маленький barSize.
+                            */}
+                            <Bar 
+                                dataKey="range" 
+                                fill="hsl(var(--foreground) / 0.8)" 
+                                barSize={1} 
+                            />
 
-                        </ComposedChart>
+                        </BarChart>
                     </ResponsiveContainer>
                 </div>
             </CardContent>
