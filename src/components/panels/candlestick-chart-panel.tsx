@@ -1,9 +1,8 @@
-
 'use client';
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
+import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -30,7 +29,7 @@ const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
 
 // Кастомный компонент для отрисовки одной свечи
 const CandleShape = (props: any) => {
-    const { x, y, width, height, ohlc } = props;
+    const { x, width, ohlc, yAxis } = props;
     const [open, high, low, close] = ohlc;
 
     const isBullish = close > open;
@@ -38,13 +37,15 @@ const CandleShape = (props: any) => {
     const stroke = fill;
 
     const wickX = x + width / 2;
+    const bodyY = yAxis.scale(Math.max(open, close));
+    const bodyHeight = Math.abs(yAxis.scale(open) - yAxis.scale(close));
 
     return (
         <g stroke={stroke} fill="none" strokeWidth="1">
             {/* Тело свечи */}
-            <rect x={x} y={Math.min(y, y + height)} width={width} height={Math.max(1, Math.abs(height))} fill={fill} />
+            <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={fill} />
             {/* Тень (фитиль) */}
-            <line x1={wickX} y1={props.yAxis.scale(high)} x2={wickX} y2={props.yAxis.scale(low)} />
+            <line x1={wickX} y1={yAxis.scale(high)} x2={wickX} y2={yAxis.scale(low)} />
         </g>
     );
 };
@@ -116,9 +117,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 shape={<CandleShape />} 
                                 barSize={8}
                             >
-                                {data.map((entry, index) => (
-                                    <ReferenceLine key={`candle-${index}`} />
-                                ))}
                             </Bar>
                         </ComposedChart>
                     </ResponsiveContainer>
