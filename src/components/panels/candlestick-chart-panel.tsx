@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Customized } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -16,44 +16,76 @@ const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
     return history.map(item => {
         const open = Math.random() * 2 + 3; // 3.0 to 5.0
         const close = Math.random() * 2 + 3; // 3.0 to 5.0
-        const high = Math.max(open, close) + Math.random() * 0.2; // Add a bit for the wick
-        const low = Math.min(open, close) - Math.random() * 0.2; // Subtract a bit for the wick
+        const high = Math.max(open, close) + Math.random();
+        const low = Math.min(open, close) - Math.random();
 
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            // ohlc is an array [open, high, low, close]
-            ohlc: [open, high, low, close],
+            open: open,
+            high: high,
+            low: low,
+            close: close,
         };
     });
 };
 
-// Кастомный компонент для отрисовки одной свечи
-const CandleShape = (props: any) => {
-    const { x, width, ohlc, yAxis } = props;
-    const [open, high, low, close] = ohlc;
+const Candlestick = (props: any) => {
+    const { data, yAxis, xAxis } = props;
 
-    const isBullish = close > open;
-    const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-    const stroke = fill;
-
-    const wickX = x + width / 2;
-    const bodyY = yAxis.scale(Math.max(open, close));
-    const bodyHeight = Math.abs(yAxis.scale(open) - yAxis.scale(close));
+    if (!data || !yAxis || !xAxis) {
+        return null;
+    }
 
     return (
-        <g stroke={stroke} fill="none" strokeWidth="1">
-            {/* Тело свечи */}
-            <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={fill} />
-            {/* Тень (фитиль) */}
-            <line x1={wickX} y1={yAxis.scale(high)} x2={wickX} y2={yAxis.scale(low)} />
+        <g>
+            {data.map((entry: any, index: number) => {
+                const { open, close, high, low } = entry;
+
+                const x = xAxis.scale(entry.date) ?? 0;
+                
+                if (x === 0) return null;
+
+                const yOpen = yAxis.scale(open);
+                const yClose = yAxis.scale(close);
+                const yHigh = yAxis.scale(high);
+                const yLow = yAxis.scale(low);
+
+                const isBullish = close >= open;
+                const bodyHeight = Math.abs(yOpen - yClose);
+                const bodyY = Math.min(yOpen, yClose);
+                
+                const bandWidth = (xAxis.scale.bandwidth && typeof xAxis.scale.bandwidth === 'function') ? xAxis.scale.bandwidth() : 10;
+                const bodyWidth = bandWidth * 0.6;
+                const bodyX = x - bodyWidth / 2;
+                const wickX = x;
+
+                return (
+                    <g key={`candlestick-${index}`}>
+                        <line 
+                            x1={wickX} y1={yHigh} 
+                            x2={wickX} y2={yLow} 
+                            stroke={isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'} 
+                            strokeWidth={1} 
+                        />
+                        <rect 
+                            x={bodyX}
+                            y={bodyY}
+                            width={bodyWidth}
+                            height={bodyHeight > 0 ? bodyHeight : 1}
+                            fill={isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'}
+                        />
+                    </g>
+                );
+            })}
         </g>
     );
 };
 
+
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
-        const [open, high, low, close] = data.ohlc;
+        const { open, high, low, close } = data;
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
                 <p className="font-bold text-muted-foreground">{label}</p>
@@ -74,9 +106,9 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
     const data = useMemo(() => transformHistoryToCandlestickData(history), [history]);
 
     const yDomain = useMemo(() => {
-        if (data.length === 0) return [0, 0];
-        const min = Math.min(...data.map(d => d.ohlc[2])); // min of all lows
-        const max = Math.max(...data.map(d => d.ohlc[1])); // max of all highs
+        if (data.length === 0) return [0, 5];
+        const min = Math.min(...data.map(d => d.low));
+        const max = Math.max(...data.map(d => d.high));
         const padding = (max - min) * 0.1;
         return [min - padding, max + padding];
     }, [data]);
@@ -101,7 +133,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             margin={{ top: 5, right: 20, left: 5, bottom: 0 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                            <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                            <XAxis dataKey="date" type="category" tickLine={false} axisLine={false} />
                             <YAxis 
                                 orientation="right"
                                 domain={yDomain} 
@@ -112,12 +144,10 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            <Bar 
-                                dataKey="ohlc" 
-                                shape={<CandleShape />} 
-                                barSize={8}
-                            >
-                            </Bar>
+                            <Line dataKey="close" stroke="transparent" dot={false} activeDot={false} yAxisId={0} />
+                            
+                            <Customized component={Candlestick} />
+
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
