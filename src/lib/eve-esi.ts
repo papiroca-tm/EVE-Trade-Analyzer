@@ -42,8 +42,8 @@ async function fetchAllPages(path: string): Promise<any[]> {
     const separator = path.includes('?') ? '&' : '?';
 
     while (page <= totalPages) {
-        const url = `${path}${separator}page=${page}`;
-        const response = await fetch(url, { next: { revalidate: 600 } }); 
+        const pagePath = `${path}${separator}page=${page}`;
+        const response = await fetchEsi(pagePath, { next: { revalidate: 600 } }); 
         
         try {
             const data = await response.json();
