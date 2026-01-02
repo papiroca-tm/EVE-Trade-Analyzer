@@ -120,4 +120,3 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         </Card>
     );
 }
-
