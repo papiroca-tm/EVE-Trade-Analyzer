@@ -43,7 +43,7 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-        const dataPayload = payload.find(p => p.dataKey === 'high');
+        const dataPayload = payload.find(p => p.dataKey === 'high' || p.dataKey === 'range');
         if (!dataPayload || !dataPayload.payload) return null;
 
         const { low, high } = dataPayload.payload;
@@ -102,6 +102,13 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 fill="hsl(var(--destructive) / 0.2)"
                                 stroke="none"
                                 baseValue={yDomain[1]} 
+                            />
+                             <Area
+                                type="monotone"
+                                dataKey="low"
+                                fill="hsl(142 76% 36% / 0.2)"
+                                stroke="none"
+                                baseValue={yDomain[0]} 
                             />
                             
                             <Bar dataKey="range" fill="hsl(0 0% 98%)" barSize={1} />
