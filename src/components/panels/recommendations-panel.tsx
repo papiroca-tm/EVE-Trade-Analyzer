@@ -1,9 +1,8 @@
 
 'use client';
-import type { AnalysisResult, Feasibility, PriceRange } from '@/lib/types';
+import type { AnalysisResult, PriceRange } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign, Target } from 'lucide-react';
+import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign, Target, ShoppingBasket, Tag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -91,7 +90,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                                     <Info className="h-3 w-3 text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                     <p>Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
+                                     <p>Стратегическая цена, рассчитанная для исполнения в рамках '{isBuy ? data.inputs.executionDays : ''}' дневного срока сделки. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -124,25 +123,12 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
 export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
   const { priceAnalysis, volumeAnalysis, recommendations, inputs } = data;
 
-  const feasibilityMap: Record<Feasibility, string> = {
-    'low': 'Низкая',
-    'medium': 'Средняя',
-    'high': 'Высокая',
-    'very high': 'Очень высокая',
-  };
-  const feasibilityVariant: Record<Feasibility, "destructive" | "secondary" | "default" | "default"> = {
-      'low': 'destructive',
-      'medium': 'secondary',
-      'high': 'default',
-      'very high': 'default'
-  };
-
   const rec = recommendations && recommendations.length > 0 ? recommendations[0] : null;
 
   const emptyPriceRange: PriceRange = { longTerm: 0, midTerm: 0, shortTerm: 0, average: 0 };
 
   const desiredMarginBgClass = (() => {
-    if (!rec) return 'bg-muted/50';
+    if (!rec || !inputs) return 'bg-muted/50';
     if (rec.netMarginPercent >= inputs.desiredNetMarginPercent) {
         return 'bg-green-800/60'; // Green
     }
@@ -210,13 +196,18 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     value={rec.targetVolume.toLocaleString('ru-RU')}
                     tooltipText="Количество единиц, которое можно приобрести на указанный 'Инвестируемый капитал' по тактической (краткосрочной) цене покупки."
                 />
-                <StatCard icon={<Clock size={16}/>} title="Время исполн." value={`${rec.estimatedExecutionDays.min}-${rec.estimatedExecutionDays.max}`} unit="дней"/>
-                <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
-                    <p className="text-xs text-muted-foreground">Выполнимость</p>
-                    <Badge variant={feasibilityVariant[rec.feasibility]} className="mt-1 w-full justify-center capitalize">
-                       {feasibilityMap[rec.feasibility]}
-                    </Badge>
-                </div>
+                <StatCard 
+                    icon={<ShoppingBasket size={16}/>} 
+                    title="Примерный объем закупок" 
+                    value={"0"} 
+                    unit="ед/день"
+                />
+                 <StatCard 
+                    icon={<Tag size={16}/>} 
+                    title="Примерный объем продаж" 
+                    value={"0"} 
+                    unit="ед/день"
+                />
              </div>
              
              <Card className="bg-muted/30">
@@ -271,13 +262,18 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     value={"0"} 
                     tooltipText="Количество единиц, которое можно приобрести на указанный 'Инвестируемый капитал' по тактической (краткосрочной) цене покупки."
                 />
-                <StatCard icon={<Clock size={16}/>} title="Время исполн." value={"0-0"} unit="дней"/>
-                <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2 text-center">
-                    <p className="text-xs text-muted-foreground">Выполнимость</p>
-                     <Badge variant="secondary" className="mt-1 w-full justify-center capitalize">
-                       Н/Д
-                    </Badge>
-                </div>
+                 <StatCard 
+                    icon={<ShoppingBasket size={16}/>} 
+                    title="Примерный объем закупок" 
+                    value={"0"} 
+                    unit="ед/день"
+                />
+                 <StatCard 
+                    icon={<Tag size={16}/>} 
+                    title="Примерный объем продаж" 
+                    value={"0"} 
+                    unit="ед/день"
+                />
              </div>
              
              <Card className="bg-muted/30">
@@ -304,5 +300,3 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
-
-    

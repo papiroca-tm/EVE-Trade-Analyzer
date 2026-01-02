@@ -79,7 +79,7 @@ function findStrategicPrice(
         
         if (volumeAhead < marketPower) {
             const strategicPrice = side === 'buy' ? order.price + tickSize : order.price - tickSize;
-            const reason = `Стратегическая цена, рассчитанная для исполнения в рамках 'Желаемого срока сделки'. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.`;
+            const reason = `Стратегическая цена, рассчитанная для исполнения в рамках '${inputs.executionDays}' дневного срока. Учитывает глубину рынка и конкуренцию.`;
             return { price: strategicPrice, reason };
         }
     }
@@ -174,9 +174,6 @@ export async function calculateAnalysis(
           netMarginPercent: actualNetMarginPercent,
           potentialProfit: potentialProfit > 0 ? potentialProfit : 0,
           targetVolume: targetVolume,
-          executableVolume: { low: 0, high: Math.floor(finalExecutableVolume) },
-          estimatedExecutionDays: { min: 1, max: inputs.executionDays },
-          feasibility: 'medium', // Placeholder
           feasibilityReason: feasibilityReason,
         };
         recommendations.push(recommendation);
