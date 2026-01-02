@@ -26,46 +26,38 @@ const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
 
 // Кастомный компонент для отрисовки одной свечи
 const CandleShape = (props: any) => {
-    const { x, y, width, height, open, close } = props.payload;
-
-    // Получаем полный диапазон оси Y из пропсов, которые передает Recharts
-    const yAxis = props.yAxis;
-    if (!yAxis) return null;
-
-    const yDomain = yAxis.domain;
-    const yRange = yAxis.range;
-    
+    const { x, y, width, height, open, high, low, close, yAxis } = props;
+  
+    // Проверяем наличие необходимых данных
+    if (x === undefined || yAxis === undefined || open === undefined || high === undefined || low === undefined || close === undefined) {
+      return null;
+    }
+  
     // Функция для преобразования значения цены в координату Y
-    const yValueToCoordinate = (value: number) => {
-        const domainRange = yDomain[1] - yDomain[0];
-        if (domainRange === 0) return yRange[0];
-        const valueRatio = (value - yDomain[0]) / domainRange;
-        // Ось Y в Recharts идет сверху вниз (yRange[0] - верх, yRange[1] - низ)
-        return yRange[0] + (1 - valueRatio) * (yRange[1] - yRange[0]);
-    };
-
+    const yValueToCoordinate = (value: number) => yAxis.scale(value);
+  
     // Определяем цвет свечи
     const isBullish = close > open;
     const candleFill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-
+  
     // Координаты тела свечи
     const bodyY1 = yValueToCoordinate(open);
     const bodyY2 = yValueToCoordinate(close);
     const bodyTop = Math.min(bodyY1, bodyY2);
     const bodyHeight = Math.abs(bodyY1 - bodyY2);
-
+  
     // Координаты фитиля (тени)
     const wickX = x + width / 2;
-    const wickTop = yValueToCoordinate(props.payload.high);
-    const wickBottom = yValueToCoordinate(props.payload.low);
-
+    const wickTop = yValueToCoordinate(high);
+    const wickBottom = yValueToCoordinate(low);
+  
     return (
-        <g stroke={candleFill} fill={candleFill} strokeWidth={1}>
-            {/* Тень/фитиль */}
-            <line x1={wickX} y1={wickTop} x2={wickX} y2={wickBottom} />
-            {/* Тело */}
-            <rect x={x} y={bodyTop} width={width} height={bodyHeight} fill={candleFill} />
-        </g>
+      <g stroke={candleFill} fill={candleFill} strokeWidth={1}>
+        {/* Тень/фитиль */}
+        <line x1={wickX} y1={wickTop} x2={wickX} y2={wickBottom} />
+        {/* Тело */}
+        <rect x={x} y={bodyTop} width={width} height={Math.max(bodyHeight, 1)} fill={candleFill} />
+      </g>
     );
 };
 
@@ -149,3 +141,4 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         </Card>
     );
 }
+
