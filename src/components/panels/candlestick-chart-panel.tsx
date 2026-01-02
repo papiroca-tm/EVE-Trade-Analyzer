@@ -4,52 +4,67 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
 import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import type { MarketHistoryItem } from '@/lib/types';
 
-// Функция для генерации случайных данных для графика свечей
-const generateRandomCandleData = (count: number) => {
-    let lastClose = Math.random() * 500 + 100;
-    const data = [];
-    for (let i = 0; i < count; i++) {
-        const open = lastClose;
-        const close = open + (Math.random() - 0.5) * 20;
-        const high = Math.max(open, close) + Math.random() * 10;
-        const low = Math.min(open, close) - Math.random() * 10;
-        const date = new Date();
-        date.setDate(date.getDate() + i);
 
-        data.push({
-            date: date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            open,
-            high,
-            low,
-            close
-        });
-        lastClose = close;
-    }
-    return data;
+/**
+ * Преобразует исторические данные в формат для графика свечей.
+ * Пока что это заглушка, возвращающая статические значения.
+ * @param history - Массив исторических данных.
+ * @returns - Массив данных, готовый для графика свечей.
+ */
+const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
+    return history.map(item => ({
+        date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+        open: 4.2,
+        high: 5.18,
+        low: 3.8,
+        close: 4.6,
+    }));
 };
+
 
 // Кастомный компонент для отрисовки одной свечи
 const CandleShape = (props: any) => {
-    const { x, y, width, height, open, close, high, low, fill } = props;
+    const { x, y, width, height, open, close } = props.payload;
+
+    // Получаем полный диапазон оси Y из пропсов, которые передает Recharts
+    const yAxis = props.yAxis;
+    if (!yAxis) return null;
+
+    const yDomain = yAxis.domain;
+    const yRange = yAxis.range;
+    
+    // Функция для преобразования значения цены в координату Y
+    const yValueToCoordinate = (value: number) => {
+        const domainRange = yDomain[1] - yDomain[0];
+        if (domainRange === 0) return yRange[0];
+        const valueRatio = (value - yDomain[0]) / domainRange;
+        // Ось Y в Recharts идет сверху вниз (yRange[0] - верх, yRange[1] - низ)
+        return yRange[0] + (1 - valueRatio) * (yRange[1] - yRange[0]);
+    };
 
     // Определяем цвет свечи
     const isBullish = close > open;
     const candleFill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
 
     // Координаты тела свечи
-    const bodyY = isBullish ? y + height : y;
-    const bodyHeight = Math.abs(height);
+    const bodyY1 = yValueToCoordinate(open);
+    const bodyY2 = yValueToCoordinate(close);
+    const bodyTop = Math.min(bodyY1, bodyY2);
+    const bodyHeight = Math.abs(bodyY1 - bodyY2);
 
     // Координаты фитиля (тени)
     const wickX = x + width / 2;
-    
+    const wickTop = yValueToCoordinate(props.payload.high);
+    const wickBottom = yValueToCoordinate(props.payload.low);
+
     return (
         <g stroke={candleFill} fill={candleFill} strokeWidth={1}>
             {/* Тень/фитиль */}
-            <line x1={wickX} y1={y} x2={wickX} y2={y + height} />
+            <line x1={wickX} y1={wickTop} x2={wickX} y2={wickBottom} />
             {/* Тело */}
-            <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={candleFill} />
+            <rect x={x} y={bodyTop} width={width} height={bodyHeight} fill={candleFill} />
         </g>
     );
 };
@@ -74,8 +89,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 
-export function CandlestickChartPanel() {
-    const data = useMemo(() => generateRandomCandleData(60), []);
+export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
+    const data = useMemo(() => transformHistoryToCandlestickData(history), [history]);
 
     const yDomain = useMemo(() => {
         if (data.length === 0) return [0, 0];
@@ -91,10 +106,10 @@ export function CandlestickChartPanel() {
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <CandlestickChartIcon className="h-5 w-5 text-primary" />
-                    <CardTitle>График свечей (случайные данные)</CardTitle>
+                    <CardTitle>График свечей</CardTitle>
                 </div>
                 <CardDescription>
-                    Стандартный биржевой график для демонстрации. Данные генерируются случайным образом.
+                   Динамика цены за выбранный период.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -109,18 +124,23 @@ export function CandlestickChartPanel() {
                             <YAxis 
                                 orientation="right"
                                 domain={yDomain} 
-                                tickFormatter={(value) => typeof value === 'number' ? Math.round(value).toLocaleString('ru-RU') : ''}
+                                tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU', {minimumFractionDigits: 2}) : ''}
                                 tickLine={false}
                                 axisLine={false}
-                                width={60}
+                                width={80}
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            {/* Бар для теней (фитилей) */}
-                            <Bar dataKey="low" stackId="candle" fill="transparent" stroke="transparent" barSize={1} shape={(props) => <CandleShape {...props} high={props.payload.high} low={props.payload.low} open={props.payload.open} close={props.payload.close} />} />
-                            
-                             {/* Бар для тела свечи. Высота этого бара определяет диапазон (y, y+height) для отрисовки в CandleShape */}
-                            <Bar dataKey="high" stackId="candle" fill="transparent" stroke="transparent" barSize={8} shape={(props) => <CandleShape {...props} high={props.payload.high} low={props.payload.low} open={props.payload.open} close={props.payload.close} />} />
+                            {/* 
+                              Этот <Bar> используется как "холст" для кастомной отрисовки свечей.
+                              dataKey="low" здесь используется просто чтобы передать данные в shape.
+                              Вся логика отрисовки находится внутри <CandleShape>.
+                            */}
+                            <Bar 
+                                dataKey="low" 
+                                shape={<CandleShape />} 
+                                barSize={8}
+                            />
 
                         </ComposedChart>
                     </ResponsiveContainer>
