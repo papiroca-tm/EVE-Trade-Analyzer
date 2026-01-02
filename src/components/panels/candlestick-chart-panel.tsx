@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Bar, Line } from 'recharts';
+import { ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Bar, Line, Area } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -21,6 +21,7 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
     const minVal = Math.min(...allValues);
     const maxVal = Math.max(...allValues);
     
+    // Добавляем 10% отступ, как и договаривались
     const padding = (maxVal - minVal) * 0.1;
     const yDomain: [number, number] = [
       Math.max(0, minVal - padding),
@@ -43,18 +44,21 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         // Мы ищем данные в payload, но исключаем 'range', так как он не должен отображаться
-        const dataPoints = payload.filter(p => p.dataKey !== 'range');
+        const dataPoints = payload.filter(p => p.dataKey !== 'range' && p.dataKey !== 'high'); // Exclude 'high' used for area
         if (dataPoints.length === 0) return null;
         
-        const dataPoint = dataPoints[0].payload;
-        if (!dataPoint) return null;
+        // Find the payload for one of the lines, e.g., highLine
+        const dataPayload = payload.find(p => p.dataKey === 'highLine');
+        if (!dataPayload || !dataPayload.payload) return null;
+
+        const { low, high } = dataPayload.payload;
 
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
                 <p className="font-bold text-muted-foreground">{label}</p>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
-                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{dataPoint.high?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
-                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{dataPoint.low?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{high?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{low?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
                 </div>
             </div>
         );
@@ -85,19 +89,40 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                            <XAxis dataKey="date" hide={true} />
+                            <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
                             <YAxis 
                                 orientation="right"
                                 domain={yDomain} 
-                                hide={true}
+                                axisLine={false}
+                                tickLine={false}
+                                tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : ''}
+                                width={80}
+                                tick={{ fontSize: 12 }}
                             />
                             <Tooltip content={<CustomTooltip />} />
+                            
+                            <Area
+                                type="monotone"
+                                dataKey="high"
+                                fill="hsl(var(--destructive) / 0.2)"
+                                stroke="none"
+                                stackId="1"
+                                baseValue={yDomain[1]} // Заливка от верха графика
+                            />
+                             <Area
+                                type="monotone"
+                                dataKey="high"
+                                fill="transparent"
+                                stroke="none"
+                                stackId="1"
+                            />
                             
                             <Bar dataKey="range" fill="hsl(0 0% 98%)" barSize={1} />
                             
                             <Line 
                                 type="linear" 
-                                dataKey="high" 
+                                dataKey="high"
+                                name="highLine" // Даем уникальное имя, чтобы тултип мог его найти
                                 stroke="hsl(var(--destructive))"
                                 strokeWidth={1.5} 
                                 dot={false} 
@@ -105,6 +130,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             <Line 
                                 type="linear" 
                                 dataKey="low" 
+                                name="lowLine"
                                 stroke="hsl(142 76% 36%)"
                                 strokeWidth={1.5} 
                                 dot={false} 
