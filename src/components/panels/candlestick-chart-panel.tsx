@@ -1,14 +1,13 @@
-
 'use client';
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { AreaChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area } from 'recharts';
+import { AreaChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, Bar } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
 /**
- * Преобразует исторические данные, оставляя только дату, макс. и мин. цену.
+ * Преобразует исторические данные.
  * @param history - Массив исторических данных.
  * @returns - Массив данных для графика.
  */
@@ -33,6 +32,8 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
             low: item.lowest,
             high: item.highest,
+            // Добавляем диапазон для тени свечи
+            range: [item.lowest, item.highest]
         };
     });
 
@@ -41,7 +42,11 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-        const dataPoint = payload[0].payload;
+        // Мы ищем данные в payload, но исключаем 'range', так как он не должен отображаться
+        const dataPoints = payload.filter(p => p.dataKey !== 'range');
+        if (dataPoints.length === 0) return null;
+        
+        const dataPoint = dataPoints[0].payload;
         if (!dataPoint) return null;
 
         return (
@@ -88,7 +93,10 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                             <Area 
+                            {/* Линия для теней (фитилей) */}
+                            <Bar dataKey="range" fill="hsl(var(--foreground))" barSize={1} />
+                            
+                            <Area 
                                 type="linear" 
                                 dataKey="high" 
                                 stroke="hsl(var(--destructive))"
@@ -104,7 +112,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
