@@ -100,7 +100,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-[24rem] w-full">
+                <div className="h-[48rem] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
                             data={chartData}
