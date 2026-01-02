@@ -42,23 +42,21 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
-    const { dataWithFill, yDomain } = useMemo(() => {
+    const { chartData, yDomain } = useMemo(() => {
         const baseData = transformHistoryToCandlestickData(history);
-        if (!baseData || baseData.length === 0) return { dataWithFill: [], yDomain: [0, 5] };
+        if (!baseData || baseData.length === 0) return { chartData: [], yDomain: [0, 1] };
         
         const allValues = baseData.flatMap(d => d.range);
-        const min = Math.min(...allValues);
-        const max = Math.max(...allValues);
-        const padding = (max - min) * 0.1;
-        const domain = [min - padding, max + padding];
-        const yMax = domain[1];
+        const minVal = Math.min(...allValues);
+        const maxVal = Math.max(...allValues);
+        
+        const padding = (maxVal - minVal) * 0.1;
+        const domain = [
+          Math.max(0, minVal - padding), // Убедимся, что нижняя граница не уходит в минус
+          maxVal + padding
+        ];
 
-        const finalData = baseData.map(d => ({
-            ...d,
-            fillTop: yMax - d.high
-        }));
-
-        return { dataWithFill: finalData, yDomain: domain };
+        return { chartData: baseData, yDomain: domain };
     }, [history]);
 
 
@@ -77,7 +75,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                 <div className="h-[24rem] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
-                            data={dataWithFill}
+                            data={chartData}
                             barCategoryGap="40%"
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
@@ -110,8 +108,13 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 dot={false} 
                             />
                              <Area type="linear" dataKey="low" fill="hsl(142 76% 36% / 0.2)" stroke="none" />
-                             <Area type="linear" dataKey="high" stackId="a" fill="transparent" stroke="none" />
-                             <Area type="linear" dataKey="fillTop" stackId="a" fill="hsl(var(--destructive) / 0.2)" stroke="none" />
+                             <Area 
+                                type="linear" 
+                                dataKey="high" 
+                                fill="hsl(var(--destructive) / 0.2)" 
+                                stroke="none" 
+                                stackId="a"
+                              />
 
                         </ComposedChart>
                     </ResponsiveContainer>
