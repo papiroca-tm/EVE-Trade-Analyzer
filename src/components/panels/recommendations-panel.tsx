@@ -224,8 +224,17 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                         {rec.potentialProfit.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ISK
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground flex items-start gap-1">
-                        <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                        <span>{rec.feasibilityReason}</span>
+                         <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger className='flex items-start gap-1 text-left'>
+                                    <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                                    <span>{rec.feasibilityReason}</span>
+                                </TooltipTrigger>
+                                <TooltipContent className='max-w-xs'>
+                                    <p>Рассчитано для исполнимого объема, ограниченного вашим капиталом и реальной возможностью продать товар по среднесрочным ценам.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </p>
                 </CardContent>
              </Card>
@@ -304,3 +313,5 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
+
+    
