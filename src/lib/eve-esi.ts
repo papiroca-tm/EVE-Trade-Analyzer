@@ -43,7 +43,7 @@ async function fetchAllPages(path: string): Promise<any[]> {
 
     while (page <= totalPages) {
         const url = `${path}${separator}page=${page}`;
-        const response = await fetch(url, { cache: 'no-store' }); // Не кэшируем постраничные запросы, чтобы x-pages был свежим
+        const response = await fetch(url, { next: { revalidate: 600 } }); 
         
         try {
             const data = await response.json();
