@@ -159,7 +159,7 @@ export function MarketHistoryPanel({
             <CardTitle>Динамика рынка</CardTitle>
         </div>
         <CardDescription>
-            Средняя цена и объем торгов за последние {chartData.length} дней.
+            Средняя цена, объем торгов и скользящие средние (SMA 7 и SMA 30) за последние {chartData.length} дней.
         </CardDescription>
       </CardHeader>
       <CardContent>
