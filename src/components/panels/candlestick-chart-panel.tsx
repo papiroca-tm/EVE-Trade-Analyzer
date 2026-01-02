@@ -11,10 +11,10 @@ import type { MarketHistoryItem } from '@/lib/types';
  * @param history - Массив исторических данных.
  * @returns - Массив данных для графика.
  */
-const transformHistoryData = (history: MarketHistoryItem[]) => {
+const transformHistoryData = (history: MarketHistoryItem[], timeHorizonDays: number) => {
     if (!history) return { chartData: [], yDomain: [0, 1] };
 
-    const slicedHistory = history.slice(-90);
+    const slicedHistory = history.slice(-timeHorizonDays);
     if (slicedHistory.length === 0) return { chartData: [], yDomain: [0, 1] };
 
     const allValues = slicedHistory.flatMap(item => [item.lowest, item.highest]);
@@ -85,8 +85,8 @@ const CustomDot = (props) => {
 };
 
 
-export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
-    const { chartData, yDomain } = useMemo(() => transformHistoryData(history), [history]);
+export function CandlestickChartPanel({ history, timeHorizonDays }: { history: MarketHistoryItem[], timeHorizonDays: number }) {
+    const { chartData, yDomain } = useMemo(() => transformHistoryData(history, timeHorizonDays), [history, timeHorizonDays]);
 
     return (
         <Card>
@@ -96,7 +96,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                     <CardTitle>График Мин/Макс цены</CardTitle>
                 </div>
                 <CardDescription>
-                   Динамика дневного диапазона цен за последние 90 дней.
+                   Динамика дневного диапазона цен за последние {timeHorizonDays} дней.
                 </CardDescription>
             </CardHeader>
             <CardContent>
