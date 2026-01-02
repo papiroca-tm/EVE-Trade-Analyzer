@@ -44,8 +44,8 @@ const Candlestick = (props: any) => {
             {data.map((entry: any, index: number) => {
                 const { open, close, high, low } = entry;
 
-                // Получаем координату X центра свечи
-                const x = xAxis.scale(entry.date);
+                // Получаем координату X центра свечи по индексу
+                const x = xAxis.scale(index);
                 
                 if (x === undefined || x === null) return null;
 
