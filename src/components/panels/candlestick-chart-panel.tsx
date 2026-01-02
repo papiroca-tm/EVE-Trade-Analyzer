@@ -16,6 +16,7 @@ const Candle = (props: any) => {
     return null;
   }
   
+  // This logic correctly maps data values to SVG coordinates.
   const yDomain = [low, high];
   const domainRange = yDomain[1] - yDomain[0];
   
@@ -51,15 +52,34 @@ const Candle = (props: any) => {
 
 
 /**
- * Transforms historical EVE Online market data into a OHLC format.
- * - Wicks represent the highest/lowest price of the day.
+ * Transforms historical EVE Online market data into a OHLC format for candlestick chart.
+ * - Wicks (shadows) represent the highest and lowest price of the day.
  * - Body represents the change in average price from the previous day to the current day.
  * @param history - An array of market history items, sorted chronologically.
  * @returns An array of data points formatted for a candlestick chart.
  */
 function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
-  // Данные для графика пока не передаются.
-  return [];
+  if (history.length < 2) {
+    return [];
+  }
+
+  const candlestickData = [];
+  // Start from the second day to have a "previous day" for the 'open' price
+  for (let i = 1; i < history.length; i++) {
+    const currentDay = history[i];
+    const previousDay = history[i - 1];
+
+    candlestickData.push({
+      date: new Date(currentDay.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+      fullDate: new Date(currentDay.date).toLocaleDateString('ru-RU'),
+      open: previousDay.average,
+      close: currentDay.average,
+      high: currentDay.highest,
+      low: currentDay.lowest,
+    });
+  }
+
+  return candlestickData;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -73,7 +93,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                     Дата
                 </span>
                 <span className="font-bold text-muted-foreground">
-                    {label}
+                    {data.fullDate}
                 </span>
             </div>
             <div className="flex flex-col">
@@ -94,7 +114,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             </div>
              <div className="flex flex-col">
               <span className="text-[0.65rem] uppercase text-muted-foreground">
-                ОТКР.
+                ОТКР. (ср. цена пред. дня)
               </span>
               <span className="font-bold">
                 {data.open.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
@@ -102,7 +122,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             </div>
             <div className="flex flex-col">
               <span className="text-[0.65rem] uppercase text-muted-foreground">
-                ЗАКР.
+                ЗАКР. (ср. цена тек. дня)
               </span>
               <span className="font-bold">
                 {data.close.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
@@ -120,8 +140,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function CandlestickChartPanel({ history, timeHorizonDays }: { history: MarketHistoryItem[], timeHorizonDays: number }) {
   
   const { data, yDomain } = useMemo(() => {
-    const chartData = transformHistoryForCandlestick(history);
-    return { data: chartData, yDomain: [0, 0] };
+    const fullChartData = transformHistoryForCandlestick(history);
+    const chartData = fullChartData.slice(-timeHorizonDays);
+    
+    let domain: [number, number] = [0, 0];
+    if (chartData.length > 0) {
+        const min = Math.min(...chartData.map(d => d.low));
+        const max = Math.max(...chartData.map(d => d.high));
+        const padding = (max - min) * 0.1;
+        domain = [Math.max(0, min - padding), max + padding];
+    }
+
+    return { data: chartData, yDomain: domain };
   }, [history, timeHorizonDays]);
 
 
@@ -133,7 +163,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
             <CardTitle>График цен (свечи)</CardTitle>
         </div>
         <CardDescription>
-            Стандартный график японских свечей, показывающий открытие, закрытие, максимум и минимум цены.
+            Тени свечей показывают мин./макс. цену дня. Тело свечи показывает изменение средней цены по отношению к предыдущему дню.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -141,18 +171,18 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={data}
-              margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
+              margin={{ top: 5, right: 20, left: 5, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} hide={true} />
+              <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
               <YAxis 
-                hide={true}
                 orientation="right" 
                 domain={yDomain} 
-                tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ''}
+                tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU', {notation: 'compact'}) : ''}
                 tickLine={false}
                 axisLine={false}
                 width={80}
+                tick={{ fontSize: 10 }}
               />
               <Tooltip 
                  cursor={{ fill: 'hsl(var(--muted) / 0.3)'}}
@@ -166,4 +196,3 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
     </Card>
   );
 }
-
