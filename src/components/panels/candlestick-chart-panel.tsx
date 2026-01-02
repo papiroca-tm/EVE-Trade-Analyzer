@@ -9,37 +9,29 @@ import type { MarketHistoryItem } from '@/lib/types';
 
 // Custom shape for the candlestick. THIS CODE SHOULD NOT BE MODIFIED.
 const Candle = (props: any) => {
-  const { x, y, width, height, payload } = props;
-  const { open, close, high, low } = payload;
-
-  if (low === undefined || high === undefined || open === undefined || close === undefined || !payload) {
-    return null;
-  }
-  
-  // This logic correctly maps data values to SVG coordinates.
-  const yDomain = [low, high];
-  const domainRange = yDomain[1] - yDomain[0];
-  
-  const yValueToCoordinate = (value: number) => {
-    if (domainRange === 0) {
-        return y + height / 2;
-    }
-    const valueRatio = (value - yDomain[0]) / domainRange;
-    return y + (1 - valueRatio) * height;
-  };
-
-  const highY = yValueToCoordinate(high);
-  const lowY = yValueToCoordinate(low);
-  const openY = yValueToCoordinate(open);
-  const closeY = yValueToCoordinate(close);
+  const { x, y, width, height, low, high, open, close } = props;
   
   const isBullish = close >= open;
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
+  const yAxis = props.yAxis;
+  const yDomain = yAxis.domain;
+  const yRange = yAxis.range;
+  
+  const yValueToCoordinate = (value: number) => {
+    // This function maps a data value (like a price) to its SVG y-coordinate.
+    return yAxis.scale(value);
+  };
+  
+  const highY = yValueToCoordinate(high);
+  const lowY = yValueToCoordinate(low);
+  const openY = yValueToCoordinate(open);
+  const closeY = yValueToCoordinate(close);
+
   const bodyHeight = Math.max(1, Math.abs(openY - closeY));
   const bodyY = Math.min(openY, closeY);
-  
+
   return (
     <g>
       {/* Wick */}
