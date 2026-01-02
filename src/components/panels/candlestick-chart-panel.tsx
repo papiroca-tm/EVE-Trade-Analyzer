@@ -13,7 +13,7 @@ import type { MarketHistoryItem } from '@/lib/types';
  * @returns - Массив данных, готовый для графика свечей.
  */
 const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
-    return history.map(item => {
+    return history.slice(-90).map(item => {
         const open = Math.random() * 2 + 3; // 3.0 to 5.0
         const close = Math.random() * 2 + 3; // 3.0 to 5.0
         const high = Math.max(open, close) + Math.random();
