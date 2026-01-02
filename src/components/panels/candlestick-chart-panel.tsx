@@ -1,8 +1,9 @@
+
 'use client';
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -18,6 +19,7 @@ const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
             range: [item.lowest, item.highest], // Используем массив [min, max]
             low: item.lowest,
+            high: item.highest,
         };
     });
 };
@@ -25,13 +27,12 @@ const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
-        const [low, high] = data.range;
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
                 <p className="font-bold text-muted-foreground">{label}</p>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
-                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{high.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
-                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{low.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{data.high.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{data.low.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
                 </div>
             </div>
         );
@@ -67,7 +68,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             <CardContent>
                 <div className="h-[24rem] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
+                        <ComposedChart
                             data={data}
                             barCategoryGap="40%"
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
@@ -91,8 +92,22 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 fill="hsl(var(--foreground) / 0.8)" 
                                 barSize={1} 
                             />
+                             <Line 
+                                type="linear" 
+                                dataKey="high" 
+                                stroke="hsl(var(--destructive))"
+                                strokeWidth={1.5} 
+                                dot={false} 
+                            />
+                            <Line 
+                                type="linear" 
+                                dataKey="low" 
+                                stroke="hsl(142 76% 36%)"
+                                strokeWidth={1.5} 
+                                dot={false} 
+                            />
 
-                        </BarChart>
+                        </ComposedChart>
                     </ResponsiveContainer>
                 </div>
             </CardContent>
