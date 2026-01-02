@@ -7,8 +7,7 @@ const ESI_BASE_URL = 'https://esi.evetech.net/latest';
 
 async function fetchEsi(path: string, options: RequestInit = {}): Promise<Response> {
     const url = `${ESI_BASE_URL}${path}`;
-    // Уменьшено время кэширования до 10 минут для получения более свежих данных
-    const finalOptions: RequestInit = { ...options, next: { revalidate: 600 } };
+    const finalOptions: RequestInit = { ...options, next: { revalidate: 3600 } }; // Кэшируем на 1 час
     
     console.log(`Fetching ESI: ${url}`);
 
@@ -16,6 +15,7 @@ async function fetchEsi(path: string, options: RequestInit = {}): Promise<Respon
         const response = await fetch(url, finalOptions);
 
         if (!response.ok) {
+            // Если ресурс не найден, возвращаем пустой массив, чтобы не ломать приложение
             if (response.status === 404) {
                 console.warn(`ESI 404 Not Found for ${url}, returning empty array.`);
                 return new Response(JSON.stringify([]), {
@@ -43,13 +43,13 @@ async function fetchAllPages(path: string): Promise<any[]> {
 
     while (page <= totalPages) {
         const url = `${path}${separator}page=${page}`;
-        const response = await fetchEsi(url);
+        const response = await fetch(url, { cache: 'no-store' }); // Не кэшируем постраничные запросы, чтобы x-pages был свежим
         
         try {
             const data = await response.json();
 
             if (!Array.isArray(data) || data.length === 0) {
-                break;
+                break; // Больше нет данных
             }
             allItems = allItems.concat(data);
 
@@ -57,12 +57,12 @@ async function fetchAllPages(path: string): Promise<any[]> {
             if (xPagesHeader) {
                 totalPages = parseInt(xPagesHeader, 10);
             } else {
-                break; 
+                break; // Заголовок x-pages отсутствует, выходим из цикла
             }
             page++;
         } catch (e) {
             console.error(`Failed to parse JSON for page ${page} of ${path}`, e);
-            break; 
+            break; // Ошибка парсинга, выходим
         }
     }
     return allItems;

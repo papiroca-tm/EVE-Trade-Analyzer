@@ -7,7 +7,6 @@ import { InputForm } from '@/components/input-form';
 import { ResultsDisplay } from '@/components/results-display';
 import { Icons } from '@/components/icons';
 import { OrderBookDisplay } from '@/components/order-book-display';
-import { AuthButton } from '@/components/auth-button';
 import { Loader2 } from 'lucide-react';
 
 
@@ -60,7 +59,6 @@ export default function Home() {
             EVE Market Navigator
           </h1>
         </div>
-        <AuthButton />
       </header>
       <main className="grid flex-1 grid-cols-10 gap-2 p-2 md:gap-4 md:p-4">
         <div className="col-span-3 grid grid-cols-2 gap-2 md:gap-4">

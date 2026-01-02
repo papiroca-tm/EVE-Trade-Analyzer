@@ -134,7 +134,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                                 baseValue={yDomain[0]} 
                             />
                             
-                            <Bar dataKey="range" fill="hsl(0 0% 98%)" barSize={1} />
+                            <Bar dataKey="range" fill="hsl(0 0% 98%)" barSize={0.5} />
                             
                             <Line 
                                 type="linear" 
