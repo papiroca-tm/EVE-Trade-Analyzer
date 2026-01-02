@@ -22,31 +22,6 @@ const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
     });
 };
 
-// Компонент для отрисовки одной тени (вертикальной линии)
-const WickShape = (props: any) => {
-    const { x, y, width, height, payload } = props;
-    const [low, high] = payload.range;
-
-    // y - координата нижней точки (для 'low'), height - высота до нее от верха.
-    // Нам нужно найти y-координату для 'high'. Она будет выше.
-    // 'y' соответствует 'low', а 'y' - 'height' соответствует 'high'
-    // Но это не так, recharts передает y и height для всего бара.
-    // y - это y-координата значения dataKey, то есть low. height - это высота от оси до этой точки.
-
-    // Поскольку мы не можем легко получить две Y-координаты, мы просто используем x, y, и width,
-    // а height игнорируем и рисуем свою линию. Но для этого нам нужна ось Y.
-    // Recharts не передает оси в shape. Поэтому этот подход не сработает.
-
-    // Попробуем другой, более простой подход с BarChart и плавающими барами.
-    // Для этого dataKey должен указывать на массив [min, max].
-    
-    // Этот компонент не будет использоваться, но оставлен для демонстрации.
-    // Мы используем встроенную возможность BarChart для "плавающих" баров.
-
-    return null;
-};
-
-
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
@@ -95,17 +70,14 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                         <BarChart
                             data={data}
                             barCategoryGap="40%"
-                            margin={{ top: 5, right: 20, left: 5, bottom: 0 }}
+                            margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                            <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                            <XAxis dataKey="date" hide={true} />
                             <YAxis 
                                 orientation="right"
                                 domain={yDomain} 
-                                tickFormatter={(value) => typeof value === 'number' ? value.toLocaleString('ru-RU', {minimumFractionDigits: 2}) : ''}
-                                tickLine={false}
-                                axisLine={false}
-                                width={80}
+                                hide={true}
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
