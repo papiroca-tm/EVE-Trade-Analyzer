@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -14,7 +15,6 @@ const formSchema = z.object({
   desiredNetMarginPercent: z.coerce.number().min(0).max(1000),
   timeHorizonDays: z.coerce.number().int().positive().min(1).max(365),
   executionDays: z.coerce.number().int().positive().min(1).max(90),
-  volatilityFactor: z.coerce.number().min(0.1).max(5),
   positionCapital: z.coerce.number().int().positive().optional(),
 });
 
@@ -32,7 +32,6 @@ export async function getMarketAnalysis(
     desiredNetMarginPercent: formData.get('desiredNetMarginPercent'),
     timeHorizonDays: formData.get('timeHorizonDays'),
     executionDays: formData.get('executionDays'),
-    volatilityFactor: formData.get('volatilityFactor'),
     positionCapital: formData.get('positionCapital') || undefined,
   });
 

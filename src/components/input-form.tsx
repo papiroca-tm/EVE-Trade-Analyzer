@@ -26,7 +26,6 @@ const formSchema = z.object({
   desiredNetMarginPercent: z.coerce.number().min(0, "Должно быть положительным").max(1000, "Слишком большая маржа"),
   timeHorizonDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(365, "Максимум 365 дней"),
   executionDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(90, "Максимум 90 дней"),
-  volatilityFactor: z.coerce.number().min(0.1, "Минимум 0.1").max(5, "Максимум 5"),
   positionCapital: z.string().optional(),
 });
 
@@ -65,7 +64,6 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
       desiredNetMarginPercent: 5.0,
       timeHorizonDays: 90,
       executionDays: 3,
-      volatilityFactor: 1.0,
       positionCapital: "1000000000",
     },
   });
@@ -295,20 +293,6 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
                         <Input type="number" {...field} />
                     </FormControl>
                     <FormDescription>За сколько дней вы хотите купить и продать.</FormDescription>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="volatilityFactor"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Фактор волатильности</FormLabel>
-                    <FormControl>
-                        <Input type="number" step="0.1" {...field} />
-                    </FormControl>
-                    <FormDescription>Коэф. риска. 1.0 - стандарт. &gt;1 - осторожнее.</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}

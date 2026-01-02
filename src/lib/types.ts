@@ -27,7 +27,6 @@ export interface UserInputs {
   desiredNetMarginPercent: number;
   timeHorizonDays: number;
   executionDays: number;
-  volatilityFactor: number;
   positionCapital?: number;
 }
 
