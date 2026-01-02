@@ -58,28 +58,8 @@ const Candle = (props: any) => {
  * @returns An array of data points formatted for a candlestick chart.
  */
 function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
-  if (!history || history.length < 2) return [];
-
-  const transformedData = history.map((currentItem, index) => {
-    const previousDay = index > 0 ? history[index - 1] : currentItem;
-
-    const open_t = previousDay.average;
-    const close_t = currentItem.average;
-    const high_t = currentItem.highest;
-    const low_t = currentItem.lowest;
-    
-    return {
-      date: new Date(currentItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-      open: open_t,
-      high: high_t,
-      low: low_t,
-      close: close_t,
-      average: currentItem.average,
-      volume: currentItem.volume,
-    };
-  });
-
-  return transformedData.slice(1);
+  // Данные для графика пока не передаются.
+  return [];
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -114,18 +94,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             </div>
              <div className="flex flex-col">
               <span className="text-[0.65rem] uppercase text-muted-foreground">
-                СРЕДНЯЯ
+                ОТКР.
               </span>
               <span className="font-bold">
-                {data.average.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                {data.open.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
               </span>
             </div>
-             <div className="flex flex-col">
+            <div className="flex flex-col">
               <span className="text-[0.65rem] uppercase text-muted-foreground">
-                ОБЪЕМ
+                ЗАКР.
               </span>
               <span className="font-bold">
-                {data.volume.toLocaleString('ru-RU')}
+                {data.close.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -140,26 +120,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function CandlestickChartPanel({ history, timeHorizonDays }: { history: MarketHistoryItem[], timeHorizonDays: number }) {
   
   const { data, yDomain } = useMemo(() => {
-    if (!history || history.length === 0) {
-      return { data: [], yDomain: [0, 0] };
-    }
-
-    const dataForHorizon = history.slice(-timeHorizonDays);
-    const chartData = transformHistoryForCandlestick(dataForHorizon);
-
-    if (chartData.length === 0) {
-      return { data: [], yDomain: [0, 0] };
-    }
-    
-    const prices = chartData.flatMap(d => [d.low, d.high]);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const padding = (maxPrice - minPrice) * 0.1;
-    
-    return {
-        data: chartData,
-        yDomain: [Math.max(0, minPrice - padding), maxPrice + padding]
-    };
+    const chartData = transformHistoryForCandlestick(history);
+    return { data: chartData, yDomain: [0, 0] };
   }, [history, timeHorizonDays]);
 
 
@@ -171,7 +133,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
             <CardTitle>График цен (свечи)</CardTitle>
         </div>
         <CardDescription>
-            Тело свечи показывает изменение средней цены от прошлого дня к текущему. Тени (фитили) — дневной диапазон (min/max).
+            Стандартный график японских свечей, показывающий открытие, закрытие, максимум и минимум цены.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -204,3 +166,4 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
     </Card>
   );
 }
+
