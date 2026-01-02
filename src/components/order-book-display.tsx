@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -26,7 +27,7 @@ const SellOrdersRows = ({ orders, estimatedSellVolumePerDay }: { orders: MarketO
         
         const displaySorted = [...orders].sort((a, b) => b.price - a.price);
 
-        const wallThreshold = estimatedSellVolumePerDay > 0 ? estimatedSellVolumePerDay / 2 : Infinity;
+        const wallThreshold = estimatedSellVolumePerDay > 0 ? estimatedSellVolumePerDay : Infinity;
         
         const logicSorted = [...orders].sort((a, b) => a.price - b.price); 
         
@@ -42,7 +43,7 @@ const SellOrdersRows = ({ orders, estimatedSellVolumePerDay }: { orders: MarketO
         }
 
         const finalOrders = displaySorted.map(order => {
-            const fillPercent = estimatedSellVolumePerDay > 0 
+            const fillPercent = wallThreshold > 0 
                 ? Math.min((order.volume_remain / wallThreshold) * 100, 100)
                 : 0;
 
@@ -93,7 +94,7 @@ const BuyOrdersRows = ({ orders, estimatedBuyVolumePerDay }: { orders: MarketOrd
         
         const sorted = [...orders].sort((a, b) => b.price - a.price); 
         
-        const wallThreshold = estimatedBuyVolumePerDay > 0 ? estimatedBuyVolumePerDay / 2 : Infinity;
+        const wallThreshold = estimatedBuyVolumePerDay > 0 ? estimatedBuyVolumePerDay : Infinity;
         let cumulativeVolume = 0;
         let wallOrderId: number | undefined;
 
@@ -106,7 +107,7 @@ const BuyOrdersRows = ({ orders, estimatedBuyVolumePerDay }: { orders: MarketOrd
         }
 
         const finalOrders = sorted.map(order => {
-             const fillPercent = estimatedBuyVolumePerDay > 0 
+             const fillPercent = wallThreshold > 0 
                 ? Math.min((order.volume_remain / wallThreshold) * 100, 100)
                 : 0;
 
@@ -228,7 +229,7 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimat
                         <Info className="h-4 w-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent className='max-w-xs'>
-                        <p>Фон каждой строки показывает долю объема этого ордера от половины соответствующего расчетного суточного объема (покупок или продаж), помогая оценить его 'вес'. Ярким цветом подсвечивается 'стена' — первый ордер, где совокупный объем достигает этого порога, указывая на ключевой уровень поддержки (зеленый) или сопротивления (красный).</p>
+                        <p>Фон каждой строки показывает долю объема этого ордера от соответствующего расчетного суточного объема (покупок или продаж), помогая оценить его 'вес'. Ярким цветом подсвечивается 'стена' — первый ордер, где совокупный объем достигает этого порога, указывая на ключевой уровень поддержки (зеленый) или сопротивления (красный).</p>
                         <p className="mt-2">Разделительная строка спреда также подсвечивается: зеленым, если рыночная маржа превышает желаемую; желтым, если она близка к желаемой; и красным, если она ниже.</p>
                     </TooltipContent>
                 </Tooltip>
@@ -249,3 +250,5 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimat
     </Card>
   );
 }
+
+    
