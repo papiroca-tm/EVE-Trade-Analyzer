@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { AreaChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, Bar } from 'recharts';
+import { ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Bar, Line } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -80,7 +80,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             <CardContent>
                 <div className="h-[24rem] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
+                        <ComposedChart
                             data={chartData}
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
@@ -93,26 +93,23 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            {/* Линия для теней (фитилей) */}
-                            <Bar dataKey="range" fill="hsl(var(--foreground))" barSize={1} />
+                            <Bar dataKey="range" fill="hsl(0 0% 98%)" barSize={1} />
                             
-                            <Area 
+                            <Line 
                                 type="linear" 
                                 dataKey="high" 
                                 stroke="hsl(var(--destructive))"
-                                fill="transparent"
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-                            <Area 
+                            <Line 
                                 type="linear" 
                                 dataKey="low" 
                                 stroke="hsl(142 76% 36%)"
-                                fill="transparent"
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-                        </AreaChart>
+                        </ComposedChart>
                     </ResponsiveContainer>
                 </div>
             </CardContent>
