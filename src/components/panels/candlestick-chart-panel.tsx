@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,28 +9,21 @@ import type { MarketHistoryItem } from '@/lib/types';
 
 // Custom shape for the candlestick. THIS CODE SHOULD NOT BE MODIFIED.
 const Candle = (props: any) => {
-  const { x, y, width, height, low, high, open, close, payload } = props;
+  const { x, y, width, height, payload } = props;
+  const { open, close, high, low } = payload;
 
   if (low === undefined || high === undefined || open === undefined || close === undefined || !payload) {
     return null;
   }
-
-  // This function maps a price value to a Y coordinate within the component's bounding box.
+  
+  const yDomain = [low, high];
+  const domainRange = yDomain[1] - yDomain[0];
+  
   const yValueToCoordinate = (value: number) => {
-    // The range of the wick
-    const yDomain = [payload.low, payload.high];
-    const domainRange = yDomain[1] - yDomain[0];
-    
-    // Avoid division by zero if high and low are the same
     if (domainRange === 0) {
         return y + height / 2;
     }
-
-    // Calculate the ratio of the value within the domain
     const valueRatio = (value - yDomain[0]) / domainRange;
-    
-    // Convert the ratio to the SVG coordinate space (inverted Y-axis)
-    // The `y` and `height` props are given by recharts for the Bar component.
     return y + (1 - valueRatio) * height;
   };
 
@@ -67,20 +61,12 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
   if (!history || history.length < 2) return [];
 
   const transformedData = history.map((currentItem, index) => {
-    // We need the previous day to calculate the 'open' of the body.
-    // For the first day, we can't form a body, so we can either skip it or make a neutral candle.
-    // Let's make the first candle neutral, using its own average as open and close.
     const previousDay = index > 0 ? history[index - 1] : currentItem;
 
     const open_t = previousDay.average;
     const close_t = currentItem.average;
     const high_t = currentItem.highest;
     const low_t = currentItem.lowest;
-
-    // The body can go outside the wick if avg prices change drastically.
-    // The wick is defined by high/low, so the full range for the candle is min(low, open, close) to max(high, open, close).
-    const absoluteLow = Math.min(low_t, open_t, close_t);
-    const absoluteHigh = Math.max(high_t, open_t, close_t);
     
     return {
       date: new Date(currentItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
@@ -88,15 +74,11 @@ function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
       high: high_t,
       low: low_t,
       close: close_t,
-      // Pass original values for tooltip
       average: currentItem.average,
       volume: currentItem.volume,
-      // The `body` dataKey is what recharts uses for y/height. It must span the full wick range.
-      body: [absoluteLow, absoluteHigh] 
     };
   });
 
-  // Remove the first item as it doesn't have a previous day to compare for a meaningful body.
   return transformedData.slice(1);
 }
 
@@ -169,7 +151,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
       return { data: [], yDomain: [0, 0] };
     }
     
-    const prices = chartData.flatMap(d => d.body);
+    const prices = chartData.flatMap(d => [d.low, d.high]);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const padding = (maxPrice - minPrice) * 0.1;
@@ -214,7 +196,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                  cursor={{ fill: 'hsl(var(--muted) / 0.3)'}}
                  content={<CustomTooltip />}
               />
-              <Bar dataKey="body" shape={<Candle />} />
+              <Bar dataKey="close" shape={<Candle />} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
