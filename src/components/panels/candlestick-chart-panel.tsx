@@ -27,7 +27,7 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
       Math.max(0, minVal - padding),
       maxVal + padding
     ];
-
+    
     const chartData = slicedHistory.map(item => {
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
@@ -91,6 +91,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                         <ComposedChart
                             data={chartData}
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
+                            stackOffset="expand" // This helps with fill calculations
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                             <XAxis dataKey="date" hide={true} />
