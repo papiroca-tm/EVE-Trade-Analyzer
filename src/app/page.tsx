@@ -14,7 +14,6 @@ const initialState: AnalysisState = {
   status: 'idle',
   data: null,
   error: null,
-  warnings: [],
 };
 
 const LoadingOverlay = () => (
@@ -48,6 +47,8 @@ export default function Home() {
     fetchData();
   }, []);
 
+  const recommendation = state.data?.recommendations?.[0];
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       {loadingInitialData && <LoadingOverlay />}
@@ -73,7 +74,8 @@ export default function Home() {
                     buyOrders={state.data?.buyOrders ?? []}
                     sellOrders={state.data?.sellOrders ?? []}
                     priceAnalysis={state.data?.priceAnalysis}
-                    averageDailyVolume={state.data?.volumeAnalysis.averageDailyVolume ?? 0}
+                    estimatedBuyVolumePerDay={recommendation?.estimatedBuyVolumePerDay ?? state.data?.volumeAnalysis.averageDailyVolume ?? 0}
+                    estimatedSellVolumePerDay={recommendation?.estimatedSellVolumePerDay ?? state.data?.volumeAnalysis.averageDailyVolume ?? 0}
                     inputs={state.data?.inputs}
                 />
             </div>

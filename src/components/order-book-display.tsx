@@ -20,13 +20,13 @@ import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
-const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem[], averageDailyVolume: number }) => {
+const SellOrdersRows = ({ orders, estimatedSellVolumePerDay }: { orders: MarketOrderItem[], estimatedSellVolumePerDay: number }) => {
     const processedOrders = useMemo(() => {
         if (!orders || orders.length === 0) return [];
         
         const displaySorted = [...orders].sort((a, b) => b.price - a.price);
 
-        const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
+        const wallThreshold = estimatedSellVolumePerDay > 0 ? estimatedSellVolumePerDay / 2 : Infinity;
         
         const logicSorted = [...orders].sort((a, b) => a.price - b.price); 
         
@@ -42,7 +42,7 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
         }
 
         const finalOrders = displaySorted.map(order => {
-            const fillPercent = averageDailyVolume > 0 
+            const fillPercent = estimatedSellVolumePerDay > 0 
                 ? Math.min((order.volume_remain / wallThreshold) * 100, 100)
                 : 0;
 
@@ -55,7 +55,7 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
         
         return finalOrders;
 
-    }, [orders, averageDailyVolume]);
+    }, [orders, estimatedSellVolumePerDay]);
 
     return (
         <>
@@ -87,13 +87,13 @@ const SellOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderIte
     );
 };
 
-const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem[], averageDailyVolume: number }) => {
+const BuyOrdersRows = ({ orders, estimatedBuyVolumePerDay }: { orders: MarketOrderItem[], estimatedBuyVolumePerDay: number }) => {
     const processedOrders = useMemo(() => {
         if (!orders || orders.length === 0) return [];
         
         const sorted = [...orders].sort((a, b) => b.price - a.price); 
         
-        const wallThreshold = averageDailyVolume > 0 ? averageDailyVolume / 2 : Infinity;
+        const wallThreshold = estimatedBuyVolumePerDay > 0 ? estimatedBuyVolumePerDay / 2 : Infinity;
         let cumulativeVolume = 0;
         let wallOrderId: number | undefined;
 
@@ -106,7 +106,7 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
         }
 
         const finalOrders = sorted.map(order => {
-             const fillPercent = averageDailyVolume > 0 
+             const fillPercent = estimatedBuyVolumePerDay > 0 
                 ? Math.min((order.volume_remain / wallThreshold) * 100, 100)
                 : 0;
 
@@ -118,7 +118,7 @@ const BuyOrdersRows = ({ orders, averageDailyVolume }: { orders: MarketOrderItem
         });
 
         return finalOrders;
-    }, [orders, averageDailyVolume]);
+    }, [orders, estimatedBuyVolumePerDay]);
 
     return (
         <>
@@ -197,7 +197,7 @@ const SpreadRow = ({ priceAnalysis, inputs, spreadRef }: { priceAnalysis?: Price
     )
 }
 
-export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, averageDailyVolume, inputs }: { buyOrders: MarketOrderItem[], sellOrders: MarketOrderItem[], priceAnalysis?: PriceAnalysis, averageDailyVolume: number, inputs?: UserInputs }) {
+export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimatedBuyVolumePerDay, estimatedSellVolumePerDay, inputs }: { buyOrders: MarketOrderItem[], sellOrders: MarketOrderItem[], priceAnalysis?: PriceAnalysis, estimatedBuyVolumePerDay: number, estimatedSellVolumePerDay: number, inputs?: UserInputs }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const spreadRef = useRef<HTMLTableRowElement>(null);
   
@@ -214,7 +214,7 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
             behavior: 'auto',
         });
     }
-  }, [buyOrders, sellOrders, priceAnalysis, averageDailyVolume, inputs]);
+  }, [buyOrders, sellOrders, priceAnalysis, estimatedBuyVolumePerDay, estimatedSellVolumePerDay, inputs]);
 
 
   return (
@@ -228,7 +228,7 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
                         <Info className="h-4 w-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent className='max-w-xs'>
-                        <p>Фон каждой строки показывает долю объема этого ордера от половины среднесуточного объема, помогая оценить его 'вес'. Ярким цветом подсвечивается 'стена' — первый ордер, где совокупный объем достигает этого порога, указывая на ключевой уровень поддержки (зеленый) или сопротивления (красный).</p>
+                        <p>Фон каждой строки показывает долю объема этого ордера от половины соответствующего расчетного суточного объема (покупок или продаж), помогая оценить его 'вес'. Ярким цветом подсвечивается 'стена' — первый ордер, где совокупный объем достигает этого порога, указывая на ключевой уровень поддержки (зеленый) или сопротивления (красный).</p>
                         <p className="mt-2">Разделительная строка спреда также подсвечивается: зеленым, если рыночная маржа превышает желаемую; желтым, если она близка к желаемой; и красным, если она ниже.</p>
                     </TooltipContent>
                 </Tooltip>
@@ -239,9 +239,9 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, average
         <ScrollArea className="h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
           <Table>
             <TableBody>
-              <SellOrdersRows orders={sellOrders} averageDailyVolume={averageDailyVolume} />
+              <SellOrdersRows orders={sellOrders} estimatedSellVolumePerDay={estimatedSellVolumePerDay} />
               <SpreadRow priceAnalysis={priceAnalysis} inputs={inputs} spreadRef={spreadRef} />
-              <BuyOrdersRows orders={buyOrders} averageDailyVolume={averageDailyVolume} />
+              <BuyOrdersRows orders={buyOrders} estimatedBuyVolumePerDay={estimatedBuyVolumePerDay} />
             </TableBody>
           </Table>
         </ScrollArea>
