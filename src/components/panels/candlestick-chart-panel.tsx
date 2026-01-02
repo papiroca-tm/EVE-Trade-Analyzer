@@ -34,9 +34,6 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
             range: [item.lowest, item.highest], // Для "теней"
             low: item.lowest,
             high: item.highest,
-            // Данные для стекированных областей
-            fillBottom: item.lowest - yDomain[0],
-            fillMiddle: item.highest - item.lowest,
         };
     });
 
@@ -91,7 +88,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                         <ComposedChart
                             data={chartData}
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
-                            stackOffset="expand" // This helps with fill calculations
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                             <XAxis dataKey="date" hide={true} />
@@ -119,30 +115,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-                             {/* Зеленая область от низа до low */}
-                             <Area 
-                                type="linear" 
-                                dataKey="fillBottom" 
-                                stackId="a" 
-                                stroke="none" 
-                                fill="hsl(142 76% 36% / 0.2)"
-                                baseValue={yDomain[0]}
-                             />
-                             {/* Прозрачная область от low до high */}
-                             <Area 
-                                type="linear" 
-                                dataKey="fillMiddle" 
-                                stackId="a" 
-                                stroke="none" 
-                                fill="transparent" 
-                             />
-                             {/* Красная область рисуется поверх всего, так как у нее нет stackId, и она от high до верха */}
-                             <Area 
-                                type="linear"
-                                dataKey="high"
-                                fill="hsl(var(--destructive) / 0.2)"
-                                stroke="none"
-                             />
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
