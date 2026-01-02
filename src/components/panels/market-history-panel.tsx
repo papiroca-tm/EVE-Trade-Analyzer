@@ -57,7 +57,7 @@ export function MarketHistoryPanel({
 
     const dataForHorizon = fullChartData.slice(-timeHorizonDays);
     
-    const allPriceValues = dataForHorizon.flatMap(d => [d.high, d.low, d['SMA 7'], d['SMA 30']]).filter(v => v != null) as number[];
+    const allPriceValues = dataForHorizon.flatMap(d => [d.high, d.low]).filter(v => v != null) as number[];
 
     let priceDomain: [number | string, number | string] = ['auto', 'auto'];
     if (allPriceValues.length > 0) {
