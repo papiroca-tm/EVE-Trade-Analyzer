@@ -26,10 +26,6 @@ function getVolumeAhead(ladder: { price: number; cumulativeVolume: number }[], p
     if (relevantOrders.length === 0) {
         return 0;
     }
-    // For buy side, we look at the top of the book (highest price) which is the start of the sorted ladder.
-    // For sell side, we look at the bottom of the book (lowest price), which is also the start of its sorted ladder.
-    // The cumulative volume we want is the one from the order *just before* our price.
-    // Since `relevantOrders` are those "ahead" of us, the last one in that list holds the total cumulative volume of all orders ahead.
     return relevantOrders[relevantOrders.length - 1].cumulativeVolume;
 }
 
@@ -46,11 +42,9 @@ function findStrategicPrice(
         return { price: 0, reason: `Нет ордеров на ${side === 'buy' ? 'покупку' : 'продажу'} для анализа.` };
     }
 
-    // Sort orders appropriately for our logic
     const sortedOrders = [...orders].sort((a, b) => side === 'buy' ? b.price - a.price : a.price - b.price);
     const bestPrice = sortedOrders[0].price;
     
-    // This is the "market power" for the given execution timeframe
     const marketPower = (averageDailyVolume / 2) * (executionDays / 2);
     const wallThreshold = marketPower;
     
@@ -66,29 +60,68 @@ function findStrategicPrice(
     }
     
     if (wallIndex === -1) {
-        // If no wall is found (market is thin), we start from the last order
         wallIndex = sortedOrders.length - 1;
     }
     
-    const searchStartPrice = sortedOrders[wallIndex]?.price ?? (side === 'buy' ? 0 : Infinity);
-
-    // Now, find the price where our order is likely to be filled within the timeframe
     for (let i = wallIndex; i >= 0; i--) {
         const order = sortedOrders[i];
-        // The volume of orders that are more competitively priced than this level
         const volumeAhead = getVolumeAhead(ladder, order.price, side);
         
         if (volumeAhead < marketPower) {
             const strategicPrice = side === 'buy' ? order.price + tickSize : order.price - tickSize;
-            const reason = `Стратегическая цена, рассчитанная для исполнения в рамках '${inputs.executionDays}' дневного срока сделки. Учитывает глубину рынка и конкуренцию.`;
+            const reason = `Стратегическая цена, рассчитанная для исполнения в рамках '${inputs.executionDays}' дневного срока сделки. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.`;
             return { price: strategicPrice, reason };
         }
     }
 
-    // Fallback if no suitable price is found (very dense market)
     const fallbackPrice = side === 'buy' ? bestPrice + tickSize : bestPrice - tickSize;
     const reason = `Рынок слишком 'плотный'. Не удалось найти стратегическую цену с исполнением в срок. Рекомендуется исполнение по лучшей цене (${fallbackPrice.toFixed(2)} ISK).`;
     return { price: fallbackPrice, reason };
+}
+
+function calculateVolumeDistribution(history: MarketHistoryItem[], timeHorizonDays: number): { buyVolumePerDay: number, sellVolumePerDay: number } {
+    const K = 100; // Threshold for confidence
+    const relevantHistory = history.slice(-timeHorizonDays);
+
+    if (relevantHistory.length === 0) {
+        return { buyVolumePerDay: 0, sellVolumePerDay: 0 };
+    }
+
+    let totalWeight = 0;
+    let totalBuyShareWeighted = 0;
+    let totalVolumePeriod = 0;
+
+    for (const day of relevantHistory) {
+        let buy_share_base = 0.5;
+        let confidence = 0;
+
+        const priceRange = day.highest - day.lowest;
+        if (priceRange > 0) {
+            const price_position = (day.average - day.lowest) / priceRange;
+            buy_share_base = 1 - price_position;
+            confidence = Math.min(1, day.order_count / K);
+        }
+
+        const buy_share = confidence * buy_share_base + (1 - confidence) * 0.5;
+        
+        const weight = day.volume * confidence;
+        
+        totalBuyShareWeighted += buy_share * weight;
+        totalWeight += weight;
+        totalVolumePeriod += day.volume;
+    }
+    
+    const buy_share_period = totalWeight > 0 ? totalBuyShareWeighted / totalWeight : 0.5;
+    const sell_share_period = 1 - buy_share_period;
+
+    const buy_volume_period = totalVolumePeriod * buy_share_period;
+    const sell_volume_period = totalVolumePeriod * sell_share_period;
+    
+    const days = relevantHistory.length;
+    return {
+        buyVolumePerDay: days > 0 ? buy_volume_period / days : 0,
+        sellVolumePerDay: days > 0 ? sell_volume_period / days : 0,
+    };
 }
 
 
@@ -117,36 +150,31 @@ export async function calculateAnalysis(
     const stdDev = Math.sqrt(variance);
     const volatilityPercent = averagePriceHistory > 0 ? (stdDev / averagePriceHistory) * 100 : 0;
     
-    // --- Buy Price Calculation ---
     const longTermBuyPrice = history.length > 0 ? Math.min(...history.map(h => h.lowest)) : 0;
     
     const { price: midTermBuyPriceRaw, reason: feasibilityReason } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, inputs.executionDays, 'buy', inputs);
-    // Ensure mid-term isn't unrealistically low
     const midTermBuyPrice = Math.max(midTermBuyPriceRaw, longTermBuyPrice);
 
-    const { price: shortTermBuyPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2, 'buy', inputs); // Always 1 day horizon for short term
+    const { price: shortTermBuyPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2, 'buy', inputs);
     const averageBuyPrice = (midTermBuyPrice + shortTermBuyPrice) / 2;
 
-    // --- Sell Price Calculation (Mirrored Logic) ---
     const longTermSellPrice = history.length > 0 ? Math.max(...history.map(h => h.highest)) : 0;
     
     const { price: midTermSellPriceRaw } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, inputs.executionDays, 'sell', inputs);
-    // Ensure mid-term isn't unrealistically high
     const midTermSellPrice = longTermSellPrice > 0 ? Math.min(midTermSellPriceRaw, longTermSellPrice) : midTermSellPriceRaw;
     
-    const { price: shortTermSellPrice } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, 2, 'sell', inputs); // Always 1 day horizon
+    const { price: shortTermSellPrice } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, 2, 'sell', inputs);
     const averageSellPrice = (midTermSellPrice + shortTermSellPrice) / 2;
 
+    const { buyVolumePerDay, sellVolumePerDay } = calculateVolumeDistribution(history, inputs.timeHorizonDays);
 
     const recommendations: Recommendation[] = [];
     
     if (averageBuyPrice > 0) {
-        // --- Margin Calculation (based on SHORT-TERM tactical prices) ---
         const cost = shortTermBuyPrice * (1 + inputs.brokerBuyFeePercent / 100);
         const revenue = shortTermSellPrice * (1 - inputs.brokerSellFeePercent/100 - inputs.salesTaxPercent/100);
         const actualNetMarginPercent = cost > 0 ? ((revenue - cost) / cost) * 100 : 0;
         
-        // --- Executable Volume & Profit (based on MID-TERM strategic prices) ---
         const capital = inputs.positionCapital ?? 0;
         const targetVolume = shortTermBuyPrice > 0 && capital > 0 
             ? Math.floor(capital / shortTermBuyPrice)
@@ -176,10 +204,11 @@ export async function calculateAnalysis(
           potentialProfit: potentialProfit > 0 ? potentialProfit : 0,
           targetVolume: targetVolume,
           feasibilityReason: feasibilityReason,
+          estimatedBuyVolumePerDay: buyVolumePerDay,
+          estimatedSellVolumePerDay: sellVolumePerDay,
         };
         recommendations.push(recommendation);
     }
-
 
     return {
       inputs,

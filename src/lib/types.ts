@@ -47,6 +47,8 @@ export interface Recommendation {
   potentialProfit: number;
   targetVolume: number;
   feasibilityReason: string;
+  estimatedBuyVolumePerDay: number;
+  estimatedSellVolumePerDay: number;
 }
 
 export interface PriceAnalysis {

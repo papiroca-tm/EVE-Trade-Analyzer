@@ -130,12 +130,12 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
   const desiredMarginBgClass = (() => {
     if (!rec || !inputs) return 'bg-muted/50';
     if (rec.netMarginPercent >= inputs.desiredNetMarginPercent) {
-        return 'bg-green-800/60'; // Green
+        return 'bg-green-800/60';
     }
     if (rec.netMarginPercent >= inputs.desiredNetMarginPercent - 2) {
-        return 'bg-yellow-600/60'; // Yellow
+        return 'bg-yellow-600/60';
     }
-    return 'bg-red-800/60'; // Red
+    return 'bg-red-800/60';
   })();
 
 
@@ -201,13 +201,13 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                 <StatCard 
                     icon={<ShoppingBasket size={16}/>} 
                     title="Примерный объем закупок" 
-                    value={"0"} 
+                    value={Math.floor(rec.estimatedBuyVolumePerDay).toLocaleString('ru-RU')} 
                     unit="ед/день"
                 />
                  <StatCard 
                     icon={<Tag size={16}/>} 
                     title="Примерный объем продаж" 
-                    value={"0"} 
+                    value={Math.floor(rec.estimatedSellVolumePerDay).toLocaleString('ru-RU')}
                     unit="ед/день"
                 />
              </div>
