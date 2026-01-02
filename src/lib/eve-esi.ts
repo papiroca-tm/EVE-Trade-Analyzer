@@ -43,7 +43,7 @@ async function fetchAllPages(path: string): Promise<any[]> {
 
     while (page <= totalPages) {
         const url = `${path}${separator}page=${page}`;
-        const response = await fetchEsi(url, { cache: 'no-store' });
+        const response = await fetchEsi(url);
         
         try {
             const data = await response.json();
