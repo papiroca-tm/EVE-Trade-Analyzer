@@ -3,37 +3,29 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Bar } from 'recharts';
+import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Customized } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
-// Custom shape for the candlestick.
-const Candle = (props: any) => {
-  const { x, width, low, high, open, close, yAxis } = props;
-  
-  if (!yAxis || typeof yAxis.scale !== 'function') {
-    // Render nothing if yAxis or its scale function is not available to prevent crashes
+const Candlestick = (props: any) => {
+  const { x, y, width, height, low, high, open, close } = props;
+
+  if (x === undefined || y === undefined || width === undefined || height === undefined || low === undefined || high === undefined || open === undefined || close === undefined) {
     return null;
   }
-  
+
   const isBullish = close >= open;
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-  const stroke = fill;
 
-  const yValueToCoordinate = (value: number) => yAxis.scale(value);
-  
-  const highY = yValueToCoordinate(high);
-  const lowY = yValueToCoordinate(low);
-  const openY = yValueToCoordinate(open);
-  const closeY = yValueToCoordinate(close);
-
-  const bodyHeight = Math.max(1, Math.abs(openY - closeY));
-  const bodyY = Math.min(openY, closeY);
+  const bodyY = Math.min(y, y + height);
+  const bodyHeight = Math.max(1, Math.abs(height));
 
   return (
-    <g>
+    <g stroke={fill} fill={fill} strokeWidth={1}>
       {/* Wick */}
-      <line x1={x + width / 2} y1={highY} x2={x + width / 2} y2={lowY} stroke={stroke} strokeWidth={1} />
+      <path
+        d={`M${x + width / 2},${y - (high - Math.max(open,close))} L${x + width / 2},${y + (Math.min(open,close) - low)}`}
+      />
       {/* Body */}
       <rect x={x} y={bodyY} width={width} height={bodyHeight} fill={fill} />
     </g>
@@ -179,7 +171,60 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                  cursor={{ fill: 'hsl(var(--muted) / 0.3)'}}
                  content={<CustomTooltip />}
               />
-              <Bar yAxisId="right" dataKey="close" shape={<Candle />} />
+              <Customized
+                dataKey="close"
+                yAxisId="right"
+                // @ts-ignore
+                component={(props) => {
+                  const { x, y, width, index, ...rest } = props;
+                  
+                  const { xAxis, yAxis } = rest as any;
+
+                  if (!props.payload || !xAxis || !yAxis) {
+                      return null;
+                  }
+
+                  const itemData = props.payload;
+                  
+                  const xCoord = xAxis.getTickCoords(index).x;
+                  const yOpen = yAxis.scale(itemData.open);
+                  const yClose = yAxis.scale(itemData.close);
+                  const yHigh = yAxis.scale(itemData.high);
+                  const yLow = yAxis.scale(itemData.low);
+                  
+                  const barWidth = 10;
+                  
+                  const candleProps = {
+                    x: xCoord - barWidth / 2,
+                    y: yClose,
+                    width: barWidth,
+                    height: yOpen - yClose,
+                    low: yLow,
+                    high: yHigh,
+                    open: yOpen,
+                    close: yClose,
+                  };
+                  
+                  const visualYOpen = yAxis.scale(itemData.open);
+                  const visualYClose = yAxis.scale(itemData.close);
+                  const isBullish = itemData.close >= itemData.open;
+                  const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+                  
+                  return (
+                    <g stroke={fill} fill={fill} strokeWidth={1}>
+                       {/* Wick */}
+                      <path d={`M${xCoord},${yHigh} L${xCoord},${yLow}`} />
+                       {/* Body */}
+                      <rect 
+                        x={xCoord - barWidth / 2} 
+                        y={Math.min(visualYOpen, visualYClose)} 
+                        width={barWidth} 
+                        height={Math.abs(visualYOpen - visualYClose)} 
+                      />
+                    </g>
+                  );
+                }}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
