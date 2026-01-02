@@ -21,7 +21,7 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
     const minVal = Math.min(...allValues);
     const maxVal = Math.max(...allValues);
     
-    // Добавляем 10% отступ, как и договаривались
+    // Добавляем 10% отступ
     const padding = (maxVal - minVal) * 0.1;
     const yDomain: [number, number] = [
       Math.max(0, minVal - padding),
@@ -43,12 +43,7 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-        // Мы ищем данные в payload, но исключаем 'range', так как он не должен отображаться
-        const dataPoints = payload.filter(p => p.dataKey !== 'range' && p.dataKey !== 'high'); // Exclude 'high' used for area
-        if (dataPoints.length === 0) return null;
-        
-        // Find the payload for one of the lines, e.g., highLine
-        const dataPayload = payload.find(p => p.dataKey === 'highLine');
+        const dataPayload = payload.find(p => p.dataKey === 'high');
         if (!dataPayload || !dataPayload.payload) return null;
 
         const { low, high } = dataPayload.payload;
@@ -101,20 +96,12 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            <Area
+                             <Area
                                 type="monotone"
                                 dataKey="high"
                                 fill="hsl(var(--destructive) / 0.2)"
                                 stroke="none"
-                                stackId="1"
-                                baseValue={yDomain[1]} // Заливка от верха графика
-                            />
-                             <Area
-                                type="monotone"
-                                dataKey="high"
-                                fill="transparent"
-                                stroke="none"
-                                stackId="1"
+                                baseValue={yDomain[1]} 
                             />
                             
                             <Bar dataKey="range" fill="hsl(0 0% 98%)" barSize={1} />
@@ -122,7 +109,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             <Line 
                                 type="linear" 
                                 dataKey="high"
-                                name="highLine" // Даем уникальное имя, чтобы тултип мог его найти
                                 stroke="hsl(var(--destructive))"
                                 strokeWidth={1.5} 
                                 dot={false} 
@@ -130,7 +116,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             <Line 
                                 type="linear" 
                                 dataKey="low" 
-                                name="lowLine"
                                 stroke="hsl(142 76% 36%)"
                                 strokeWidth={1.5} 
                                 dot={false} 
