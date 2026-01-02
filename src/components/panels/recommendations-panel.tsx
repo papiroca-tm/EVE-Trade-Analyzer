@@ -260,34 +260,6 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     inputs={inputs}
                 />
              </div>
-
-             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                <StatCard 
-                    icon={<Percent size={16}/>} 
-                    title="Расчетная маржа" 
-                    value={"0.00"} 
-                    unit="%"
-                    tooltipText="Эта маржа рассчитана на основе разницы между тактической (краткосрочной) ценой покупки и тактической (краткосрочной) ценой продажи, за вычетом всех комиссий и налогов."
-                />
-                <StatCard 
-                    icon={<Target size={16}/>} 
-                    title="Целевой объем" 
-                    value={"0"} 
-                    tooltipText="Количество единиц, которое можно приобрести на указанный 'Инвестируемый капитал' по тактической (краткосрочной) цене покупки."
-                />
-                 <StatCard 
-                    icon={<ShoppingBasket size={16}/>} 
-                    title="Примерный объем закупок" 
-                    value={"0"} 
-                    unit="ед/день"
-                />
-                 <StatCard 
-                    icon={<Tag size={16}/>} 
-                    title="Примерный объем продаж" 
-                    value={"0"} 
-                    unit="ед/день"
-                />
-             </div>
              
              <Card className="bg-muted/30">
                 <CardHeader className="p-2">
