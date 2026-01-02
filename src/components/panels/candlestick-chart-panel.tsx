@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -139,14 +140,14 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                                 type="linear" 
                                 dataKey="high"
                                 stroke="hsl(var(--destructive))"
-                                strokeWidth={1.5} 
+                                strokeWidth={3} 
                                 dot={false} 
                             />
                             <Line 
                                 type="linear" 
                                 dataKey="low" 
                                 stroke="hsl(142 76% 36%)"
-                                strokeWidth={1.5} 
+                                strokeWidth={3} 
                                 dot={false} 
                             />
                              <Line 
