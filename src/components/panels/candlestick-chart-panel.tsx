@@ -28,14 +28,24 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
       maxVal + padding
     ];
     
-    const chartData = slicedHistory.map(item => {
+    const chartData = slicedHistory.map((item, index) => {
+        let priceChangeColor = 'hsl(var(--muted-foreground))'; // Серый по умолчанию для первой точки
+        if (index > 0) {
+            const prevAverage = slicedHistory[index - 1].average;
+            if (item.average > prevAverage) {
+                priceChangeColor = 'hsl(142 76% 36%)'; // Зеленый
+            } else if (item.average < prevAverage) {
+                priceChangeColor = 'hsl(var(--destructive))'; // Красный
+            }
+        }
+
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
             low: item.lowest,
             high: item.highest,
             average: item.average,
-            // Добавляем диапазон для тени свечи
-            range: [item.lowest, item.highest]
+            range: [item.lowest, item.highest],
+            priceChangeColor: priceChangeColor,
         };
     });
 
@@ -64,6 +74,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
+// @ts-ignore
+const CustomDot = (props) => {
+  const { cx, cy, payload } = props;
+  if (!payload || !payload.priceChangeColor) return null;
+
+  return (
+    <circle cx={cx} cy={cy} r={2} fill={payload.priceChangeColor} stroke="none" />
+  );
+};
 
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
@@ -135,8 +154,8 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 type="linear" 
                                 dataKey="average"
                                 stroke="none"
-                                dot={{ fill: 'hsl(var(--primary))', r: 4, strokeWidth: 0 }}
-                                activeDot={{ r: 6 }}
+                                dot={<CustomDot />}
+                                activeDot={{ r: 4 }}
                             />
                         </ComposedChart>
                     </ResponsiveContainer>
