@@ -31,7 +31,6 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
     const chartData = slicedHistory.map(item => {
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            range: [item.lowest, item.highest], // Для "теней"
             low: item.lowest,
             high: item.highest,
         };
@@ -42,29 +41,20 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-        // Ищем payload от Line или Area, чтобы получить нужные данные
-        const dataPoint = payload.find(p => p.payload.high !== undefined)?.payload;
+        const dataPoint = payload[0].payload;
         if (!dataPoint) return null;
 
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
                 <p className="font-bold text-muted-foreground">{label}</p>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
-                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{dataPoint.high.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
-                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{dataPoint.low.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{dataPoint.high?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{dataPoint.low?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
                 </div>
             </div>
         );
     }
     return null;
-};
-
-
-const ShadowBar = (props: any) => {
-    const { x, y, width, height } = props;
-    const center = x + width / 2;
-    // Рисуем простую линию вместо Bar
-    return <line x1={center} y1={y} x2={center} y2={y + height} stroke="hsl(var(--foreground) / 0.8)" strokeWidth={1} />;
 };
 
 
@@ -76,7 +66,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <CandlestickChartIcon className="h-5 w-5 text-primary" />
-                    <CardTitle>График теней (Мин/Макс цена)</CardTitle>
+                    <CardTitle>График Мин/Макс цены</CardTitle>
                 </div>
                 <CardDescription>
                    Динамика дневного диапазона цен за последние 90 дней.
@@ -114,9 +104,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-                            
-                            {/* Компонент для теней, отрисовывается поверх линий */}
-                            <Area dataKey="range" shape={<ShadowBar />} fill="transparent" stroke="transparent" z={10}/>
 
                         </AreaChart>
                     </ResponsiveContainer>
@@ -125,4 +112,3 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         </Card>
     );
 }
-
