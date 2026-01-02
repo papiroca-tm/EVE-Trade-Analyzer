@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line } from 'recharts';
+import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line, Area } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -42,16 +42,24 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
-    const data = useMemo(() => transformHistoryToCandlestickData(history), [history]);
-
-    const yDomain = useMemo(() => {
-        if (!data || data.length === 0) return [0, 5];
-        const allValues = data.flatMap(d => d.range);
+    const { dataWithFill, yDomain } = useMemo(() => {
+        const baseData = transformHistoryToCandlestickData(history);
+        if (!baseData || baseData.length === 0) return { dataWithFill: [], yDomain: [0, 5] };
+        
+        const allValues = baseData.flatMap(d => d.range);
         const min = Math.min(...allValues);
         const max = Math.max(...allValues);
         const padding = (max - min) * 0.1;
-        return [min - padding, max + padding];
-    }, [data]);
+        const domain = [min - padding, max + padding];
+        const yMax = domain[1];
+
+        const finalData = baseData.map(d => ({
+            ...d,
+            fillTop: yMax - d.high
+        }));
+
+        return { dataWithFill: finalData, yDomain: domain };
+    }, [history]);
 
 
     return (
@@ -69,7 +77,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                 <div className="h-[24rem] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
-                            data={data}
+                            data={dataWithFill}
                             barCategoryGap="40%"
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
@@ -82,11 +90,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            {/* 
-                                Используем "плавающий" Bar. 
-                                Когда в dataKey передается массив, BarChart рисует столбец от первого значения до второго.
-                                Чтобы сделать его похожим на тень, мы задаем очень маленький barSize.
-                            */}
                             <Bar 
                                 dataKey="range" 
                                 fill="hsl(var(--foreground) / 0.8)" 
@@ -106,6 +109,9 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
+                             <Area type="linear" dataKey="low" fill="hsl(142 76% 36% / 0.2)" stroke="none" />
+                             <Area type="linear" dataKey="high" stackId="a" fill="transparent" stroke="none" />
+                             <Area type="linear" dataKey="fillTop" stackId="a" fill="hsl(var(--destructive) / 0.2)" stroke="none" />
 
                         </ComposedChart>
                     </ResponsiveContainer>
@@ -114,3 +120,4 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
         </Card>
     );
 }
+
