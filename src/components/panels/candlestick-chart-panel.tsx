@@ -33,6 +33,7 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
             low: item.lowest,
             high: item.highest,
+            average: item.average,
             // Добавляем диапазон для тени свечи
             range: [item.lowest, item.highest]
         };
@@ -43,10 +44,11 @@ const transformHistoryData = (history: MarketHistoryItem[]) => {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-        const dataPayload = payload.find(p => p.dataKey === 'high' || p.dataKey === 'range');
+        // Find a payload that has the core data, e.g., from the Bar or one of the Lines
+        const dataPayload = payload.find(p => p.payload.low !== undefined && p.payload.high !== undefined && p.payload.average !== undefined);
         if (!dataPayload || !dataPayload.payload) return null;
 
-        const { low, high } = dataPayload.payload;
+        const { low, high, average } = dataPayload.payload;
 
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
@@ -54,12 +56,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
                     <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{high?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
                     <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{low?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">Average:</span><span className="font-mono text-right">{average?.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
                 </div>
             </div>
         );
     }
     return null;
 };
+
 
 
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
@@ -126,6 +130,13 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 stroke="hsl(142 76% 36%)"
                                 strokeWidth={1.5} 
                                 dot={false} 
+                            />
+                             <Line 
+                                type="linear" 
+                                dataKey="average"
+                                stroke="none"
+                                dot={{ fill: 'hsl(var(--primary))', r: 4, strokeWidth: 0 }}
+                                activeDot={{ r: 6 }}
                             />
                         </ComposedChart>
                     </ResponsiveContainer>
