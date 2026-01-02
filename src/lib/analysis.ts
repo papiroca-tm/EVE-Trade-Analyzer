@@ -38,7 +38,8 @@ function findStrategicPrice(
     ladder: { price: number; cumulativeVolume: number }[],
     averageDailyVolume: number,
     executionDays: number,
-    side: 'buy' | 'sell'
+    side: 'buy' | 'sell',
+    inputs: UserInputs
 ): { price: number, reason: string } {
     const tickSize = 0.01;
     if (orders.length === 0) {
@@ -79,7 +80,7 @@ function findStrategicPrice(
         
         if (volumeAhead < marketPower) {
             const strategicPrice = side === 'buy' ? order.price + tickSize : order.price - tickSize;
-            const reason = `Стратегическая цена, рассчитанная для исполнения в рамках '${inputs.executionDays}' дневного срока. Учитывает глубину рынка и конкуренцию.`;
+            const reason = `Стратегическая цена, рассчитанная для исполнения в рамках '${inputs.executionDays}' дневного срока сделки. Учитывает глубину рынка и конкуренцию.`;
             return { price: strategicPrice, reason };
         }
     }
@@ -119,21 +120,21 @@ export async function calculateAnalysis(
     // --- Buy Price Calculation ---
     const longTermBuyPrice = history.length > 0 ? Math.min(...history.map(h => h.lowest)) : 0;
     
-    const { price: midTermBuyPriceRaw, reason: feasibilityReason } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, inputs.executionDays, 'buy');
+    const { price: midTermBuyPriceRaw, reason: feasibilityReason } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, inputs.executionDays, 'buy', inputs);
     // Ensure mid-term isn't unrealistically low
     const midTermBuyPrice = Math.max(midTermBuyPriceRaw, longTermBuyPrice);
 
-    const { price: shortTermBuyPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2, 'buy'); // Always 1 day horizon for short term
+    const { price: shortTermBuyPrice } = findStrategicPrice(sortedBuyOrders, buyLadder, averageDailyVolume, 2, 'buy', inputs); // Always 1 day horizon for short term
     const averageBuyPrice = (midTermBuyPrice + shortTermBuyPrice) / 2;
 
     // --- Sell Price Calculation (Mirrored Logic) ---
     const longTermSellPrice = history.length > 0 ? Math.max(...history.map(h => h.highest)) : 0;
     
-    const { price: midTermSellPriceRaw, reason: sellFeasibilityReason } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, inputs.executionDays, 'sell');
+    const { price: midTermSellPriceRaw } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, inputs.executionDays, 'sell', inputs);
     // Ensure mid-term isn't unrealistically high
     const midTermSellPrice = longTermSellPrice > 0 ? Math.min(midTermSellPriceRaw, longTermSellPrice) : midTermSellPriceRaw;
     
-    const { price: shortTermSellPrice } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, 2, 'sell'); // Always 1 day horizon
+    const { price: shortTermSellPrice } = findStrategicPrice(sortedSellOrders, sellLadder, averageDailyVolume, 2, 'sell', inputs); // Always 1 day horizon
     const averageSellPrice = (midTermSellPrice + shortTermSellPrice) / 2;
 
 

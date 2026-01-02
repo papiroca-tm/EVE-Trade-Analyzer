@@ -1,6 +1,6 @@
 
 'use client';
-import type { AnalysisResult, PriceRange } from '@/lib/types';
+import type { AnalysisResult, PriceRange, UserInputs } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign, Target, ShoppingBasket, Tag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -36,7 +36,7 @@ const StatCard = ({ icon, title, value, unit, tooltipText, className }: { icon: 
 );
 
 
-const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: string, priceRange: PriceRange, icon: React.ReactNode, colorClass: string, isBuy: boolean }) => {
+const PriceCard = ({ title, priceRange, icon, colorClass, isBuy, inputs }: { title: string, priceRange: PriceRange, icon: React.ReactNode, colorClass: string, isBuy: boolean, inputs: UserInputs }) => {
     const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
     return (
@@ -90,7 +90,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy }: { title: stri
                                     <Info className="h-3 w-3 text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                     <p>Стратегическая цена, рассчитанная для исполнения в рамках '{isBuy ? data.inputs.executionDays : ''}' дневного срока сделки. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
+                                     <p>Стратегическая цена, рассчитанная для исполнения в рамках '{inputs.executionDays}' дневного срока сделки. Учитывает глубину рынка и конкуренцию в заданном временном горизонте.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -172,6 +172,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     icon={<ArrowDown className="h-4 w-4 text-green-400" />}
                     colorClass="text-primary"
                     isBuy={true}
+                    inputs={inputs}
                 />
                  <PriceCard 
                     title="Ориентир цены продажи" 
@@ -179,6 +180,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     icon={<ArrowUp className="h-4 w-4 text-red-400" />}
                     colorClass="text-destructive"
                     isBuy={false}
+                    inputs={inputs}
                 />
              </div>
 
@@ -238,6 +240,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     icon={<ArrowDown className="h-4 w-4 text-green-400" />}
                     colorClass="text-primary"
                     isBuy={true}
+                    inputs={inputs}
                 />
                  <PriceCard 
                     title="Ориентир цены продажи" 
@@ -245,6 +248,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                     icon={<ArrowUp className="h-4 w-4 text-red-400" />}
                     colorClass="text-destructive"
                     isBuy={false}
+                    inputs={inputs}
                 />
              </div>
 
