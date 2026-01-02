@@ -7,23 +7,20 @@ import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Toolti
 import type { MarketHistoryItem } from '@/lib/types';
 
 
-// Custom shape for the candlestick. THIS CODE SHOULD NOT BE MODIFIED.
+// Custom shape for the candlestick.
 const Candle = (props: any) => {
-  const { x, y, width, height, low, high, open, close, yAxis } = props;
+  const { x, width, low, high, open, close, yAxis } = props;
+  
+  if (!yAxis || typeof yAxis.scale !== 'function') {
+    // Render nothing if yAxis or its scale function is not available to prevent crashes
+    return null;
+  }
   
   const isBullish = close >= open;
   const fill = isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const stroke = fill;
 
-  if (!yAxis) {
-    // Render nothing if yAxis is not available to prevent crashes
-    return null;
-  }
-  
-  const yValueToCoordinate = (value: number) => {
-    // This function maps a data value (like a price) to its SVG y-coordinate.
-    return yAxis.scale(value);
-  };
+  const yValueToCoordinate = (value: number) => yAxis.scale(value);
   
   const highY = yValueToCoordinate(high);
   const lowY = yValueToCoordinate(low);
@@ -182,7 +179,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
                  cursor={{ fill: 'hsl(var(--muted) / 0.3)'}}
                  content={<CustomTooltip />}
               />
-              <Bar yAxisId="right" dataKey="close" shape={(props) => <Candle {...props} />} />
+              <Bar yAxisId="right" dataKey="close" shape={<Candle />} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
