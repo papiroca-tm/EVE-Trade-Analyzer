@@ -80,7 +80,7 @@ const CustomDot = (props) => {
   if (!payload || !payload.priceChangeColor) return null;
 
   return (
-    <circle cx={cx} cy={cy} r={2} fill={payload.priceChangeColor} stroke="none" />
+    <circle cx={cx} cy={cy} r={3} fill={payload.priceChangeColor} stroke="none" />
   );
 };
 
@@ -154,7 +154,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 dataKey="average"
                                 stroke="none"
                                 dot={<CustomDot />}
-                                activeDot={{ r: 4 }}
+                                activeDot={{ r: 6 }}
                             />
                         </ComposedChart>
                     </ResponsiveContainer>
