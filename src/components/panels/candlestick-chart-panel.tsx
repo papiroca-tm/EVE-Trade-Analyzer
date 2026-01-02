@@ -32,18 +32,22 @@ const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
 const Candlestick = (props: any) => {
     const { data, yAxis, xAxis } = props;
 
-    if (!data || !yAxis || !xAxis) {
+    if (!data || !yAxis || !xAxis || !xAxis.width || data.length === 0) {
         return null;
     }
+
+    // Рассчитываем ширину одной свечи на основе общей ширины оси и количества точек
+    const bandWidth = xAxis.width / data.length;
 
     return (
         <g>
             {data.map((entry: any, index: number) => {
                 const { open, close, high, low } = entry;
 
-                const x = xAxis.scale(entry.date) ?? 0;
+                // Получаем координату X центра свечи
+                const x = xAxis.scale(entry.date);
                 
-                if (x === 0) return null;
+                if (x === undefined || x === null) return null;
 
                 const yOpen = yAxis.scale(open);
                 const yClose = yAxis.scale(close);
@@ -51,27 +55,28 @@ const Candlestick = (props: any) => {
                 const yLow = yAxis.scale(low);
 
                 const isBullish = close >= open;
-                const bodyHeight = Math.abs(yOpen - yClose);
+                const bodyHeight = Math.max(1, Math.abs(yOpen - yClose)); // Тело должно быть минимум 1px
                 const bodyY = Math.min(yOpen, yClose);
                 
-                const bandWidth = (xAxis.scale.bandwidth && typeof xAxis.scale.bandwidth === 'function') ? xAxis.scale.bandwidth() : 10;
                 const bodyWidth = bandWidth * 0.6;
                 const bodyX = x - bodyWidth / 2;
                 const wickX = x;
 
                 return (
                     <g key={`candlestick-${index}`}>
+                        {/* Фитиль (тень) */}
                         <line 
                             x1={wickX} y1={yHigh} 
                             x2={wickX} y2={yLow} 
                             stroke={isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'} 
                             strokeWidth={1} 
                         />
+                        {/* Тело свечи */}
                         <rect 
                             x={bodyX}
                             y={bodyY}
                             width={bodyWidth}
-                            height={bodyHeight > 0 ? bodyHeight : 1}
+                            height={bodyHeight}
                             fill={isBullish ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'}
                         />
                     </g>
@@ -144,8 +149,10 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
+                            {/* Невидимая линия, чтобы Tooltip работал */}
                             <Line dataKey="close" stroke="transparent" dot={false} activeDot={false} yAxisId={0} />
                             
+                            {/* Кастомный компонент для отрисовки свечей */}
                             <Customized component={Candlestick} />
 
                         </ComposedChart>
