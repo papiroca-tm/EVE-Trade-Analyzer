@@ -57,80 +57,47 @@ const Candle = (props: any) => {
 
 
 /**
- * Transforms historical EVE Online market data into a synthetic OHLC format where the body represents the price range
- * and the wicks represent the trading volume.
+ * Transforms historical EVE Online market data into a OHLC format.
+ * - Wicks represent the highest/lowest price of the day.
+ * - Body represents the change in average price from the previous day to the current day.
  * @param history - An array of market history items, sorted chronologically.
  * @returns An array of data points formatted for a candlestick chart.
  */
 function transformHistoryForCandlestick(history: MarketHistoryItem[]) {
-  if (!history || history.length === 0) return [];
+  if (!history || history.length < 2) return [];
 
-  // Step 1: Preparation - Find V_max over the entire period for volume normalization.
-  const V_max = history.reduce((max, item) => Math.max(max, item.volume), 0);
-  
-  // Find max price range to normalize volume extension
-  const max_range = history.reduce((max, item) => Math.max(max, item.highest - item.lowest), 0);
+  const transformedData = history.map((currentItem, index) => {
+    // We need the previous day to calculate the 'open' of the body.
+    // For the first day, we can't form a body, so we can either skip it or make a neutral candle.
+    // Let's make the first candle neutral, using its own average as open and close.
+    const previousDay = index > 0 ? history[index - 1] : currentItem;
 
+    const open_t = previousDay.average;
+    const close_t = currentItem.average;
+    const high_t = currentItem.highest;
+    const low_t = currentItem.lowest;
 
-  const transformedData = history.map((item, index) => {
-    // Step 2: Process each day
-    const high_t = item.highest;
-    const low_t = item.lowest;
-    const avg_t = item.average;
-    const volume_t = item.volume;
-
-    // --- Volume-based wick calculation ---
-    // Normalize volume
-    const volume_ratio_t = V_max > 0 ? volume_t / V_max : 0;
+    // The body can go outside the wick if avg prices change drastically.
+    // The wick is defined by high/low, so the full range for the candle is min(low, open, close) to max(high, open, close).
+    const absoluteLow = Math.min(low_t, open_t, close_t);
+    const absoluteHigh = Math.max(high_t, open_t, close_t);
     
-    // The extension is proportional to volume and capped by a fraction of max daily range to keep it reasonable
-    const volume_extension = volume_ratio_t * (max_range > 0 ? max_range * 0.75 : avg_t * 0.15) * 3;
-
-    // New wicks are based on volume
-    const new_high = high_t + volume_extension;
-    const new_low = Math.max(0, low_t - volume_extension);
-
-    // --- Price-range body and color direction ---
-    let direction: 'bullish' | 'bearish' | 'neutral' = 'neutral';
-    if (index > 0) {
-        const avg_t_minus_1 = history[index - 1].average;
-        if (avg_t > avg_t_minus_1) {
-            direction = 'bullish';
-        } else if (avg_t < avg_t_minus_1) {
-            direction = 'bearish';
-        }
-    }
-
-    let open_t: number;
-    let close_t: number;
-    
-    // Body is now the actual price range. Color depends on direction.
-    if (direction === 'bullish') {
-        open_t = low_t;
-        close_t = high_t;
-    } else { // Bearish or Neutral
-        open_t = high_t;
-        close_t = low_t;
-    }
-    
-    // Final assembly for the day
     return {
-      date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+      date: new Date(currentItem.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
       open: open_t,
-      high: new_high, // Extended high for wick
-      low: new_low,   // Extended low for wick
+      high: high_t,
+      low: low_t,
       close: close_t,
       // Pass original values for tooltip
-      original_high: high_t,
-      original_low: low_t,
-      average: avg_t,
-      volume: volume_t,
+      average: currentItem.average,
+      volume: currentItem.volume,
       // The `body` dataKey is what recharts uses for y/height. It must span the full wick range.
-      body: [new_low, new_high] 
+      body: [absoluteLow, absoluteHigh] 
     };
   });
 
-  return transformedData;
+  // Remove the first item as it doesn't have a previous day to compare for a meaningful body.
+  return transformedData.slice(1);
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -152,7 +119,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 МАКС.
               </span>
               <span className="font-bold">
-                {data.original_high.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                {data.high.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
               </span>
             </div>
              <div className="flex flex-col">
@@ -160,7 +127,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 МИН.
               </span>
               <span className="font-bold">
-                {data.original_low.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                {data.low.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
               </span>
             </div>
              <div className="flex flex-col">
@@ -202,7 +169,7 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
       return { data: [], yDomain: [0, 0] };
     }
     
-    const prices = chartData.flatMap(d => [d.low, d.high]);
+    const prices = chartData.flatMap(d => d.body);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const padding = (maxPrice - minPrice) * 0.1;
@@ -219,10 +186,10 @@ export function CandlestickChartPanel({ history, timeHorizonDays }: { history: M
       <CardHeader>
         <div className="flex items-center gap-2">
             <CandlestickChartIcon className="h-5 w-5 text-primary" />
-            <CardTitle>График цен (нестандартные свечи)</CardTitle>
+            <CardTitle>График цен (свечи)</CardTitle>
         </div>
         <CardDescription>
-            Тело свечи - реальный диапазон цен дня. Тени (фитили) - относительный объем торгов. Цвет - направление ср. цены.
+            Тело свечи показывает изменение средней цены от прошлого дня к текущему. Тени (фитили) — дневной диапазон (min/max).
         </CardDescription>
       </CardHeader>
       <CardContent>
