@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line, Area } from 'recharts';
+import { AreaChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -85,7 +85,7 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
             <CardContent>
                 <div className="h-[24rem] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart
+                        <AreaChart
                             data={chartData}
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
@@ -98,27 +98,31 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            {/* Невидимый Bar для корректной работы Tooltip и ShadowBar */}
-                            <Area dataKey="range" shape={<ShadowBar />} fill="transparent" />
-                            
-                             <Line 
+                             <Area 
                                 type="linear" 
                                 dataKey="high" 
                                 stroke="hsl(var(--destructive))"
+                                fill="transparent"
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-                            <Line 
+                            <Area 
                                 type="linear" 
                                 dataKey="low" 
                                 stroke="hsl(142 76% 36%)"
+                                fill="transparent"
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-                        </ComposedChart>
+                            
+                            {/* Компонент для теней, отрисовывается поверх линий */}
+                            <Area dataKey="range" shape={<ShadowBar />} fill="transparent" stroke="transparent" z={10}/>
+
+                        </AreaChart>
                     </ResponsiveContainer>
                 </div>
             </CardContent>
         </Card>
     );
 }
+
