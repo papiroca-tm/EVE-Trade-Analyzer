@@ -57,7 +57,7 @@ export default function Home() {
         <div className="flex flex-1 items-center gap-2">
           <Icons.logo className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            EVE Market Navigator
+            EVE Trade Analyzer
           </h1>
         </div>
       </header>

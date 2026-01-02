@@ -1,4 +1,4 @@
-# EVE Market Navigator (Навигатор по рынку EVE)
+# EVE Trade Analyzer
 
 Это веб-приложение для аналитической поддержки принятия решений на рынке EVE Online, созданное с использованием Firebase.
 

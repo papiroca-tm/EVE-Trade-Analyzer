@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'EVE Market Navigator',
+  title: 'EVE Trade Analyzer',
   description: 'Аналитический инструмент для поддержки принятия решений на рынке EVE Online.',
 };
 
