@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CandlestickChart as CandlestickChartIcon } from 'lucide-react';
-import { Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line, Area } from 'recharts';
+import { ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line, Area } from 'recharts';
 import type { MarketHistoryItem } from '@/lib/types';
 
 
@@ -12,27 +12,49 @@ import type { MarketHistoryItem } from '@/lib/types';
  * @param history - Массив исторических данных.
  * @returns - Массив данных для графика.
  */
-const transformHistoryToCandlestickData = (history: MarketHistoryItem[]) => {
-    if (!history) return [];
-    return history.slice(-90).map(item => {
+const transformHistoryData = (history: MarketHistoryItem[]) => {
+    if (!history) return { chartData: [], yDomain: [0, 1] };
+
+    const slicedHistory = history.slice(-90);
+    if (slicedHistory.length === 0) return { chartData: [], yDomain: [0, 1] };
+
+    const allValues = slicedHistory.flatMap(item => [item.lowest, item.highest]);
+    const minVal = Math.min(...allValues);
+    const maxVal = Math.max(...allValues);
+    
+    const padding = (maxVal - minVal) * 0.1;
+    const yDomain: [number, number] = [
+      Math.max(0, minVal - padding),
+      maxVal + padding
+    ];
+
+    const chartData = slicedHistory.map(item => {
         return {
             date: new Date(item.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-            range: [item.lowest, item.highest], // Используем массив [min, max]
+            range: [item.lowest, item.highest], // Для "теней"
             low: item.lowest,
             high: item.highest,
+            // Данные для стекированных областей
+            fillBottom: item.lowest - yDomain[0],
+            fillMiddle: item.highest - item.lowest,
         };
     });
+
+    return { chartData, yDomain };
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-        const data = payload[0].payload;
+        // Ищем payload от Line или Area, чтобы получить нужные данные
+        const dataPoint = payload.find(p => p.payload.high !== undefined)?.payload;
+        if (!dataPoint) return null;
+
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-xs">
                 <p className="font-bold text-muted-foreground">{label}</p>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
-                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{data.high.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
-                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{data.low.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">High:</span><span className="font-mono text-right">{dataPoint.high.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                    <span className="text-muted-foreground">Low:</span><span className="font-mono text-right">{dataPoint.low.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
                 </div>
             </div>
         );
@@ -41,24 +63,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 
+const ShadowBar = (props: any) => {
+    const { x, y, width, height } = props;
+    const center = x + width / 2;
+    // Рисуем простую линию вместо Bar
+    return <line x1={center} y1={y} x2={center} y2={y + height} stroke="hsl(var(--foreground) / 0.8)" strokeWidth={1} />;
+};
+
+
 export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[] }) {
-    const { chartData, yDomain } = useMemo(() => {
-        const baseData = transformHistoryToCandlestickData(history);
-        if (!baseData || baseData.length === 0) return { chartData: [], yDomain: [0, 1] };
-        
-        const allValues = baseData.flatMap(d => d.range);
-        const minVal = Math.min(...allValues);
-        const maxVal = Math.max(...allValues);
-        
-        const padding = (maxVal - minVal) * 0.1;
-        const domain = [
-          Math.max(0, minVal - padding), // Убедимся, что нижняя граница не уходит в минус
-          maxVal + padding
-        ];
-
-        return { chartData: baseData, yDomain: domain };
-    }, [history]);
-
+    const { chartData, yDomain } = useMemo(() => transformHistoryData(history), [history]);
 
     return (
         <Card>
@@ -76,7 +90,6 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
                             data={chartData}
-                            barCategoryGap="40%"
                             margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
@@ -88,11 +101,9 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                             />
                             <Tooltip content={<CustomTooltip />} />
                             
-                            <Bar 
-                                dataKey="range" 
-                                fill="hsl(var(--foreground) / 0.8)" 
-                                barSize={1} 
-                            />
+                            {/* Невидимый Bar для корректной работы Tooltip и ShadowBar */}
+                            <Area dataKey="range" shape={<ShadowBar />} />
+                            
                              <Line 
                                 type="linear" 
                                 dataKey="high" 
@@ -107,15 +118,30 @@ export function CandlestickChartPanel({ history }: { history: MarketHistoryItem[
                                 strokeWidth={1.5} 
                                 dot={false} 
                             />
-                             <Area type="linear" dataKey="low" fill="hsl(142 76% 36% / 0.2)" stroke="none" />
+                             {/* Зеленая область от низа до low */}
                              <Area 
                                 type="linear" 
-                                dataKey="high" 
-                                fill="hsl(var(--destructive) / 0.2)" 
+                                dataKey="fillBottom" 
+                                stackId="a" 
                                 stroke="none" 
-                                stackId="a"
-                              />
-
+                                fill="hsl(142 76% 36% / 0.2)"
+                                baseValue={yDomain[0]}
+                             />
+                             {/* Прозрачная область от low до high */}
+                             <Area 
+                                type="linear" 
+                                dataKey="fillMiddle" 
+                                stackId="a" 
+                                stroke="none" 
+                                fill="transparent" 
+                             />
+                             {/* Красная область рисуется поверх всего, так как у нее нет stackId, и она от high до верха */}
+                             <Area 
+                                type="linear"
+                                dataKey="high"
+                                fill="hsl(var(--destructive) / 0.2)"
+                                stroke="none"
+                             />
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
