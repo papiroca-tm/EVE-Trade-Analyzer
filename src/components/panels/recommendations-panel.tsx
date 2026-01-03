@@ -8,6 +8,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
+// EVE Online Price Rounding Rules (copied from analysis.ts for client-side use)
+function roundToEvePrice(price: number): number {
+    if (price <= 0) return 0;
+    if (price < 100) { // Keep 2 decimal places for smaller amounts
+        return parseFloat(price.toFixed(2));
+    }
+    const magnitude = Math.pow(10, Math.floor(Math.log10(price)) - 3);
+    return Math.round(price / magnitude) * magnitude;
+}
+
 const StatCard = ({ icon, title, value, unit, tooltipText, className }: { icon: React.ReactNode, title: string, value: string, unit?: string, tooltipText?: string, className?: string }) => (
     <div className={cn("flex items-start gap-2 rounded-lg bg-muted/50 p-2", className)}>
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -65,6 +75,18 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy, inputs }: { tit
         if (/^(\d+)?(\.?\d{0,2})?$/.test(value)) {
             setCustomPrice(value);
         }
+    };
+
+    const handleBlur = () => {
+        const numericValue = parseFloat(customPrice);
+        if (isNaN(numericValue) || numericValue <= 0) {
+            setCustomPrice('');
+            return;
+        }
+        const roundedValue = roundToEvePrice(numericValue);
+        // Convert to a string with exactly 2 decimal places to fix floating point issues and ensure format
+        const priceString = roundedValue.toFixed(2);
+        setCustomPrice(priceString.replace(',', '.'));
     };
     
     return (
@@ -153,6 +175,7 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy, inputs }: { tit
                         placeholder="0,00"
                         value={formatForDisplay(customPrice)}
                         onChange={handlePriceChange}
+                        onBlur={handleBlur}
                     />
                 </div>
             </div>
