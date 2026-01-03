@@ -1,10 +1,12 @@
 
 'use client';
+import { useState } from 'react';
 import type { AnalysisResult, PriceRange, UserInputs } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Lightbulb, Percent, TrendingUp, Clock, Scale, Info, ArrowDown, ArrowUp, CircleDollarSign, Target, ShoppingBasket, Tag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 const StatCard = ({ icon, title, value, unit, tooltipText, className }: { icon: React.ReactNode, title: string, value: string, unit?: string, tooltipText?: string, className?: string }) => (
     <div className={cn("flex items-start gap-2 rounded-lg bg-muted/50 p-2", className)}>
@@ -38,6 +40,32 @@ const StatCard = ({ icon, title, value, unit, tooltipText, className }: { icon: 
 
 const PriceCard = ({ title, priceRange, icon, colorClass, isBuy, inputs }: { title: string, priceRange: PriceRange, icon: React.ReactNode, colorClass: string, isBuy: boolean, inputs: UserInputs }) => {
     const formatPrice = (price: number) => price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const [customPrice, setCustomPrice] = useState(''); // Stores the raw numeric string, e.g., '12345.67'
+
+    // Formats the raw value for display, e.g., '12345.67' -> '12.345,67'
+    const formatForDisplay = (value: string) => {
+        if (!value) return '';
+        const [integer, decimal] = value.split('.');
+        if (!integer) return value;
+        const formattedInteger = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        if (decimal !== undefined) {
+            return `${formattedInteger},${decimal}`;
+        }
+        return formattedInteger;
+    };
+
+    // Handles input changes, saving the raw numeric value
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value;
+        // Convert display format '12.345,67' to raw '12345.67'
+        value = value.replace(/\./g, ''); // remove thousand separators -> '12345,67'
+        value = value.replace(',', '.'); // replace decimal separator -> '12345.67'
+
+        // Allow only valid decimal number format with up to 2 decimal places
+        if (/^(\d+)?(\.?\d{0,2})?$/.test(value)) {
+            setCustomPrice(value);
+        }
+    };
     
     return (
         <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3">
@@ -114,6 +142,19 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy, inputs }: { tit
                     </div>
                     <span className="text-sm font-bold text-green-500">{formatPrice(priceRange.shortTerm)}</span>
                 </div>
+                <div className="flex items-center justify-between rounded-sm bg-background/50 px-2 py-1">
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs font-sans text-muted-foreground">Пользовательская цена</span>
+                    </div>
+                    <Input
+                        type="text"
+                        inputMode="decimal"
+                        className="h-7 w-40 bg-background/50 text-right font-mono"
+                        placeholder="0,00"
+                        value={formatForDisplay(customPrice)}
+                        onChange={handlePriceChange}
+                    />
+                </div>
             </div>
         </div>
     );
@@ -150,9 +191,9 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <StatCard icon={<Percent size={16}/>} title="Волатильность" value={priceAnalysis.volatility.toFixed(2)} unit="%"/>
+            <StatCard icon={<Percent size={16}/>} title="Волатильность" value={priceAnalysis.volatility.toFixed(2)} unit="%" />
             <StatCard icon={<TrendingUp size={16}/>} title="Сред. дневной объем" value={Math.floor(volumeAnalysis.averageDailyVolume).toLocaleString('ru-RU')} />
-            <StatCard icon={<Scale size={16}/>} title="Спред" value={(priceAnalysis.bestSellPrice - priceAnalysis.bestBuyPrice).toLocaleString('ru-RU', {minimumFractionDigits: 2})} unit="ISK"/>
+            <StatCard icon={<Scale size={16}/>} title="Спред" value={(priceAnalysis.bestSellPrice - priceAnalysis.bestBuyPrice).toLocaleString('ru-RU', {minimumFractionDigits: 2})} unit="ISK" />
             <StatCard 
                 icon={<Percent size={16}/>} 
                 title="Желаемая маржа" 
@@ -285,5 +326,3 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
     </Card>
   );
 }
-
-    
