@@ -51,9 +51,9 @@ export default function Home() {
   const recommendation = state.data?.recommendations?.[0];
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
+    <div className="flex h-screen w-full flex-col bg-background">
       {loadingInitialData && <LoadingOverlay />}
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm md:px-3">
+      <header className="sticky top-0 z-10 flex h-14 flex-shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm md:px-3">
         <div className="flex flex-1 items-center gap-2">
           <Icons.logo className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold tracking-tight text-foreground">
@@ -61,16 +61,16 @@ export default function Home() {
           </h1>
         </div>
       </header>
-      <main className="grid flex-1 grid-cols-10 gap-2 p-2 md:gap-4 md:p-4">
-        <div className="col-span-3 grid grid-cols-2 gap-2 md:gap-4">
-            <div className="col-span-1">
+      <main className="grid flex-1 grid-cols-10 gap-1 overflow-hidden p-1 md:gap-2 md:p-2">
+        <div className="col-span-3 grid grid-cols-2 gap-1 overflow-hidden md:gap-2">
+            <div className="col-span-1 overflow-hidden">
                 <InputForm 
                   formAction={formAction} 
                   initialData={initialData}
                   isLoading={loadingInitialData}
                 />
             </div>
-            <div className="col-span-1">
+            <div className="col-span-1 overflow-hidden">
                 <OrderBookDisplay
                     buyOrders={state.data?.buyOrders ?? []}
                     sellOrders={state.data?.sellOrders ?? []}
@@ -81,7 +81,7 @@ export default function Home() {
                 />
             </div>
         </div>
-        <div className="col-span-7">
+        <div className="col-span-7 overflow-hidden">
           <ResultsDisplay state={state} />
         </div>
       </main>

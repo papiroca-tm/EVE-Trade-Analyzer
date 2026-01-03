@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown, Loader2, Zap } from 'lucide-react';
 import type { Region, ItemType } from '@/lib/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const formSchema = z.object({
   regionId: z.coerce.number().int().positive("Необходимо выбрать регион."),
@@ -75,249 +76,251 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
   const displayedItems = filteredItems.slice(0, 50);
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardHeader className="p-3">
         <CardTitle className="text-lg">Параметры рынка</CardTitle>
         <CardDescription className="text-xs">Введите параметры для анализа. По умолчанию: Tritanium в The Forge.</CardDescription>
       </CardHeader>
       <Form {...form}>
-        <form action={formAction}>
-          <CardContent className="flex flex-col gap-y-2 p-3">
-            {isLoading ? (
-                <>
-                    <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
-                    <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
-                </>
-            ) : (
-             <>
-            <FormField
-              control={form.control}
-              name="regionId"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Регион</FormLabel>
-                   <Popover open={openRegionPopover} onOpenChange={setOpenRegionPopover}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? initialData.regions.find(
-                                (region) => region.region_id === field.value
-                              )?.name
-                            : "Выберите регион"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[18rem] p-0">
-                      <Command>
-                        <CommandInput 
-                          placeholder="Поиск региона..."
-                         />
-                        <CommandList>
-                        <CommandEmpty>Регион не найден.</CommandEmpty>
-                        <CommandGroup>
-                          {initialData.regions.map((region) => (
-                            <CommandItem
-                              value={region.name}
-                              key={region.region_id}
-                              onSelect={() => {
-                                form.setValue("regionId", region.region_id)
-                                setOpenRegionPopover(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  region.region_id === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {region.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="typeId"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Тип предмета</FormLabel>
-                   <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                           {initialData.itemTypes.find(item => item.type_id === field.value)?.name ?? "Выберите предмет"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[18rem] p-0">
-                      <Command>
-                        <CommandInput 
-                          placeholder="Поиск предмета..."
-                          value={itemSearch}
-                          onValueChange={setItemSearch}
-                        />
-                        <CommandList>
-                          <CommandEmpty>Предмет не найден.</CommandEmpty>
+        <form action={formAction} className="flex flex-1 flex-col overflow-hidden">
+          <ScrollArea className="flex-1">
+            <CardContent className="flex flex-col gap-y-1 p-3">
+              {isLoading ? (
+                  <>
+                      <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
+                      <div className="space-y-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-8 w-full" /></div>
+                  </>
+              ) : (
+              <>
+              <FormField
+                control={form.control}
+                name="regionId"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Регион</FormLabel>
+                    <Popover open={openRegionPopover} onOpenChange={setOpenRegionPopover}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? initialData.regions.find(
+                                  (region) => region.region_id === field.value
+                                )?.name
+                              : "Выберите регион"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[18rem] p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Поиск региона..."
+                          />
+                          <CommandList>
+                          <CommandEmpty>Регион не найден.</CommandEmpty>
                           <CommandGroup>
-                            {displayedItems.map((item) => (
+                            {initialData.regions.map((region) => (
                               <CommandItem
-                                value={item.name}
-                                key={item.type_id}
+                                value={region.name}
+                                key={region.region_id}
                                 onSelect={() => {
-                                  form.setValue("typeId", item.type_id)
-                                  setOpenItemPopover(false);
+                                  form.setValue("regionId", region.region_id)
+                                  setOpenRegionPopover(false);
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    item.type_id === field.value
+                                    region.region_id === field.value
                                       ? "opacity-100"
                                       : "opacity-0"
                                   )}
                                 />
-                                {item.name}
+                                {region.name}
                               </CommandItem>
                             ))}
                           </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            </>
-            )}
-
-            <FormField
-              control={form.control}
-              name="brokerBuyFeePercent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Комиссия брокера (покупка) %</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="brokerSellFeePercent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Комиссия брокера (продажа) %</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="salesTaxPercent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Налог с продаж %</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="desiredNetMarginPercent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Желаемая чистая маржа %</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-                control={form.control}
-                name="timeHorizonDays"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Анализ истории (дни)</FormLabel>
-                    <FormControl>
-                        <Input type="number" {...field} />
-                    </FormControl>
-                    <FormDescription>Кол-во дней для анализа (макс. 365).</FormDescription>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-            />
-            <FormField
+              />
+              <FormField
                 control={form.control}
-                name="executionDays"
+                name="typeId"
                 render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Желаемый срок сделки (дни)</FormLabel>
-                    <FormControl>
-                        <Input type="number" {...field} />
-                    </FormControl>
-                    <FormDescription>За сколько дней вы хотите купить и продать.</FormDescription>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Тип предмета</FormLabel>
+                    <Popover open={openItemPopover} onOpenChange={setOpenItemPopover}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {initialData.itemTypes.find(item => item.type_id === field.value)?.name ?? "Выберите предмет"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[18rem] p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Поиск предмета..."
+                            value={itemSearch}
+                            onValueChange={setItemSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Предмет не найден.</CommandEmpty>
+                            <CommandGroup>
+                              {displayedItems.map((item) => (
+                                <CommandItem
+                                  value={item.name}
+                                  key={item.type_id}
+                                  onSelect={() => {
+                                    form.setValue("typeId", item.type_id)
+                                    setOpenItemPopover(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      item.type_id === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {item.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-            />
-             <FormField
+              />
+              </>
+              )}
+
+              <FormField
                 control={form.control}
-                name="positionCapital"
+                name="brokerBuyFeePercent"
                 render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Инвестируемый капитал (ISK, опц.)</FormLabel>
+                  <FormItem>
+                    <FormLabel>Комиссия брокера (покупка) %</FormLabel>
                     <FormControl>
-                        <Input type="number" placeholder="например, 100000000" {...field} />
+                      <Input type="number" step="0.1" {...field} />
                     </FormControl>
-                    <FormDescription>Сумма, которую вы готовы вложить.</FormDescription>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-            />
+              />
+              <FormField
+                control={form.control}
+                name="brokerSellFeePercent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Комиссия брокера (продажа) %</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="salesTaxPercent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Налог с продаж %</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="desiredNetMarginPercent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Желаемая чистая маржа %</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                  control={form.control}
+                  name="timeHorizonDays"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Анализ истории (дни)</FormLabel>
+                      <FormControl>
+                          <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>Кол-во дней для анализа (макс. 365).</FormDescription>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+              <FormField
+                  control={form.control}
+                  name="executionDays"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Желаемый срок сделки (дни)</FormLabel>
+                      <FormControl>
+                          <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>За сколько дней вы хотите купить и продать.</FormDescription>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+              <FormField
+                  control={form.control}
+                  name="positionCapital"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Инвестируемый капитал (ISK, опц.)</FormLabel>
+                      <FormControl>
+                          <Input type="number" placeholder="например, 100000000" {...field} />
+                      </FormControl>
+                      <FormDescription>Сумма, которую вы готовы вложить.</FormDescription>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
 
-            <input type="hidden" {...form.register('regionId')} />
-            <input type="hidden" {...form.register('typeId')} />
+              <input type="hidden" {...form.register('regionId')} />
+              <input type="hidden" {...form.register('typeId')} />
 
-          </CardContent>
-          <CardFooter className="p-3">
-             <SubmitButton />
+            </CardContent>
+          </ScrollArea>
+          <CardFooter className="p-2">
+            <SubmitButton />
           </CardFooter>
         </form>
       </Form>

@@ -71,17 +71,17 @@ const SellOrdersRows = ({ orders, estimatedSellVolumePerDay }: { orders: MarketO
                             background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
                         }}
                     >
-                        <TableCell className={cn('py-0.5 px-2 text-right font-mono text-red-400', order.isWall && 'font-bold text-destructive-foreground')}>
+                        <TableCell className={cn('p-1 text-right font-mono text-red-400', order.isWall && 'font-bold text-destructive-foreground')}>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className={cn("py-0.5 px-2 text-right font-mono", order.isWall && 'font-bold text-destructive-foreground')}>
+                        <TableCell className={cn("p-1 pr-4 text-right font-mono", order.isWall && 'font-bold text-destructive-foreground')}>
                             {order.volume_remain.toLocaleString('ru-RU')}
                         </TableCell>
                     </TableRow>
                 ))
             ) : (
                 <TableRow className="border-b-0">
-                    <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">-</TableCell>
+                    <TableCell colSpan={2} className="p-1 text-center font-mono text-muted-foreground">-</TableCell>
                 </TableRow>
             )}
         </>
@@ -134,17 +134,17 @@ const BuyOrdersRows = ({ orders, estimatedBuyVolumePerDay }: { orders: MarketOrd
                             background: `linear-gradient(to left, hsl(var(--accent) / 0.4) ${order.fillPercent}%, transparent ${order.fillPercent}%)`
                         }}
                     >
-                        <TableCell className={cn('py-0.5 px-2 text-right font-mono text-green-400', order.isWall && 'font-bold text-accent-foreground')}>
+                        <TableCell className={cn('p-1 text-right font-mono text-green-400', order.isWall && 'font-bold text-accent-foreground')}>
                             {order.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className={cn("py-0.5 px-2 text-right font-mono", order.isWall && 'font-bold text-accent-foreground')}>
+                        <TableCell className={cn("p-1 pr-4 text-right font-mono", order.isWall && 'font-bold text-accent-foreground')}>
                             {order.volume_remain.toLocaleString('ru-RU')}
                         </TableCell>
                     </TableRow>
                 ))
             ) : (
                 <TableRow className="border-b-0">
-                    <TableCell colSpan={2} className="py-0.5 px-2 text-center font-mono text-muted-foreground">-</TableCell>
+                    <TableCell colSpan={2} className="p-1 text-center font-mono text-muted-foreground">-</TableCell>
                 </TableRow>
             )}
         </>
@@ -219,7 +219,7 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimat
 
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardHeader className="p-3">
         <div className='flex items-center gap-2'>
             <CardTitle className="text-lg">Стакан</CardTitle>
@@ -236,9 +236,13 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimat
             </TooltipProvider>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-10rem)]" viewportRef={viewportRef}>
-          <Table>
+      <CardContent className="flex-1 p-0 min-h-0">
+        <ScrollArea className="h-full" viewportRef={viewportRef}>
+          <Table className="table-fixed">
+            <colgroup>
+              <col className="w-1/2" />
+              <col className="w-1/2" />
+            </colgroup>
             <TableBody>
               <SellOrdersRows orders={sellOrders} estimatedSellVolumePerDay={estimatedSellVolumePerDay} />
               <SpreadRow priceAnalysis={priceAnalysis} inputs={inputs} spreadRef={spreadRef} />
@@ -250,5 +254,3 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimat
     </Card>
   );
 }
-
-    
