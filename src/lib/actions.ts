@@ -23,6 +23,12 @@ export async function getMarketAnalysis(
   formData: FormData
 ): Promise<AnalysisState> {
   
+  const positionCapitalRaw = formData.get('positionCapital') as string | null;
+  // Очищаем строку от точек.
+  const cleanedString = positionCapitalRaw?.replace(/\./g, '');
+  // Явно преобразуем в число, если строка не пустая, иначе undefined.
+  const finalPositionCapital = cleanedString ? Number(cleanedString) : undefined;
+
   const validatedFields = formSchema.safeParse({
     regionId: formData.get('regionId'),
     typeId: formData.get('typeId'),
@@ -32,7 +38,7 @@ export async function getMarketAnalysis(
     desiredNetMarginPercent: formData.get('desiredNetMarginPercent'),
     timeHorizonDays: formData.get('timeHorizonDays'),
     executionDays: formData.get('executionDays'),
-    positionCapital: formData.get('positionCapital') || undefined,
+    positionCapital: finalPositionCapital,
   });
 
   if (!validatedFields.success) {

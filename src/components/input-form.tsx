@@ -32,6 +32,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+// Функция для форматирования числа с точками
+const formatNumberWithDots = (value: string | number | undefined) => {
+  if (value === undefined || value === null) return '';
+  const stringValue = String(value).replace(/\D/g, '');
+  if (stringValue === '') return '';
+  return new Intl.NumberFormat('de-DE').format(Number(stringValue));
+};
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -306,7 +314,23 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
                       <FormItem>
                       <FormLabel>Инвестируемый капитал (ISK, опц.)</FormLabel>
                       <FormControl>
-                          <Input type="number" placeholder="например, 100000000" {...field} />
+                          <Input 
+                            // Явно передаем все нужные пропсы
+                            name={field.name}
+                            ref={field.ref}
+                            onBlur={field.onBlur}
+                            // Кастомная логика для форматирования
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="например, 1.000.000.000"
+                            value={formatNumberWithDots(field.value)}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/\D/g, '');
+                              if (/^\d*$/.test(rawValue)) {
+                                field.onChange(rawValue);
+                              }
+                            }}
+                          />
                       </FormControl>
                       <FormDescription>Сумма, которую вы готовы вложить.</FormDescription>
                       <FormMessage />
