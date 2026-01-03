@@ -58,17 +58,16 @@ const PriceCard = ({ title, priceRange, icon, colorClass, isBuy, inputs, activeP
     const formatForDisplay = (value: string) => {
         if (!value) return '';
         const [integer, decimal] = value.split('.');
-        if (!integer) return value;
         const formattedInteger = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        let decimalPart = '';
         if (decimal !== undefined) {
-             decimalPart = ',' + (decimal + '00').slice(0, 2);
+            return formattedInteger + ',' + decimal;
         }
-        return formattedInteger + decimalPart;
+        return formattedInteger;
     };
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value;
+        // Allow comma for decimal input, and remove thousand separators (.)
         value = value.replace(/\./g, '').replace(',', '.');
         if (/^(\d+)?(\.?\d{0,2})?$/.test(value)) {
             onCustomPriceChange(value);
@@ -284,7 +283,7 @@ export function RecommendationsPanel({ data }: { data: AnalysisResult }) {
                 />
                 <StatCard 
                     icon={<ShoppingBasket size={16}/>} 
-                    title="Объем закупки (расч.)" 
+                    title="Объем закупки (расч.)"
                     value={Math.floor(rec.estimatedBuyVolumePerDay).toLocaleString('ru-RU')} 
                     unit="ед/день"
                 />
