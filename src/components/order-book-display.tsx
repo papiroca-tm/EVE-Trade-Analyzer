@@ -202,6 +202,10 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimat
   const viewportRef = useRef<HTMLDivElement>(null);
   const spreadRef = useRef<HTMLTableRowElement>(null);
   
+  const volumeFactor = inputs?.volumeFactor ?? 1;
+  const adjustedEstimatedSellVolumePerDay = estimatedSellVolumePerDay * volumeFactor;
+  const adjustedEstimatedBuyVolumePerDay = estimatedBuyVolumePerDay * volumeFactor;
+
   useEffect(() => {
     if (viewportRef.current && spreadRef.current && (buyOrders.length > 0 || sellOrders.length > 0)) {
         const viewportHeight = viewportRef.current.offsetHeight;
@@ -244,9 +248,9 @@ export function OrderBookDisplay({ buyOrders, sellOrders, priceAnalysis, estimat
               <col className="w-1/2" />
             </colgroup>
             <TableBody>
-              <SellOrdersRows orders={sellOrders} estimatedSellVolumePerDay={estimatedSellVolumePerDay} />
+              <SellOrdersRows orders={sellOrders} estimatedSellVolumePerDay={adjustedEstimatedSellVolumePerDay} />
               <SpreadRow priceAnalysis={priceAnalysis} inputs={inputs} spreadRef={spreadRef} />
-              <BuyOrdersRows orders={buyOrders} estimatedBuyVolumePerDay={estimatedBuyVolumePerDay} />
+              <BuyOrdersRows orders={buyOrders} estimatedBuyVolumePerDay={adjustedEstimatedBuyVolumePerDay} />
             </TableBody>
           </Table>
         </ScrollArea>

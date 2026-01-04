@@ -25,6 +25,7 @@ export interface UserInputs {
   brokerSellFeePercent: number;
   salesTaxPercent: number;
   desiredNetMarginPercent: number;
+  volumeFactor: number;
   timeHorizonDays: number;
   executionDays: number;
   positionCapital?: number;

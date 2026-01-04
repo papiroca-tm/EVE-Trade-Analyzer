@@ -62,7 +62,7 @@ function findStrategicPrice(
     const sortedOrders = [...orders].sort((a, b) => side === 'buy' ? b.price - a.price : a.price - b.price);
     const bestPrice = sortedOrders[0].price;
     
-    const wallThreshold = dailyVolume * executionDays;
+    const wallThreshold = dailyVolume * inputs.volumeFactor * executionDays;
     
     let cumulativeVolumeForWall = 0;
     let wallIndex = -1;

@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { calculateAnalysis } from './analysis';
 import { fetchMarketHistory, fetchMarketOrders, getRegions, getAllMarketableTypes } from './eve-esi';
-import type { AnalysisState, AnalysisResult, Region, ItemType } from './types';
+import type { AnalysisState, AnalysisResult, Region, ItemType, UserInputs } from './types';
 
 const formSchema = z.object({
   regionId: z.coerce.number().int().positive("ID региона должен быть положительным числом."),
@@ -13,6 +13,7 @@ const formSchema = z.object({
   brokerSellFeePercent: z.coerce.number().min(0).max(100),
   salesTaxPercent: z.coerce.number().min(0).max(100),
   desiredNetMarginPercent: z.coerce.number().min(0).max(1000),
+  volumeFactor: z.coerce.number().min(0, "Коэффициент объема должен быть положительным."),
   timeHorizonDays: z.coerce.number().int().positive().min(1).max(365),
   executionDays: z.coerce.number().int().positive().min(1).max(90),
   positionCapital: z.coerce.number().int().positive().optional(),
@@ -24,9 +25,7 @@ export async function getMarketAnalysis(
 ): Promise<AnalysisState> {
   
   const positionCapitalRaw = formData.get('positionCapital') as string | null;
-  // Очищаем строку от точек.
   const cleanedString = positionCapitalRaw?.replace(/\./g, '');
-  // Явно преобразуем в число, если строка не пустая, иначе undefined.
   const finalPositionCapital = cleanedString ? Number(cleanedString) : undefined;
 
   const validatedFields = formSchema.safeParse({
@@ -36,6 +35,7 @@ export async function getMarketAnalysis(
     brokerSellFeePercent: formData.get('brokerSellFeePercent'),
     salesTaxPercent: formData.get('salesTaxPercent'),
     desiredNetMarginPercent: formData.get('desiredNetMarginPercent'),
+    volumeFactor: formData.get('volumeFactor'),
     timeHorizonDays: formData.get('timeHorizonDays'),
     executionDays: formData.get('executionDays'),
     positionCapital: finalPositionCapital,
@@ -49,7 +49,7 @@ export async function getMarketAnalysis(
     };
   }
 
-  const inputs = validatedFields.data;
+  const inputs: UserInputs = validatedFields.data;
 
   try {
     const [history, orders] = await Promise.all([

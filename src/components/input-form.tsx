@@ -12,9 +12,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Check, ChevronsUpDown, Loader2, Zap } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, Zap, Info } from 'lucide-react';
 import type { Region, ItemType } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -25,6 +26,7 @@ const formSchema = z.object({
   brokerSellFeePercent: z.coerce.number().min(0).max(100, "Должно быть между 0-100"),
   salesTaxPercent: z.coerce.number().min(0).max(100, "Должно быть между 0-100"),
   desiredNetMarginPercent: z.coerce.number().min(0, "Должно быть положительным").max(1000, "Слишком большая маржа"),
+  volumeFactor: z.coerce.number().min(0, "Должно быть положительным"),
   timeHorizonDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(365, "Максимум 365 дней"),
   executionDays: z.coerce.number().int().positive().min(1, "Минимум 1 день").max(90, "Максимум 90 дней"),
   positionCapital: z.string().optional(),
@@ -32,7 +34,6 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-// Функция для форматирования числа с точками
 const formatNumberWithDots = (value: string | number | undefined) => {
   if (value === undefined || value === null) return '';
   const stringValue = String(value).replace(/\D/g, '');
@@ -71,6 +72,7 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
       brokerSellFeePercent: 1.33,
       salesTaxPercent: 3.37,
       desiredNetMarginPercent: 5.0,
+      volumeFactor: 0.5,
       timeHorizonDays: 90,
       executionDays: 3,
       positionCapital: "1000000000",
@@ -280,6 +282,34 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
                 )}
               />
               <FormField
+                control={form.control}
+                name="volumeFactor"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                        <FormLabel>Коэффициент объема</FormLabel>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger type="button">
+                                    <Info className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className='max-w-xs p-3'>
+                                    <p className="mb-2"><strong>Коэффициент объёма</strong> — параметр ручной настройки, учитывающий, что стакан ордеров отражает лишь текущее состояние рынка и не включает будущие заявки.</p>
+                                    <p className="mb-2">Значение определяет, какую долю суточного объёма покупок и продаж учитывать при расчёте уровней поддержки и сопротивления. Например, 0,5 означает, что в расчётах используется половина дневного объёма, а оставшаяся часть рассматривается как потенциальные ордера, которые могут появиться в стакане в процессе торгов (новые sell- и buy-ордера от других участников рынка).</p>
+                                    <p className="mb-2"><strong>Диапазон значений:</strong> от 0 до 1 с шагом 0,1.</p>
+                                    <p>Меньшие значения — более консервативный подход с запасом на будущую ликвидность.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                    <FormControl>
+                      <Input type="number" step="0.1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
                   control={form.control}
                   name="timeHorizonDays"
                   render={({ field }) => (
@@ -315,11 +345,9 @@ export function InputForm({ formAction, initialData, isLoading }: InputFormProps
                       <FormLabel>Инвестируемый капитал (ISK, опц.)</FormLabel>
                       <FormControl>
                           <Input 
-                            // Явно передаем все нужные пропсы
                             name={field.name}
                             ref={field.ref}
                             onBlur={field.onBlur}
-                            // Кастомная логика для форматирования
                             type="text"
                             inputMode="numeric"
                             placeholder="например, 1.000.000.000"
